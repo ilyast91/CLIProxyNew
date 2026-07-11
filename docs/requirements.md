@@ -152,8 +152,35 @@
 - R6.3 Liveness/readiness probes, graceful shutdown.
 - R6.4 Observability: метрики (Prometheus), трейсинг (OpenTelemetry),
   структурные логи (`slog`).
-- ❓ **Открыто:** нужен ли общий Redis (кэш моделей, rate-limit, координация).
+- ✅ **Решено:** **без Redis** на данном этапе.
+  ⚠️ Следствия для multi-replica (важно для дизайна):
+  - **Session/token lookup** — каждый запрос читает сессию из Postgres.
+    Чтобы не бить БД на каждый запрос, нужен **in-process кэш с коротким TTL**
+    (напр. 5–15с). Допустима рассинхронизация между репликами в пределах TTL
+    (revocation生效ает с задержкой до TTL). Приемлемо, т.к. session TTL
+    пользователя и так 5 минут.
+  - **Rate-limit / quota** — без общего счётчика в Redis варианты:
+    (a) счётчики в Postgres (atomic `UPDATE ... RETURNING`), или
+    (b) per-replica лимиты (N/replicas на реплику, soft). Выбор — в дизайне R6.
+  - **Кэш моделей/override** — in-process с invalidation по TTL; источник
+    истины — Postgres.
+  - **Coordination (leader election)** — Postgres advisory lock (ADR-7),
+    Redis не требуется.
+  Слой кэша держим за интерфейсом (`internal/cache`), чтобы при росте
+  подключить Redis без правок потребителей.
 - ❓ **Открыто:** конфигурация — env / ConfigMap / конфиг-файл.
+
+### R8. Клиентские API-форматы
+- R8.1 Поддерживаются **все форматы, которые предоставляет ядро (SDK):**
+  - **OpenAI** — Chat Completions (`/v1/chat/completions`) и Responses API;
+  - **Anthropic/Claude** — Messages API (`/v1/messages`);
+  - **Gemini** — `generateContent` (`/v1beta/models/...:generateContent`);
+  - **Codex** (GPT-модели через OAuth);
+  - **Grok**.
+- R8.2 Бизнес-слой не реализует парсинг/трансляцию форматов — это делает ядро.
+  Бизнес-слой: авторизует запрос (R2), считает аналитику (R3), нормализует
+  модель (model mapping/override), делегирует вызов ядру.
+- ✅ **Решено:** набор форматов = все из ядра (ADR-2).
 
 ### R7. Scheduler / watcher (оркестрация refresh токенов и моделей)
 - R7.1 Координация периодического обновления upstream-токенов и списка моделей.
@@ -177,13 +204,13 @@
 | ID | Решение | Статус |
 |----|---------|--------|
 | ADR-1 | Модель интеграции: ядро = внешняя go-зависимость, CLIProxyNew = бизнес-слой (как CLIProxyAPI + CLIProxyAPIBusiness) | ✅ Решено |
-| ADR-2 | Какой набор клиентских API-форматов поддерживать (OpenAI / Anthropic / Gemini / Codex) — зависит от возможностей ядра | ❓ |
+| ADR-2 | Клиентские API-форматы: ✅ все поддерживаемые ядром — OpenAI (Chat Completions + Responses), Anthropic/Claude (Messages), Gemini (generateContent), Codex, Grok | ✅ Решено |
 | ADR-3 | LDAP-интеграция: ✅ прямой bind/search + live-lookup групп (без фоновой синхронизации) | ✅ Решено |
 | ADR-4 | Модель multi-tenancy: ✅ плоская (пользователи + роли user/admin) | ✅ Решено |
 | ADR-5 | Хранилище аналитики: ✅ Postgres (с заделом под замену на ClickHouse) | ✅ Решено |
 | ADR-6 | Доступ к БД: ✅ pgx + sqlc + golang-migrate | ✅ Решено |
 | ADR-7 | Leader election для scheduler: ✅ Postgres advisory lock | ✅ Решено |
-| ADR-8 | Нужен ли Redis (кэш моделей, rate-limit, координация) | ❓ |
+| ADR-8 | Redis: ✅ пока без Redis. Кэш/сессии — in-process; coordination (leader election) — Postgres advisory lock | ✅ Решено |
 | ADR-9 | Контракты интеграции с SDK ядра (sdk/cliproxy) — какие методы/хуки вызывать для refresh и вызовов | ❓ |
 
 ## История изменений
@@ -201,3 +228,6 @@
 - 2026-07-11 — R5: шифрование секретов at-rest. Два класса: односторонние
   хэши (bcrypt, для API-keys/паролей) и обратимое шифрование (AES-256-GCM,
   для upstream-credentials). Мастер-ключ — env-переменная (k8s Secret).
+- 2026-07-11 — ADR-2: поддерживаются все форматы ядра (OpenAI, Anthropic,
+  Gemini, Codex, Grok) → новая секция R8. ADR-8: без Redis → последствия
+  для multi-replica (in-process кэш, Postgres-счётчики) зафиксированы в R6.
