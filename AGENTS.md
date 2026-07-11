@@ -11,7 +11,8 @@
 (бизнес-слой).
 
 - **Go module:** `github.com/ilyast91/CLIProxyNew` (go 1.26)
-- **Ветка:** `main`, git remote пока не настроен.
+- **Ветка:** `main` (tracking `origin/main`).
+- **Remote:** `origin` → `https://github.com/ilyast91/CLIProxyNew.git`
 
 ## Критически важно: модель интеграции
 
