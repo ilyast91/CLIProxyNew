@@ -90,6 +90,7 @@
 - R2.1 Каждый запрос к прокси-API авторизуется **long-lived API-key** (как у OpenAI).
 - R2.2 API-key привязан к пользователю, **хэшируется** в БД (только hash),
   пользователь видит открытый ключ один раз при создании.
+  Алгоритм хэширования — bcrypt (cost 12), см. R5 (класс «односторонние хэши»).
 - R2.3 API-key можно отзывать, опциональный expiry и scope.
 - ✅ **Решено:** два механизма — opaque session (люди/UI) + long-lived API-keys
   (программный доступ).
@@ -115,8 +116,32 @@
 - R5.2 **Стек доступа:** `pgx` (v5, пул) + `sqlc` (type-safe генерация из SQL).
 - R5.3 **Миграции:** `golang-migrate` (SQL-файлы в `db/migrations/`).
 - ✅ **Решено:** pgx + sqlc + golang-migrate.
-- ❓ **Открыто:** шифрование секретов at-rest (upstream-credentials) — pgcrypto
-  / envelope encryption / KMS.
+- ✅ **Решено:** шифрование секретов at-rest — **два класса по криптосвойствам:**
+  - **Односторонние хэши** (one-way, восстановить нельзя, только сверить):
+    API-keys, пароли (если храним). Алгоритм — **bcrypt** (cost 12) или
+    argon2id. Открытое значение API-key показывается пользователю один раз при
+    создании; в БД — только hash.
+    Эталонный интерфейс пакета `internal/security`:
+    ```go
+    package security
+
+    import "golang.org/x/crypto/bcrypt"
+
+    const bcryptCost = 12
+
+    // HashPassword — односторонний хэш (для API-key/пароля).
+    func HashPassword(password string) (string, error) { ... }
+
+    // CheckPassword — сверка с хэшем.
+    func CheckPassword(hash, password string) bool { ... }
+    ```
+  - **Обратимое шифрование** (two-way, нужно расшифровать для использования):
+    upstream-credentials (OAuth/refresh-токены провайдеров) и прочие секреты,
+    которые сервис передаёт ядру для вызова. Алгоритм — **AES-256-GCM**
+    (симметричный, аутентифицированный), ключ — из конфига/KMS.
+    ⚠️ bcrypt сюда НЕ подходит (однонаправленный, токен не восстановить).
+- ❓ **Открыто:** источник мастер-ключа для AES-GCM — env-переменная /
+  файл / KMS (AWS KMS / HashiCorp Vault / GCP KMS).
 
 ### R6. Надёжность, масштабирование, observability, k8s
 - R6.1 Приложение **stateless**, всё состояние — в Postgres (+ опц. Redis).
@@ -170,3 +195,6 @@
   через long-lived API-keys (R2).
 - 2026-07-11 — R1: добавлена отдельная LDAP-группа пользователей (право на
   вход) помимо группы администраторов. Обе группы — в конфиге.
+- 2026-07-11 — R5: шифрование секретов at-rest. Два класса: односторонние
+  хэши (bcrypt, для API-keys/паролей) и обратимое шифрование (AES-256-GCM,
+  для upstream-credentials).
