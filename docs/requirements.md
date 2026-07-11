@@ -94,6 +94,9 @@
 - R2.3 API-key можно отзывать, опциональный expiry и scope.
 - ✅ **Решено:** два механизма — opaque session (люди/UI) + long-lived API-keys
   (программный доступ).
+- ✅ **Решено (ADR-9):** проверка API-key на каждый запрос — через реализацию
+  `access.Provider.Authenticate` (контракт ядра). LDAP-cookie (R1) — отдельный
+  middleware, не access.Provider.
 
 ### R3. Аналитика использования
 - R3.1 Сбор событий на каждый запрос: пользователь, токен/API-key, провайдер,
@@ -103,6 +106,11 @@
   (по дню) таблице + материализованные агрегаты.
 - ✅ **Решено (намерение):** слой репозитория абстрагировать так, чтобы при
   росте объёмов заменить реализацию на ClickHouse без переписывания потребителей.
+- ✅ **Решено (ADR-9):** источник данных — `usage.Plugin.HandleUsage(Record)`
+  контракта ядра. `Record` содержит готовую структуру: Provider, Model, Alias,
+  AuthID, AuthType, ReasoningEffort, Latency, TTFT, Failed, Failure{StatusCode,
+  Body}, Detail{Input/Output/Reasoning/Cached/TotalTokens}. Привязка к
+  пользователю/API-key — по principal из `access.Provider.Result` в context.
 - ❓ **Открыто:** глубина ретенции сырых событий, TTL-джобы.
 - ❓ **Открыто:** встроенные дашборды в сервисе или только API + Grafana.
 
@@ -191,11 +199,18 @@
 - R7.3 Observability джоб: метрики успешности/latency, алёрты на сбои refresh.
 - ✅ **Решено:** leader election — **Postgres advisory lock** (не добавляет
   зависимостей, Postgres уже есть).
-- ❓ **Открыто:** стратегия refresh — poll (cron-like) интервалы per-провайдер
-  vs адаптивные; retry + backoff политики.
-- ❓ **Открыто:** как ядро сообщает результат refresh бизнес-слою (callback/hook
-  vs бизнес-слой сам вызывает `sdk.Refresh*()` и сам persist'ит) — зависит от
-  контрактов SDK ядра (TBD при изучении sdk/cliproxy).
+- ✅ **Решено (ADR-9):** архитектура refresh определена контрактами ядра:
+  - ядро само вызывает `coreManager.StartAutoRefresh(ctx, 15*time.Minute)` с
+    min-heap по `NextRefreshAfter`, до 16 воркеров, вызывает
+    `ProviderExecutor.Refresh(ctx, auth)` (refresh-протоколы Codex/Claude/xAI
+    — в ядре);
+  - бизнес-слой НЕ пишет refresh-логику — он реализует `coreauth.Store`, и ядро
+    само зовёт `Store.Save` после refresh;
+  - `WatcherFactory` бизнес-слоя пушит `coreauth.Auth`-обновления в очередь ядра;
+    в multi-replica poller БД работает только на лидере (advisory lock).
+- ❓ **Открыто:** точные настройки `StartAutoRefresh` (интервал по умолчанию 15
+  мин, max-concurrency=16, `RefreshEvaluator`) — зафиксировать при
+  имплементации watcher'а; retry/backoff — на стороне ядра.
 
 ---
 
@@ -211,7 +226,7 @@
 | ADR-6 | Доступ к БД: ✅ pgx + sqlc + golang-migrate | ✅ Решено |
 | ADR-7 | Leader election для scheduler: ✅ Postgres advisory lock | ✅ Решено |
 | ADR-8 | Redis: ✅ пока без Redis. Кэш/сессии — in-process; coordination (leader election) — Postgres advisory lock | ✅ Решено |
-| ADR-9 | Контракты интеграции с SDK ядра (sdk/cliproxy) — какие методы/хуки вызывать для refresh и вызовов | ❓ |
+| ADR-9 | Контракты интеграции с SDK ядра: ✅ бизнес-слой реализует 7 контрактов (coreauth.Store, Selector, Hook; usage.Plugin; access.Provider; WatcherFactory; ModelRegistryHook). См. [docs/adr/ADR-9-sdk-contracts.md](adr/ADR-9-sdk-contracts.md) | ✅ Решено |
 
 ## История изменений
 - 2026-07-11 — черновик по первому набору требований (6 пунктов).
@@ -231,3 +246,7 @@
 - 2026-07-11 — ADR-2: поддерживаются все форматы ядра (OpenAI, Anthropic,
   Gemini, Codex, Grok) → новая секция R8. ADR-8: без Redis → последствия
   для multi-replica (in-process кэш, Postgres-счётчики) зафиксированы в R6.
+- 2026-07-11 — ADR-9 закрыт: исследованы контракты SDK v7, бизнес-слой
+  реализует 7 контрактов (Store, Selector, Hook, usage.Plugin, access.Provider,
+  WatcherFactory, ModelRegistryHook). См. docs/adr/ADR-9-sdk-contracts.md.
+  Уточнены R3 (usage.Record) и R7 (StartAutoRefresh ядра).
