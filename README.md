@@ -51,10 +51,12 @@ docs/            — требования, ADR, дизайн
 ## Документация
 
 - [`docs/requirements.md`](docs/requirements.md) — требования R1–R10 (зафиксированы)
+- [`docs/architecture.md`](docs/architecture.md) — архитектурный дизайн (components, потоки, deployment)
+- [`docs/database-schema.md`](docs/database-schema.md) — схема БД (ER, таблицы, индексы, миграции)
 - [`docs/adr/ADR-9-sdk-contracts.md`](docs/adr/ADR-9-sdk-contracts.md) — контракты интеграции с ядром (7 интерфейсов)
 - [`docs/adr/ADR-10-per-call-type-proxy.md`](docs/adr/ADR-10-per-call-type-proxy.md) — per-call-type egress proxy routing
 - [`AGENTS.md`](AGENTS.md) — инструкция для агентов
 
 ## Статус
 
-📋 Требования зафиксированы (10 ADR закрыты). Открытые пункты — имплементационные детали дизайна компонентов. Следующий этап — архитектурный дизайн.
+📋 Требования зафиксированы (10 ADR закрыты). Архитектурный дизайн и схема БД описаны. Следующий этап — имплементация компонентов.

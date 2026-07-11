@@ -123,6 +123,11 @@ go test ./...           # тесты
 - [`docs/requirements.md`](docs/requirements.md) — требования R1–R10 и ADR.
   **Читать перед:** правками go.mod/зависимостей, контрактов с SDK ядра,
   схемы БД, слойности `internal/`.
+- [`docs/architecture.md`](docs/architecture.md) — архитектурный дизайн
+  (components, потоки данных, deployment). **Читать перед:** правками
+  потоков/wiring/middleware.
+- [`docs/database-schema.md`](docs/database-schema.md) — схема БД (ER,
+  таблицы, индексы). **Читать перед:** правками store/миграций/sqlc.
 - [`docs/adr/ADR-9-sdk-contracts.md`](docs/adr/ADR-9-sdk-contracts.md) —
   контракты интеграции. **Читать перед:** реализацией Store/Selector/Hook/
   usage.Plugin/access.Provider/WatcherFactory/ModelRegistryHook.

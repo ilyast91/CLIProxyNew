@@ -232,7 +232,11 @@
     Redis не требуется.
   Слой кэша держим за интерфейсом (`internal/cache`), чтобы при росте
   подключить Redis без правок потребителей.
-- ❓ **Открыто:** конфигурация — env / ConfigMap / конфиг-файл.
+- ✅ **Решено:** конфигурация — **config.yaml (k8s ConfigMap) + env для
+  секретов (k8s Secret)**. Секции: `ldap`, `proxy` (per-call-type),
+  `encryption`, `server`, `db`, `logging`. Поддержка env-override поверх
+  файла (12-factor). Секреты (`CLIPROXY_ENCRYPTION_KEY`, DB password, LDAP
+  bind password) — только через env, не в config.yaml.
 
 ### R7. Scheduler / watcher (оркестрация refresh токенов и моделей)
 - R7.1 Координация периодического обновления upstream-токенов и списка моделей.
@@ -483,3 +487,8 @@
   Исправлены китайские артефакты в тексте (生效 → «вступает в силу»,
   短期 → «короткий»), роль репо дополнена (Codex/Grok, management, прокси).
   ADR-9 дополнен cross-reference к ADR-10 про auto-refresh.
+- 2026-07-11 — **R6 закрыт:** конфиг = config.yaml (ConfigMap) + env-секреты
+  (k8s Secret). Секреты только через env. Поддержка env-override (12-factor).
+- 2026-07-11 — **архитектурный дизайн:** созданы
+  docs/architecture.md (components, data flows, deployment) и
+  docs/database-schema.md (ER, таблицы, индексы, миграции).
