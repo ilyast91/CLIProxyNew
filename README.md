@@ -1,6 +1,6 @@
 # CLIProxyNew
 
-Бизнес-обвязка над upstream relay-движком — оборачивает CLI-агентов (Codex, Claude Code, Gemini CLI и др.) в OpenAI/Gemini/Claude-совместимый API с auth, аналитикой, квотами и observability.
+Бизнес-обвязка над upstream relay-движком — оборачивает CLI-агентов (Codex, Claude Code, Gemini CLI и др.) в OpenAI/Gemini/Claude/Codex/Grok-совместимый API с auth (LDAP), аналитикой использования, management-поверхностью для пользователей и администраторов, per-call-type egress-прокси и observability.
 
 ## Архитектурная модель
 
@@ -12,39 +12,49 @@
 
 | Слой | Роль | Где живёт |
 |------|------|-----------|
-| **Ядро (upstream relay engine)** | Вызовы провайдеров, transport, streaming, парсинг, refresh токенов, реестр моделей, плагины | **Внешняя Go-зависимость** в `go.mod` (мы её не пишем) |
-| **CLIProxyNew (этот репо)** | Auth (LDAP), аналитика, API для клиентов, квоты, watcher-оркестрация, БД, observability, k8s | Здесь |
+| **Ядро (upstream relay engine)** | Вызовы провайдеров, transport, streaming, парсинг, refresh-протоколы OAuth, реестр моделей, плагины | **Внешняя Go-зависимость** в `go.mod` (мы её не пишем) |
+| **CLIProxyNew (этот репо)** | Auth (LDAP), аналитика, management-API (user/admin), per-call-type прокси, БД, observability, k8s | Здесь |
 
-> Принцип: ядро — внешняя go-зависимость. Вся ответственность этого репозитория — бизнес-обвязка поверх него. Мы не дублируем upstream-специфику (refresh-протоколы провайдеров, transport) — делегируем ядру через его SDK.
+> **Принцип:** ядро — внешняя go-зависимость. Бизнес-слой реализует **7 контрактов расширения** ядра (ADR-9): `coreauth.Store`, `coreauth.Selector`, `coreauth.Hook`, `usage.Plugin`, `access.Provider`, `WatcherFactory`, `ModelRegistryHook`. Мы не дублируем upstream-специфику (refresh-протоколы, transport) — делегируем ядру.
 
 ## Стек
 
 - **Go 1.26**
-- **БД:** Postgres + `pgx` + `sqlc` + `golang-migrate`
-- **Аналитика:** Postgres (партиционированные таблицы + материализованные агрегаты)
-- **Auth:** LDAP, opaque session-токены + long-lived API-keys
-- **Scheduler:** Postgres advisory lock (leader election)
+- **БД:** Postgres + `pgx/v5` + `sqlc` + `golang-migrate` (без ORM)
+- **Аналитика:** Postgres (партиционирование по дню + материализованные агрегаты; задел под ClickHouse)
+- **Auth:** LDAP (bind/search, live-lookup групп), opaque session-токены (cookie) + long-lived API-keys (bcrypt)
+- **Шифрование at-rest:** bcrypt (API-keys) + AES-256-GCM (upstream-credentials, LDAP bind), мастер-ключ из env (k8s Secret), key-versioning для ротации
+- **Scheduler/watcher:** ядро делает auto-refresh, бизнес-слой оркеструет (Postgres advisory lock для leader election)
+- **Egress-прокси:** per-call-type (inference/auth/quota/models), direct по умолчанию (R10)
 - **Observability:** Prometheus, OpenTelemetry, `slog`
-- **Деплой:** k8s, multi-replica, stateless
+- **Деплой:** k8s, multi-replica, stateless (без Redis на первой версии)
 
 ## Структура
 
 ```
-cmd/         — точки входа (бинарники)
-internal/    — внутренняя бизнес-логика
-  auth/        LDAP, session/API-key
-  usage/       аналитика
-  watcher/     оркестрация refresh
-  store/       репозитории (pgx + sqlc)
-db/migrations/ — SQL-миграции golang-migrate
-docs/        — документация и требования
+cmd/cliproxy/    — точка входа (wiring: конфиг, DI, запуск Service)
+internal/        — бизнес-логика
+  access/          access.Provider — проверка клиентских API-keys (+ users.status)
+  auth/            LDAP, session-cookie, coreauth.Selector (выбор аккаунта)
+  cache/           in-process кэш (session/API-key lookup, модели)
+  config/          конфигурация (LDAP, прокси, шифрование, ...)
+  httpapi/         клиентские эндпоинты + management-API + middleware
+  modelregistry/   ModelRegistryHook — зеркало реестра моделей в Postgres
+  security/        bcrypt + AES-256-GCM (2 класса секретов)
+  store/           репозитории (pgx + sqlc): users, api_keys, auths, analytics, audit
+  usage/           usage.Plugin — аналитика запросов
+  watcher/         WatcherFactory — poll БД + leader election
+db/migrations/   — SQL-миграции golang-migrate
+docs/            — требования, ADR, дизайн
 ```
 
 ## Документация
 
-- [`docs/requirements.md`](docs/requirements.md) — требования (в активном обсуждении)
+- [`docs/requirements.md`](docs/requirements.md) — требования R1–R10 (зафиксированы)
+- [`docs/adr/ADR-9-sdk-contracts.md`](docs/adr/ADR-9-sdk-contracts.md) — контракты интеграции с ядром (7 интерфейсов)
+- [`docs/adr/ADR-10-per-call-type-proxy.md`](docs/adr/ADR-10-per-call-type-proxy.md) — per-call-type egress proxy routing
 - [`AGENTS.md`](AGENTS.md) — инструкция для агентов
 
 ## Статус
 
-🚧 Ранний этап: сбор требований и проектирование архитектуры.
+📋 Требования зафиксированы (10 ADR закрыты). Открытые пункты — имплементационные детали дизайна компонентов. Следующий этап — архитектурный дизайн.

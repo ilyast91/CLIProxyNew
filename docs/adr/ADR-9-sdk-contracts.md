@@ -182,6 +182,9 @@ admin/front-роутов.
   гарантирует, что watcher-poller БД работает на одной реплике. Открытые
   вопросы R7 (интервалы, retry/backoff) → уточняются у ядерных настроек
   `StartAutoRefresh` и `RefreshEvaluator`.
+  ⚠️ **Важно для R10:** `StartAutoRefresh` вызывает `ProviderExecutor.Refresh`
+  напрямую по `auth.ID`, **минуя `Selector.Pick`** → per-call-type прокси для
+  auto-refresh применить нельзя (только default аккаунта). См. ADR-10.
 - **R3 (аналитика):** `usage.Plugin.HandleUsage(Record)` даёт готовую структуру
   для сырого события — Provider/Model/AuthID/токены/latency/status. Это
   снимает открытый вопрос «какие данные собирать».
