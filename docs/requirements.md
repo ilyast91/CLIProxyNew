@@ -332,6 +332,29 @@
 - ❓ **Открыто:** форматы management-API (REST/JSON-схемы эндпоинтов) —
   зафиксировать в R9-дизайне.
 
+### R10. Per-call-type egress proxy routing
+- **R10.1** Для каждого **типа upstream-вызова** настраивается отдельный
+  egress-прокси:
+  - **inference** — вызовы completion/generation к провайдерам (основной трафик);
+  - **auth** — OAuth-флоу (login, device-flow, token-exchange);
+  - **quota** — запросы квоты/лимитов подписки провайдера;
+  - **models** — запросы списка/обновления моделей провайдеров.
+  Каждый тип имеет свой прокси-адрес (HTTP/SOCKS) в конфигурации.
+  **Если прокси не указан — подключение напрямую (direct).**
+- **R10.2** Назначение прокси — **глобально per call-type** (без per-provider
+  override прокси). Хранится в конфигурации сервиса.
+- **R10.3** **Per-provider `base_url`** (отдельное требование): каждый
+  провайдер может иметь свой базовый URL upstream-эндпоинта (для кастомных
+  OpenAI-compatible эндпоинтов, напр. OpenRouter). Реализуется через
+  `coreauth.Auth.Attributes["base_url"]` (нативное поле ядра).
+- ✅ **Решено (ADR-10):** реализация per-call-type прокси — **подход A**
+  (динамический `ProxyURL` в `Selector.Pick` / точках вызова), т.к. подход C
+  (per-request Options) невозможен в рамках контрактов ядра v7, а подход B
+  (N регистраций) неприемлем из-за дублирования. См.
+  [docs/adr/ADR-10-per-call-type-proxy.md](adr/ADR-10-per-call-type-proxy.md).
+- ❓ **Открыто:** точный механизм определения call-type в `Selector.Pick` и
+  формат конфиг-секции прокси — при дизайне R10.
+
 ---
 
 ## Открытые архитектурные решения
@@ -347,6 +370,7 @@
 | ADR-7 | Leader election для scheduler: ✅ Postgres advisory lock | ✅ Решено |
 | ADR-8 | Redis: ✅ пока без Redis. Кэш/сессии — in-process; coordination (leader election) — Postgres advisory lock | ✅ Решено |
 | ADR-9 | Контракты интеграции с SDK ядра: ✅ бизнес-слой реализует 7 контрактов (coreauth.Store, Selector, Hook; usage.Plugin; access.Provider; WatcherFactory; ModelRegistryHook). См. [docs/adr/ADR-9-sdk-contracts.md](adr/ADR-9-sdk-contracts.md) | ✅ Решено |
+| ADR-10 | Per-call-type egress proxy: ✅ подход A (динамический ProxyURL в Selector/точках вызова), т.к. ядро v7 не поддерживает per-request override. Per-provider base_url через Auth.Attributes. См. [docs/adr/ADR-10-per-call-type-proxy.md](adr/ADR-10-per-call-type-proxy.md) | ✅ Решено |
 
 ## История изменений
 - 2026-07-11 — черновик по первому набору требований (6 пунктов).
@@ -390,3 +414,7 @@
   проверяется в access.Provider и при логине). R1.4 и R2 дополнены.
 - 2026-07-11 — R9.A.7: экспорт/импорт OAuth-credentials в JSON. Полные
   credentials, dedup по provider+email, аудит в admin_audit_log.
+- 2026-07-11 — R10 (per-call-type egress proxy) + ADR-10. Исследование ядра v7
+  подтвердило: per-request override невозможен → принят подход A (динамический
+  ProxyURL в Selector). Per-provider base_url через Auth.Attributes. Если прокси
+  не указан — direct.
