@@ -97,3 +97,21 @@ proxyFor(callType, provider) string  // чистая функция, не persis
   fallback. Per-provider override прокси — НЕ требуется (только per-provider
   base_url). Если позже понадобится — расширить конфиг.
 - Формат конфиг-секции прокси (HTTP/SOCKS URL per call-type) — в дизайне R10.
+
+## Известное ограничение: auto-refresh не идёт через Selector
+
+Ядро вызывает `ProviderExecutor.Refresh(ctx, auth)` напрямую по `auth.ID`
+в рамках `coreManager.StartAutoRefresh` (min-heap по `NextRefreshAfter`),
+**минуя `Selector.Pick`**. Поэтому динамическое выставление `auth.ProxyURL`
+в Selector не сработает для auto-refresh-вызовов (call-type `auth`).
+
+**Решение на первой версии:** default-прокси аккаунта.
+`Auth.ProxyURL` по умолчанию (persisted в Store) = inference-прокси (или
+direct). Auto-refresh идёт через него. Per-call-type override применяется
+точно к:
+- **inference** — `Selector.Pick` выставляет временный ProxyURL;
+- **quota / models** — business-слой инициирует вызов (R9.A.4/A.6) и
+  выставляет ProxyURL в точке вызова.
+
+Если позже понадобится per-call-type прокси для auto-refresh — потребовалось
+бы расширение ядра (противоречит ADR-1), поэтому сознательно не делаем.
