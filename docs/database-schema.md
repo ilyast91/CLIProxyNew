@@ -20,20 +20,20 @@ erDiagram
     users ||--o{ api_keys : "выпускает"
     users ||--o{ sessions : "имеет"
     users ||--o{ usage_events : "генерирует"
-    users }o--o{ admin_audit_log : "действует в (actor)"
+    users }o--o{ admin_audit_log : "actor"
 
-    upstream_accounts ||--o{ usage_events : "используется в (auth_id)"
-    upstream_accounts ||--o{ admin_audit_log : "цель действия (target)"
-    upstream_accounts ||--o{ model_overrides : "применяется к моделям"
+    upstream_accounts ||--o{ usage_events : "auth_id"
+    upstream_accounts ||--o{ admin_audit_log : "target"
+    upstream_accounts ||--o{ model_overrides : "модели"
 
     api_keys ||--o{ usage_events : "авторизует"
 
     users {
         bigint id PK
-        text   username UK "LDAP sAMAccountName / DN-производное"
-        text   email
-        text   role "user | admin"
-        text   status "active | blocked"
+        text username UK
+        text email
+        text role
+        text status
         timestamptz created_at
         timestamptz updated_at
     }
@@ -41,12 +41,12 @@ erDiagram
     api_keys {
         bigint id PK
         bigint user_id FK
-        text   key_hash "bcrypt"
-        text   key_prefix "первые 8 символов (для отображения)"
-        text   name "метка пользователя"
-        text   status "active | revoked"
-        date   expires_at "nullable"
-        jsonb  scope "nullable"
+        text key_hash
+        text key_prefix
+        text name
+        text status
+        date expires_at
+        jsonb scope
         timestamptz created_at
         timestamptz last_used_at
     }
@@ -54,23 +54,23 @@ erDiagram
     sessions {
         bigint id PK
         bigint user_id FK
-        text   token_hash "хэш opaque session token"
-        text   role "на момент выпуска (для TTL)"
+        text token_hash
+        text role
         timestamptz expires_at
         timestamptz created_at
-        inet   created_ip
+        inet created_ip
     }
 
     upstream_accounts {
         bigint id PK
-        text   provider UK "(provider, email) уникальная пара"
-        text   email
-        text   auth_type "oauth | api-key"
-        text   label "метка админа"
-        bytea  credentials_enc "AES-256-GCM blob (coreauth.Auth JSON)"
-        int    enc_key_version "для ротации мастер-ключа"
-        jsonb  attributes "base_url, excluded_models, ..."
-        text   status "active | disabled | unavailable"
+        text provider UK
+        text email
+        text auth_type
+        text label
+        bytea credentials_enc
+        int enc_key_version
+        jsonb attributes
+        text status
         timestamptz last_refreshed_at
         timestamptz next_refresh_after
         timestamptz created_at
@@ -78,11 +78,11 @@ erDiagram
 
     model_overrides {
         bigint id PK
-        text   provider
-        text   model_alias UK "как видит клиент"
-        text   upstream_model "куда мапится"
+        text provider
+        text model_alias UK
+        text upstream_model
         boolean enabled
-        jsonb  config "nullable"
+        jsonb config
         timestamptz updated_at
     }
 
@@ -90,30 +90,30 @@ erDiagram
         bigint id PK
         bigint user_id FK
         bigint api_key_id FK
-        bigint upstream_account_id FK "auth_id"
-        text   provider
-        text   model
-        int    input_tokens
-        int    output_tokens
-        int    reasoning_tokens
-        int    cached_tokens
-        int    total_tokens
-        int    status_code
-        text   error "nullable"
-        int    latency_ms
-        int    ttft_ms
+        bigint upstream_account_id FK
+        text provider
+        text model
+        int input_tokens
+        int output_tokens
+        int reasoning_tokens
+        int cached_tokens
+        int total_tokens
+        int status_code
+        text error
+        int latency_ms
+        int ttft_ms
         boolean failed
-        timestamptz created_at "partition key"
+        timestamptz created_at
     }
 
     admin_audit_log {
         bigint id PK
         bigint actor_user_id FK
-        text   action "export_oauth | import_oauth | block_user | ..."
-        text   target_type "upstream_account | user | model_override"
-        text   target_id "идентификатор цели"
-        jsonb  details "доп. контекст"
-        inet   actor_ip
+        text action
+        text target_type
+        text target_id
+        jsonb details
+        inet actor_ip
         timestamptz created_at
     }
 ```

@@ -12,31 +12,31 @@
 
 ```mermaid
 graph TB
-    subgraph Client[Клиенты]
-        U[Пользователь UI/curl]
-        APP[Приложение / SDK]
+    subgraph Client["Клиенты"]
+        U["Пользователь UI/curl"]
+        APP["Приложение / SDK"]
     end
 
-    subgraph CLIProxyNew[CLIProxyNew — бизнес-слой]
-        H[httpapi<br/>middleware + management-API]
-        A[access.Provider<br/>проверка API-keys]
-        SEL[auth.Selector<br/>выбор аккаунта + R10 прокси]
-        USG[usage.Plugin<br/>аналитика]
-        ST[store<br/>pgx+sqlc → Postgres]
-        SEC[security<br/>bcrypt + AES-GCM]
-        W[watcher<br/>poller + leader election]
-        MR[modelregistry<br/>зеркало моделей]
+    subgraph CLIProxyNew["CLIProxyNew — бизнес-слой"]
+        H["httpapi<br/>middleware + management-API"]
+        A["access.Provider<br/>проверка API-keys"]
+        SEL["auth.Selector<br/>выбор аккаунта + R10 прокси"]
+        USG["usage.Plugin<br/>аналитика"]
+        ST["store<br/>pgx+sqlc to Postgres"]
+        SEC["security<br/>bcrypt + AES-GCM"]
+        W["watcher<br/>poller + leader election"]
+        MR["modelregistry<br/>зеркало моделей"]
     end
 
-    subgraph Core[Ядро — CLIProxyAPI v7, внешняя go-зависимость]
-        SVC[cliproxy.Service<br/>Gin-server + StartAutoRefresh]
-        EXEC[ProviderExecutor<br/>refresh + execute + stream]
-        REG[ModelRegistry<br/>источник истины моделей]
+    subgraph Core["Ядро — CLIProxyAPI v7, внешняя go-зависимость"]
+        SVC["cliproxy.Service<br/>Gin-server + StartAutoRefresh"]
+        EXEC["ProviderExecutor<br/>refresh + execute + stream"]
+        REG["ModelRegistry<br/>источник истины моделей"]
     end
 
-    subgraph DS[Хранилища]
-        PG[(Postgres)]
-        LDAP[LDAP/AD]
+    subgraph DS["Хранилища"]
+        PG[("Postgres")]
+        LDAP["LDAP/AD"]
     end
 
     U -->|login LDAP| H
@@ -53,11 +53,11 @@ graph TB
     W --> ST
     MR --> ST
     ST <--> PG
-    A -.проверяет.-> LDAP
-    SVC -.Store.Save.-> ST
-    SVC -.usage.Record.-> USG
-    REG -.ModelRegistryHook.-> MR
-    SEC -.шифр.-> ST
+    A -.->|проверяет| LDAP
+    SVC -.->|Store.Save| ST
+    SVC -.->|usage.Record| USG
+    REG -.->|ModelRegistryHook| MR
+    SEC -.->|шифр| ST
 ```
 
 ### Развязка ответственности
@@ -78,24 +78,24 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-    participant M as main()
+    participant M as main
     participant C as config
     participant DB as pgx pool
-    participant S as security (AES key)
+    participant S as security
     participant Store as store
     participant CoreMgr as coreauth.Manager
     participant B as cliproxy.Builder
     participant Svc as Service.Run
 
-    M->>C: LoadConfig(config.yaml + env)
-    M->>DB: pgxpool.New(dsn)
-    M->>S: NewAES(env.CLIPROXY_ENCRYPTION_KEY)
-    M->>Store: New(db, aes) // wraps Store с шифрованием
-    M->>Store: RegisterTokenStore(store) // глобальная регистрация
-    M->>CoreMgr: coreauth.NewManager(store, selector, hook)
-    M->>B: NewBuilder().With*().Build()
-    Note over B: WithConfig, WithCoreAuthManager,<br/>WithRequestAccessManager,<br/>WithWatcherFactory,<br/>WithServerOptions(middleware, роуты)
-    M->>Svc: service.Run(ctx) // блокирует
+    M->>C: LoadConfig config.yaml + env
+    M->>DB: pgxpool.New dsn
+    M->>S: NewAES env CLIPROXY_ENCRYPTION_KEY
+    M->>Store: New db aes
+    M->>Store: RegisterTokenStore store
+    M->>CoreMgr: NewManager store selector hook
+    M->>B: Builder WithConfig WithCoreAuthManager WithWatcherFactory WithServerOptions
+    Note over B: Builder собирает Service с DI контрактов
+    M->>Svc: Run ctx блокирует
 ```
 
 **Ключевые шаги wiring'а** (по ADR-9):
@@ -118,33 +118,33 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant App as Клиент (API-key)
-    participant Gin as Gin (ядро)
+    participant App as Клиент
+    participant Gin as Gin ядро
     participant AP as access.Provider
-    participant Sel as Selector.Pick
+    participant Sel as Selector
     participant Exec as ProviderExecutor
-    participant Up as Upstream (через прокси)
+    participant Up as Upstream
     participant USG as usage.Plugin
     participant DB as Postgres
 
-    App->>Gin: POST /v1/chat/completions (Authorization: Bearer <api-key>)
-    Gin->>AP: Authenticate(req)
-    AP->>DB: lookup api_key by prefix (cache TTL 5-15s)
-    AP->>AP: bcrypt.Verify(hash, key)
-    AP->>DB: check users.status = active (cache)
-    AP-->>Gin: Result{principal=user_id, api_key_id} в ctx
-    Note over Gin: principal копируется в Record сейчас (R3 стриминг)
-    Gin->>Sel: Pick(provider, model, opts, auths)
-    Sel->>DB: load model_overrides (cache)
-    Sel->>Sel: выставить auth.ProxyURL = proxyFor(callType=inference, provider)
-    Sel-->>Gin: выбранный *Auth
-    Gin->>Exec: Execute(ctx, auth, req, opts)
-    Exec->>Up: HTTP/SOCKS-прокси (auth.ProxyURL)
-    Up-->>Exec: response (или stream chunks)
-    Exec-->>Gin: Response / StreamResult
-    Gin-->>App: response / stream
-    Gin->>USG: HandleUsage(Record) // principal уже внутри Record
-    USG->>DB: INSERT usage_events (async, partitioned)
+    App->>Gin: POST /v1/chat/completions + Bearer api-key
+    Gin->>AP: Authenticate req
+    AP->>DB: lookup api_key by prefix cache TTL 5-15s
+    AP->>AP: bcrypt verify hash vs key
+    AP->>DB: check users.status = active cache
+    AP-->>Gin: Result principal user_id api_key_id в ctx
+    Note over Gin: principal копируется в Record сейчас для стриминга
+    Gin->>Sel: Pick provider model opts auths
+    Sel->>DB: load model_overrides cache
+    Sel->>Sel: выставить auth.ProxyURL = proxyFor inference
+    Sel-->>Gin: выбранный Auth
+    Gin->>Exec: Execute ctx auth req opts
+    Exec->>Up: HTTP/SOCKS прокси через auth.ProxyURL
+    Up-->>Exec: response или stream chunks
+    Exec-->>Gin: Response StreamResult
+    Gin-->>App: response stream
+    Gin->>USG: HandleUsage Record principal уже внутри
+    USG->>DB: INSERT usage_events async partitioned
 ```
 
 **Ключевые точки:**
@@ -158,27 +158,27 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant U as Пользователь
-    participant H as httpapi (login handler)
+    participant H as httpapi login
     participant L as LDAP
     participant DB as Postgres
 
-    U->>H: POST /api/v1/login {username, password}
-    H->>L: bind (service-account) + search(username)
-    H->>L: bind (user DN, password) // аутентификация
-    H->>L: search memberOf (user-group, admin-group)
+    U->>H: POST /api/v1/login username password
+    H->>L: service bind + search username
+    H->>L: user bind password аутентификация
+    H->>L: search memberOf user-group admin-group
     alt не в user-group AND не в admin-group
         H-->>U: 403 forbidden
-    else в admin-group (или обеих)
-        H->>H: role = admin, TTL = 10h
+    else в admin-group или обеих
+        H->>H: role = admin TTL = 10h
     else в user-group
-        H->>H: role = user, TTL = 5m
+        H->>H: role = user TTL = 5m
     end
-    H->>DB: upsert users (provisioning, status check)
+    H->>DB: upsert users provisioning status check
     alt users.status = blocked
         H-->>U: 403 blocked
     end
-    H->>DB: INSERT sessions (token_hash, role, expires_at)
-    H-->>U: 200 + Set-Cookie (HttpOnly, Secure, SameSite)
+    H->>DB: INSERT sessions token_hash role expires_at
+    H-->>U: 200 + Set-Cookie HttpOnly Secure SameSite
 ```
 
 **Решения:**
@@ -197,16 +197,16 @@ sequenceDiagram
     participant Store as store
     participant DB as Postgres
 
-    Note over Core: StartAutoRefresh(15m): min-heap по NextRefreshAfter, до 16 воркеров
+    Note over Core: StartAutoRefresh 15m min-heap по NextRefreshAfter до 16 воркеров
     Core->>Core: pop auth с истекшим NextRefreshAfter
-    Note over Core: ⚠️ ММИМУЯ Selector.Pick → R10 прокси НЕ применяется
-    Core->>Exec: Refresh(ctx, auth)
-    Exec->>Up: OAuth refresh (через auth.ProxyURL = default аккаунта)
+    Note over Core: ВАЖНО минуя Selector.Pick R10 прокси НЕ применяется
+    Core->>Exec: Refresh ctx auth
+    Exec->>Up: OAuth refresh через auth.ProxyURL default аккаунта
     Up-->>Exec: new tokens
-    Exec-->>Core: обновлённый *Auth
-    Core->>Store: Save(auth)
-    Store->>Store: восстановить default ProxyURL (не persist временное R10)
-    Store->>DB: UPDATE upstream_accounts (credentials_enc, last_refreshed_at)
+    Exec-->>Core: обновлённый Auth
+    Core->>Store: Save auth
+    Store->>Store: восстановить default ProxyURL не persist временное R10
+    Store->>DB: UPDATE upstream_accounts credentials_enc last_refreshed_at
 ```
 
 **Важно (ADR-10):** auto-refresh идёт **минуя Selector**, поэтому `auth`-прокси (R10 call-type) не применяется — используется `default ProxyURL` аккаунта. Store должен восстанавливать default при Save (не сохранять временное значение, выставленное Selector).
@@ -217,24 +217,24 @@ API-driven OAuth-flow без UI.
 
 ```mermaid
 sequenceDiagram
-    participant A as Админ (cookie)
-    participant H as httpapi (mgmt)
+    participant A as Админ
+    participant H as httpapi mgmt
     participant Core as sdkAuth.Manager
     participant Prov as Провайдер OAuth
     participant Store as store
-    participant Audit as admin_audit_log
+    participant Audit as audit_log
 
-    A->>H: GET /api/v1/admin/oauth/{provider}/start
-    H->>Core: Login start → получить auth URL + state
-    H-->>A: {auth_url, state} // redirect_uri=localhost
-    A->>Prov: открывает URL, проходит OAuth
-    Prov-->>A: redirect localhost?code=...&state=...
-    A->>H: POST /api/v1/admin/oauth/{provider}/callback {code, state}
-    H->>Core: Login complete (exchange code → tokens)
-    Core-->>H: *coreauth.Auth
-    H->>Store: Save(auth) // шифрование AES-GCM
-    H->>Audit: INSERT (action=provider_oauth_setup, target=account)
-    H-->>A: 200 {account_id, status}
+    A->>H: GET admin oauth provider start
+    H->>Core: Login start получить auth URL + state
+    H-->>A: auth_url state redirect_uri localhost
+    A->>Prov: открывает URL проходит OAuth
+    Prov-->>A: redirect localhost code state
+    A->>H: POST admin oauth provider callback code state
+    H->>Core: Login complete exchange code в tokens
+    Core-->>H: coreauth.Auth
+    H->>Store: Save auth шифрование AES-GCM
+    H->>Audit: INSERT action provider_oauth_setup target account
+    H-->>A: 200 account_id status
 ```
 
 ## 7. Компоненты — детали
@@ -317,20 +317,20 @@ In-process кэш за интерфейсом:
 
 ```mermaid
 graph LR
-    subgraph Ingress
-        ALB[Ingress / ALB]
+    subgraph Ingress["Ingress"]
+        ALB["Ingress / ALB"]
     end
-    subgraph Deploy[Deployment: N реплик]
-        P1[Pod: cliproxy]
-        P2[Pod: cliproxy]
-        P3[Pod: cliproxy]
+    subgraph Deploy["Deployment: N реплик"]
+        P1["Pod cliproxy"]
+        P2["Pod cliproxy"]
+        P3["Pod cliproxy"]
     end
-    subgraph Config
-        CM[ConfigMap<br/>config.yaml]
-        SEC[k8s Secret<br/>CLIPROXY_ENCRYPTION_KEY<br/>DB_PASSWORD<br/>LDAP_BIND_PASSWORD]
+    subgraph Config["Config"]
+        CM["ConfigMap<br/>config.yaml"]
+        SEC["k8s Secret<br/>ENCRYPTION_KEY<br/>DB_PASSWORD<br/>LDAP_BIND_PASSWORD"]
     end
-    subgraph Data
-        PG[(Postgres<br/>StatefulSet / managed)]
+    subgraph Data["Data"]
+        PG[("Postgres<br/>StatefulSet / managed")]
     end
 
     ALB --> P1
