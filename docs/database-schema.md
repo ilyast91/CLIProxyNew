@@ -230,9 +230,9 @@ Allow-list + model-mapping, хранимые админом.
 ### `usage_aggregates` (R3.2) — материализованные агрегаты
 Предварительно вычисленные агрегаты для дашбордов/API.
 
-| Поле | Тип |
-|------|-----|
-| `period_start` | date PK |
+| Поле | Тип | Назначение |
+|------|-----|-----------|
+| `period_start` | date PK | |
 | `dimension` | text PK | `user` \| `model` \| `provider` \| `api_key` |
 | `dimension_value` | text PK |
 | `request_count` | bigint |
@@ -257,6 +257,30 @@ Allow-list + model-mapping, хранимые админом.
 
 **Append-only.** Не обновляется/не удаляется (compliance).
 
+### `oauth_sessions` (R9.A.1) — асинхронные OAuth login-сессии
+Альтернатива in-memory `oauthSessions` ядра; в Postgres, чтобы multi-replica
+могла завершить flow на любой реплике.
+
+| Поле | Тип | Назначение |
+|------|-----|-----------|
+| `state` | text PK | PKCE state (рандомный) |
+| `provider` | text, not null | `codex` \| `claude` \| `antigravity` \| `kimi` \| `xai` |
+| `flow_type` | text, not null | `callback` \| `device` |
+| `status` | text, not null, default `pending` | `pending` \| `completed` \| `error` \| `cancelled` |
+| `auth_id` | text, nullable | = `upstream_accounts.id` после успешного завершения |
+| `pkce_verifier` | text, nullable | code_verifier (callback-flow) |
+| `device_code` | text, nullable | device-flow `device_code` для polling |
+| `user_code` | text, nullable | device-flow отображаемый код |
+| `error_message` | text, nullable | при `status=error` |
+| `expires_at` | timestamptz, not null | TTL (callback ~5мин, device ~15–30мин по провайдеру) |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
+
+**Индекс:** `(status, expires_at)` — для cleanup-джобы (leader удаляет expired).
+**TTL:** фоновая job (leader) удаляет `expires_at < now() OR status IN (completed, error, cancelled)` старше 1 часа.
+**Multi-replica:** любая реплика читает session по `state`, обмен/завершение
+идёмпотентно (update status → completed where status=pending).
+
 ## Индексы — сводка
 
 | Таблица | Индекс | Назначение |
@@ -271,6 +295,7 @@ Allow-list + model-mapping, хранимые админом.
 | `usage_events` | `(model, created_at desc)` | агрегация по модели |
 | `admin_audit_log` | `(actor_user_id, created_at desc)` | аудит по админу |
 | `admin_audit_log` | `(target_type, target_id)` | аудит по цели |
+| `oauth_sessions` | `(status, expires_at)` | cleanup expired sessions |
 
 ## Миграции (порядок)
 
@@ -281,6 +306,7 @@ Allow-list + model-mapping, хранимые админом.
 3. `000003_model_overrides.up.sql` — model_overrides
 4. `000004_usage_events_partitions.up.sql` — родитель + initial partition + aggregation view
 5. `000005_admin_audit_log.up.sql` — admin_audit_log
+6. `000006_oauth_sessions.up.sql` — oauth_sessions (R9.A.1) + индексы
 
 **Partition management** — отдельная SQL-функция + cron-job (leader) для создания будущих партиций и удаления старых.
 

@@ -298,29 +298,44 @@
 
 ### R9.A — Функционал администратора
 - **R9.A.1** Настройка **OAuth для провайдеров с подписками** (Codex/Claude/
-  Gemini/Grok и т.д.). Регистрация/обновление OAuth-app провайдера, запуск
-  authorization-flow через ядро (`sdkAuth.Manager.Login`), хранение полученных
+  Gemini/Grok и т.д.). Запуск authorization-flow, хранение полученных
   upstream-credentials в БД (зашифрованные, R5).
-  ✅ **API-driven flow (без UI).** Реализация зависит от режима
-  `Authenticator.Login` (см. SDK-референс `sdk/auth`):
-  - **PKCE-flow (Codex port 1455, Claude port 54545):** ядро при `Login`
-    открывает **callback-сервер** на `CallbackPort` и возвращает auth-URL.
-    Варианты получения callback:
-    (а) callback-сервер ядра доступен (exposed port / port-forward в k8s) —
-    провайдер редиректит напрямую, `Login` завершается автоматически;
-    (б) callback-сервер недоступен извне (типично для k8s без exposed port) —
-    админ копирует callback URL вручную и передаёт через
-    `LoginOptions.Prompt` (ядро ждёт ввод ~15с, затем вызывает Prompt).
-  - **Device-flow (Codex через `Metadata["codex_login_mode"]="device"`, Kimi,
-    xAI):** `Login` возвращает user-code + URL; админ вводит код на странице
-    провайдера; ядро poll-ит завершение. Callback-сервер не нужен.
-  - `GET` management-API возвращает auth-URL (+ state/user-code);
-    `POST`/`PUT` передаёт callback (URL с кодом) или подтверждает завершение;
-    сервис сохраняет credentials через `Store.Save`.
-  ❓ **Открыто:** как именно прокидывать callback в k8s (exposed port vs
-  Prompt-based ручной ввод) — зафиксировать при дизайне R9.A.1 по per-provider.
-  ❓ **Открыто:** требуется ли exposed callback-port в k8s Service/Ingress
-  для PKCE-провайдеров, или использовать только device-flow / Prompt.
+  ✅ **Решено: собственная асинхронная реализация поверх `sdk/api/management.go`
+  хелперов, сессии в Postgres** (а НЕ через блокирующий `sdkAuth.Manager.Login`,
+  который не отдаёт URL наружу и не годится для API).
+  - `sdkAuth.Manager.Login()` — **блокирующий, синхронный**: URL печатается в
+    stdout (не возвращается), callback ловится локальным сервером на
+    `CallbackPort`, `LoginOptions.Prompt` срабатывает через 15с как CLI-fallback.
+    Непригоден для management-API.
+  - **Ядро уже содержит асинхронный flow** в `internal/api/handlers/management/`:
+    `GET /*-auth-url → {url, state}`, `POST /oauth-callback → файловый poller`,
+    `GET /get-auth-status`. Но OAuth-сессии там **in-memory в одной реплике** →
+    в multi-replica (R6.2) replica A стартует flow, replica B не может завершить.
+  - **Решение:** бизнес-слой переносит асинхронную логику (PKCE + state +
+    обмен) поверх `claude.NewClaudeAuth`/`codex.NewCodexAuth`/... (низкоуровневые
+    сервисы, без блокирующего `Login`), но **сессии хранит в Postgres**
+    (`oauth_sessions`) — любая реплика может завершить flow.
+  ✅ **API-flow (callback-провайдеры Codex/Claude/Antigravity):**
+  - `POST /api/v1/admin/oauth/{provider}/start` → создаёт PKCE+state, persist
+    в `oauth_sessions`, возвращает `{auth_url, state}`.
+  - админ открывает `auth_url` в браузере; провайдер редиректит на
+    `localhost:<CallbackPort>` (redirect_uri вшит у провайдера).
+  - админ копирует callback URL → `POST /api/v1/admin/oauth/{provider}/complete`
+    `{state, redirect_url}` → бизнес-слой обменивает code на токены, сохраняет
+    через `Store.Save` (AES-GCM, R5), пишет `admin_audit_log`.
+  ✅ **API-flow (device-провайдеры Kimi/xAI, и опц. Codex-device):**
+  - `POST /api/v1/admin/oauth/{provider}/start` → `StartDeviceFlow`, persist
+    session, возвращает `{auth_url, user_code, expires_in, flow: "device"}`.
+  - админ вводит `user_code` на странице провайдера; бизнес-слой poll-ит
+    завершение в goroutine.
+  - клиент poll-ит статус: `GET /api/v1/admin/oauth/sessions/{state}`.
+  ✅ **Статус и отмена:**
+  - `GET /api/v1/admin/oauth/sessions/{state}` → `{status: pending|completed|error, ...}`.
+  - `DELETE /api/v1/admin/oauth/sessions/{state}` → отмена flow.
+  ❓ **Открыто:** callback-port — нужен ли exposed-port в k8s для
+  callback-forwarder (`is_webui` режим), или всегда ручной copy-paste
+  callback-URL админом. На первой версии — ручной copy-paste (проще, не требует
+  exposed-port в k8s). См. дизайн [docs/design/r9-oauth-and-testing.md](design/r9-oauth-and-testing.md).
 - **R9.A.2** Настройка **API-keys для провайдеров** (batch, по API).
   Регистрация набора статических upstream API-keys (напр. OpenRouter,
   кастомные OpenAI-compatible эндпоинты) — сохраняются как `coreauth.Auth`
@@ -338,12 +353,27 @@
   подписки). Источник — metadata `coreauth.Auth` (поля `expired`,
   `expires_at`, quota-поля) + опрос провайдера через ядро при необходимости.
 - **R9.A.5** **Тестирование настроек авторизации**: проверка валидности
-  конкретного upstream-аккаунта (OAuth-токена или API-key) — вызов
-  `ProviderExecutor.Refresh` (для OAuth) / пробный запрос (`Execute`) и
-  отображение результата (валиден / ошибка / квота).
-  ❓ **Открыто:** пробный `Execute` тратит upstream-квоту подписки. Варианты:
-  минимальный запрос (1 токен), или принять стоимость, или только Refresh
-  для OAuth. Зафиксировать при дизайне R9.
+  конкретного upstream-аккаунта (OAuth-токена или API-key) **без траты
+  inference-квоты подписки.**
+  ✅ **Решено: собственная обёртка с разделением по типу креды:**
+  - **OAuth-аккаунты (Codex/Claude/Antigravity):** вызов
+    `executor.Refresh(ctx, auth)` — обмен `refresh_token → access_token`.
+    Успех = `refresh_token` жив, получен свежий access_token. **Не тратит
+    inference-квоту** (только token-endpoint провайдера). Для Antigravity
+    Refresh заодно обновляет `AntigravityCreditsHint` (актуальный баланс —
+    бонус для R9.A.4).
+  - **API-key аккаунты (Gemini-key/Claude-key/OpenAI-compat):** `Refresh`
+    бесполезен (no-op). Вместо него — лёгкий
+    `executor.HttpRequest(ctx, auth, req)` к metadata-endpoint провайдера
+    (`GET /models` или эквивалент) без inference. Валиден если HTTP 200.
+  - **Не используются:** `Execute`/`ExecuteCount`/`CountTokens` — это
+    реальные inference-запросы, тратят квоту. `Auth.Status`/`LastError`/
+    `Quota` — stale-кэш (неактуальная гарантия), только как доп. контекст.
+  ✅ **Ответ API:** `{valid: bool, method: "refresh"|"http_probe", details:
+  {status_code, expires_at, last_refreshed_at}, quota: {exceeded, reason}}`.
+  ❓ **Открыто:** per-provider список metadata-endpoint'ов для health-check
+  (Claude `GET /v1/models`, Codex `GET /backend-api/me`, Gemini `GET /models`,
+  OpenAI-compat `GET {base_url}/models`) — зафиксировать в дизайне.
 - **R9.A.6** Настройка **списка доступных моделей**: override/фильтр
   глобального реестра моделей (R8, ModelRegistryHook). Администратор задаёт,
   какие модели из реестра ядра разрешены клиентам (allow-list), а также
@@ -531,3 +561,14 @@
   - R9.A.5: отмечено как открытое (Execute тратит квоту);
   - ADR-9: добавлены поля watcher.AuthUpdate, опциональный CooldownStateStore;
   - architecture.md: исправлен вызов RegisterTokenStore в wiring-диаграмме.
+- 2026-07-12 — **детализация R9.A.1 и R9.A.5** (после анализа реальной механики
+  `sdkAuth.Manager.Login` и `ProviderExecutor`):
+  - R9.A.1: `Manager.Login` блокирующий, не подходит для API. Своя асинхронная
+    реализация поверх низкоуровневых auth-сервисов ядра, сессии в Postgres
+    (`oauth_sessions`) для multi-replica. Callback-провайдеры (Codex/Claude/
+    Antigravity) — PKCE + ручной copy-paste redirect_url; device-провайдеры
+    (Kimi/xAI) — device-code + polling.
+  - R9.A.5: своя обёртка Refresh (OAuth, без траты квоты) + HttpRequest к
+    metadata-endpoints (API-key). Execute/CountTokens не используются.
+  - Новая таблица `oauth_sessions` в БД; дизайн в docs/design/.
+  - См. [docs/design/r9-oauth-and-testing.md](design/r9-oauth-and-testing.md).
