@@ -133,7 +133,7 @@ sequenceDiagram
     AP->>AP: bcrypt verify hash vs key
     AP->>DB: check users.status = active cache
     AP-->>Gin: Result principal user_id api_key_id в ctx
-    Note over Gin: principal копируется в Record сейчас для стриминга
+    Note over Gin: ядро заполняет Record.APIKey из Principal и Record.Metadata из opts.Metadata
     Gin->>Sel: Pick provider model opts auths
     Sel->>DB: load model_overrides cache
     Sel->>Sel: выставить auth.ProxyURL = proxyFor inference
@@ -246,8 +246,16 @@ sequenceDiagram
   2. lookup `api_keys` по `key_prefix` (in-process cache TTL 5–15с);
   3. bcrypt-verify против `key_hash`;
   4. проверить `users.status = active` (cache);
-  5. вернуть `Result{Provider, Principal=user_id, Metadata={api_key_id, role}}`.
-- Регистрируется через `access.RegisterProvider("db-apikey", provider)`, передаётся в Builder.
+  5. вернуть `Result{Provider="db-apikey", Principal=<user_id>, Metadata={api_key_id, user_id, role}}`.
+- Регистрируется через `access.RegisterProvider("db-apikey", provider)`, затем
+  **`access.SetExclusiveProvider("db-apikey")`** — отключает встроенный
+  `config-api-key` ядра (inline `cfg.APIKeys` не используются, исключает
+  двойной путь auth). Manager передаётся в Builder через `WithRequestAccessManager`.
+- **Прокидывание api_key_id в аналитику (R3):** `Result.Principal` ядро кладёт в
+  context запроса; `Result.Metadata["api_key_id"]` бизнес-слой читает в
+  `usage.Plugin.HandleUsage` для FK в `usage_events.api_key_id` и обновления
+  `api_keys.last_used_at`. Т.к. `usage.Record.APIKey` ядро заполняет из
+  `Principal`, дополнительно связываем через metadata-ключ (см. R3 ниже).
 
 ### `internal/auth/selector` — coreauth.Selector (ADR-9, R10)
 Реализует `coreauth.Selector`:
@@ -266,13 +274,48 @@ sequenceDiagram
   4. роль: admin если в admin-group, иначе user если в user-group, иначе 403;
   5. upsert users, проверить status;
   6. INSERT session, вернуть cookie.
-- Service-account пароль — из env (шифруется AES, R5).
+- Service-account пароль — **только из env** `LDAP_BIND_PASSWORD` (k8s Secret).
+  Не хранится в БД → AES-шифрование не применяется (см. исправление R5).
+
+### `internal/auth/oauth` — OAuth login-flow (R9.A.1)
+Реализует асинхронный OAuth-flow (свой, не через блокирующий `sdkAuth.Manager.Login`):
+- `FlowManager` — оркестратор flow; per-provider реализации `ProviderFlow`
+  поверх низкоуровневых сервисов ядра (`claude.NewClaudeAuth`, `codex.NewCodexAuth`,
+  `kimi.NewKimiAuth`, `xaiauth.NewXAIAuth`, `antigravity.NewAntigravityAuth`).
+- **Callback-flow** (Codex PKCE, Claude, Antigravity): `Start` → PKCE+state →
+  `oauth_sessions` (Postgres) → auth_url; `Complete` → обмен code → `Store.Save`.
+- **Device-flow** (Kimi, xAI, опц. Codex-device): `Start` → device_code →
+  `oauth_sessions`; goroutine poll провайдера; клиент poll-ит статус.
+- **Multi-replica:** сессии в Postgres → любая реплика может завершить flow.
+- Хелперы из `sdk/api/management.go` (`ValidateOAuthState`, `NormalizeOAuthProvider`).
+- См. детальный дизайн [docs/design/r9-oauth-and-testing.md](design/r9-oauth-and-testing.md).
+
+### `internal/auth/testing` — тестирование валидности (R9.A.5)
+Реализует health-check upstream-аккаунта **без траты inference-квоты**:
+- `Checker.Test(ctx, accountID)`:
+  - **OAuth** (Codex/Claude/Antigravity) → `executor.Refresh(ctx, auth)` (обмен
+    refresh_token, не тратит квоту; для Antigravity бонусом обновляет
+    `AntigravityCreditsHint`);
+  - **API-key** → `executor.HttpRequest(ctx, auth, GET /models)` (metadata-endpoint,
+    HTTP 200 = валиден).
+- Не использует `Execute`/`CountTokens` (тратят квоту).
+- Ответ: `{valid, method: "refresh"|"http_probe", details, quota}`.
+- См. [docs/design/r9-oauth-and-testing.md](design/r9-oauth-and-testing.md).
 
 ### `internal/usage` — usage.Plugin (R3, ADR-9)
-Реализует `usage.Plugin.HandleUsage(ctx, Record)`:
-- principal (`user_id`, `api_key_id`) **уже в Record** (скопирован в начале запроса);
+Реализует `usage.Plugin.HandleUsage(ctx, record Record)`:
+- **Источник principal:** `record.APIKey` ядро заполняет из
+  `access.Result.Principal` (= user_id). Но `Record` не содержит `api_key_id` —
+  поэтому бизнес-слой **дополнительно прокидывает `api_key_id` через metadata-
+  ключ** в `executor.Options.Metadata` (заполняется в access.Provider или
+  middleware из `access.Result.Metadata["api_key_id"]`). В `HandleUsage`
+  читаем оба: `user_id` из `record.APIKey`, `api_key_id` из `record.Metadata`.
+- ⚠️ **Стриминг (R3):** `HandleUsage` вызывается асинхронно в конце потока,
+  когда request-context уже отменён. Поэтому `api_key_id` должен быть в
+  `record.Metadata` (которое ядро сериализует), а не читаться из context в
+  момент HandleUsage.
 - async-запись в `usage_events` (batched channel → bulk INSERT);
-- обновление `api_keys.last_used_at` (throttled).
+- обновление `api_keys.last_used_at` (throttled, не на каждый запрос).
 
 ### `internal/store` — coreauth.Store + репозитории (R5, ADR-9)
 Реализует `coreauth.Store` (List/Save/Delete) поверх `upstream_accounts`:
@@ -283,12 +326,13 @@ sequenceDiagram
 ### `internal/security` (R5)
 Два класса:
 - `HashPassword/CheckPassword` — bcrypt cost 12 (API-keys).
-- `Encrypt/Decrypt` — AES-256-GCM с key-version prefix (upstream credentials, LDAP bind).
+- `Encrypt/Decrypt` — AES-256-GCM с key-version prefix — **только для upstream-
+  credentials в БД** (R5 исправление). LDAP bind-password живёт в env, не шифруется AES.
 
 ### `internal/watcher` — WatcherFactory (ADR-9, R7)
 Реализует `cliproxy.WatcherFactory`:
 - **Leader election:** `pg_try_advisory_lock` — только лидер пушит обновления;
-- poll `upstream_accounts` (напр. каждые 30с) → сравнение snapshot → пуш изменений в очередь ядра (`coreauth.AuthUpdate`).
+- poll `upstream_accounts` (напр. каждые 30с) → сравнение snapshot → пуш изменений в очередь ядра (`watcher.AuthUpdate` — тип из `internal/watcher`, НЕ `coreauth.AuthUpdate`; структура `{Action, ID, *coreauth.Auth}`, см. ADR-9).
 
 ### `internal/modelregistry` — ModelRegistryHook (ADR-9)
 Реализует `cliproxy.ModelRegistryHook`:

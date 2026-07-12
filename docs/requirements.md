@@ -140,7 +140,7 @@
   API-key заблокированного пользователя (`status=blocked`) отклоняется
   (с учётом eventual consistency R2.4).
 - ✅ **Решено:** бизнес-слой **полностью заменяет** встроенный `config-api-key`
-  ядром inline-провайдер через `access.SetExclusiveProvider("db-api-key")` —
+  ядром inline-провайдер через `access.SetExclusiveProvider("db-apikey")` —
   inline `cfg.APIKeys` ядра **не используются** (все клиентские API-keys живут
   только в БД). Это исключает двойной путь auth и случайно оставленные
   inline-ключи в конфиге.
@@ -195,12 +195,16 @@
     func CheckPassword(hash, password string) bool { ... }
     ```
   - **Обратимое шифрование** (two-way, нужно расшифровать для использования):
-    upstream-credentials (OAuth/refresh-токены провайдеров), **LDAP bind-
-    credentials service-account** (если bind идёт через служебную учётку, а не
-    anonymous bind) и прочие секреты, которые сервис использует для вызовов.
+    upstream-credentials (OAuth/refresh-токены провайдеров) — секреты, которые
+    сервис хранит **в БД** и расшифровывает для передачи ядру.
     Алгоритм — **AES-256-GCM** (симметричный, аутентифицированный), ключ — из
     конфига/KMS.
     ⚠️ bcrypt сюда НЕ подходит (однонаправленный, токен не восстановить).
+  - **Секреты вне БД (только env/k8s Secret):** LDAP bind-password service-
+    account, мастер-ключ AES, DB password. Эти секреты **не в БД** → AES-шифрование
+    к ним не применяется (k8s Secret + at-rest шифрование etcd — достаточная
+    защита). Ранее LDAP bind ошибочно упоминался в классе AES-шифруемых —
+    исправлено: он только в env.
 - ✅ **Решено:** источник мастер-ключа для AES-256-GCM — **env-переменная**
   (base64, 32 байта). В k8s кладётся в Secret и монтируется как env
   (напр. `CLIPROXY_ENCRYPTION_KEY`). Без внешних зависимостей (KMS/Vault)
@@ -523,7 +527,8 @@
 - 2026-07-11 — **второе ревью требований:** исправлены противоречия и пробелы:
   - добавлен глоссарий (два смысла «квоты»: upstream-подписка vs
     пользовательский rate-limit);
-  - R5: LDAP bind-credentials включены в класс обратимо-шифруемых секретов;
+  - R5: два класса секретов (bcrypt для API-keys, AES-256-GCM для
+    upstream-credentials); ⚠️ позже LDAP bind убран из AES-класса (см. 2026-07-12);
   - R6: убрано упоминание квот/лимитов из роли репо; добавлен R6.4 (бэкапы —
     вне репо, задача эксплуатации); нумерация R6 исправлена;
   - R9.A.1: OAuth-flow зафиксирован как API-driven (GET → ссылка, POST →
@@ -556,7 +561,7 @@
     не требует; вопрос exposed-port в k8s открыт;
   - R10: call-type `auth` убран (это login-flow, не inference-путь);
     auto-refresh/login = default ProxyURL аккаунта;
-  - R2: SetExclusiveProvider("db-api-key") — inline cfg.APIKeys не нужны;
+  - R2: SetExclusiveProvider("db-apikey") — inline cfg.APIKeys не нужны;
   - R6.1: SessionAffinity отключён (конфликтует с stateless multi-replica);
   - R9.A.5: отмечено как открытое (Execute тратит квоту);
   - ADR-9: добавлены поля watcher.AuthUpdate, опциональный CooldownStateStore;
@@ -578,3 +583,19 @@
   Наш подход (своя реализация + Postgres-сессии) обоснован требованием R6.2.
   R5 (AES-GCM) остаётся строже референса (plaintext) — подтверждено. Сравнение
   зафиксировано в docs/design/r9-oauth-and-testing.md.
+- 2026-07-12 — **верификация дизайна** (сверка architecture/design/schema с
+  SDK-референсом). Исправлены критические неточности:
+  - **LDAP bind-password:** убран из класса AES-шифруемых секретов R5 — он
+    только в env (k8s Secret), не в БД. AES-GCM применяется только к upstream-
+    credentials в БД. architecture.md синхронизирован.
+  - **`watcher.AuthUpdate`:** исправлен тип в architecture.md (был ошибочный
+    `coreauth.AuthUpdate`).
+  - **R3 principal механизм:** уточнён — `Record.APIKey` ядро заполняет из
+    `access.Result.Principal`; `api_key_id` прокидывается через
+    `executor.Options.Metadata`. Заявление «principal копируется в Record»
+    заменено на корректное описание.
+  - **`SetExclusiveProvider("db-apikey")`:** добавлен в architecture.md
+    (раньше был только в requirements.md).
+  - **Новые компоненты** в architecture.md: `internal/auth/oauth` (R9.A.1),
+    `internal/auth/testing` (R9.A.5).
+  - R9.A.5: уточнено про quota для свежих аккаунтов (`unknown` vs `exceeded=false`).

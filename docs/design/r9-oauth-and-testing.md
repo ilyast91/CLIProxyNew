@@ -275,6 +275,12 @@ sequenceDiagram
 `auth.Quota` (реактивная, из последнего inference-запроса) или
 `AntigravityCreditsHint` для Antigravity.
 
+⚠️ **Quota для свежих аккаунтов:** для аккаунта, который никогда не использовался
+для inference, `auth.Quota` пустой (`Exceeded=false`, `Reason=""`) — это
+**означает «нет данных», а не «квота доступна»**. В ответе стоит различать
+`quota.exceeded=false` (реактивно подтверждено) vs `quota.unknown=true`
+(никогда не было запросов) — для явности в UI/API.
+
 ### Component: `internal/auth/testing`
 
 ```go

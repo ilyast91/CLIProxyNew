@@ -9,7 +9,10 @@
 - **Postgres — единственное состояние сервиса** (R6.1). Все сущности здесь.
 - **sqlc генерирует Go-код из SQL** — `*.sql` запросы рядом с пакетами `internal/store/*`, код не правится руками.
 - **Партиционирование по дню** для высоконагруженных таблиц событий (analytics).
-- **Шифрование at-rest** (R5): upstream-credentials и LDAP bind — как зашифрованный blob (AES-256-GCM с key-version). API-keys — bcrypt-хэш (односторонний).
+- **Шифрование at-rest** (R5): upstream-credentials в БД — как зашифрованный
+  blob (AES-256-GCM с key-version). API-keys — bcrypt-хэш (односторонний).
+  LDAP bind-password хранится **только в env** (k8s Secret), не в БД → AES не
+  применяется (см. R5 исправление в requirements.md).
 - **Мягкое удаление** не используется; удаление = физическое (кроме аналитики — TTL/partition drop).
 - **Имена таблиц** — snake_case, единственное число. **PK** — `id bigint generated always as identity`.
 
