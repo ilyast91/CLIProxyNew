@@ -1,0 +1,205 @@
+# План имплементации CLIProxyNew по фазам
+
+> **Статус:** Принят.
+> **Scope v1:** ВСЁ из R1–R11 (кроме явных «не делаем» — квоты/rate-limit, UI,
+> плагины, Redis, fork ядра). Откладываний нет.
+> **Связанные:** [requirements.md](requirements.md), [architecture-principles.md](architecture-principles.md),
+> [architecture.md](architecture.md), [database-schema.md](database-schema.md).
+
+## Принципы разбиения
+
+- **Снизу вверх**: foundation → persistence → auth → contracts → features → hardening.
+- Каждая фаза — **вертикальный срез** с проверяемым deliverable и acceptance criteria.
+- Фазы с зависимостями идут последовательно; независимые — параллелятся.
+- Каждая фаза завершается коммитом/merge с зелёным CI (tests + vet + build).
+
+## Граф зависимостей
+
+```mermaid
+graph LR
+    F0["Ф0<br/>Foundation"] --> F1["Ф1<br/>Persistence"]
+    F1 --> F2["Ф2<br/>Auth R1/R2"]
+    F1 --> F3["Ф3<br/>Contracts ADR-9"]
+    F2 --> F4["Ф4<br/>Management API R9"]
+    F3 --> F4
+    F3 --> F5["Ф5<br/>R10 proxy"]
+    F4 --> F6["Ф6<br/>Observability+k8s"]
+    F5 --> F6
+    F6 --> F7["Ф7<br/>Testing+Hardening"]
+```
+
+## Оценки
+
+При одном разработчике ~16–19 недель; при команде 2–3 (с учётом
+parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки предварительные,
+пересматриваются по итогам каждой фазы.
+
+---
+
+## Фаза 0 — Foundation
+**Цель:** компилируемый проект с подключённым ядром, скелетом пакетов, CI.
+
+- [ ] Подключить ядро `github.com/router-for-me/CLIProxyAPI/v7` в `go.mod` (проверить, что реально резолвится)
+- [ ] Создать скелет пакетов `internal/{config,security,store,access,auth/{ldap,selector,oauth,testing},cache,httpapi,modelregistry,usage,watcher}` (пустые `doc.go` с godoc)
+- [ ] `internal/config` (R6) — структура `Config`, парсинг config.yaml, env-override (12-factor), config.example.yaml
+- [ ] `cmd/cliproxy/main.go` — базовый wiring: load config → stub Builder → `Service.Run` (или заглушка, если ядро не запускается без auths)
+- [ ] CI pipeline (GitHub Actions): `go vet`, `gofmt -l`, `go build`, `go test -short`
+- [ ] Выбор и настройка OpenAPI-генератора (`ogen` или `oapi-codegen`) — Spike, решение зафиксировать
+- [ ] Базовый `openapi.yaml` (OpenAPI 3.1) + spectral lint в CI
+
+**Acceptance:** `go build ./...` зелёный, ядро в зависимостях, CI проходит на пустых тестах, `openapi.yaml` валидируется.
+
+---
+
+## Фаза 1 — Persistence layer
+**Цель:** БД, доступ, шифрование, контракты Store.
+
+- [ ] Все миграции (порядок из [database-schema.md](database-schema.md) §«Миграции»):
+  1. users, api_keys, sessions
+  2. upstream_accounts (Store)
+  3. model_overrides
+  4. usage_events (родитель + initial partition + usage_aggregates view)
+  5. admin_audit_log
+  6. oauth_sessions
+- [ ] sqlc config + сгенерированные запросы для всех таблиц
+- [ ] Partition management SQL-функция (create future + drop old) + cron-job stub
+- [ ] `internal/security` — bcrypt cost 12 + AES-256-GCM с key-version prefix (R5)
+- [ ] `internal/store` — репозитории для users, api_keys, sessions, admin_audit_log, oauth_sessions, model_overrides
+- [ ] `internal/store` — реализация `coreauth.Store` (List/Save/Delete) с transparent AES-шифрованием credentials
+- [ ] Integration tests с testcontainers PG (миграции up/down идемпотентны)
+
+**Acceptance:** все миграции накатываются/откатываются, sqlc генерирует код, Store проходит контрактные тесты (encrypt → save → load → decrypt = исходный Auth).
+
+---
+
+## Фаза 2 — Auth (R1, R2)
+**Цель:** LDAP-логин, session-cookie, API-keys, access.Provider.
+
+- [ ] `internal/auth/ldap` (R1) — bind (service-account из env), search user DN, user-bind, проверка групп (admin-group, user-group из config), логика роли (admin → admin; иначе user → user; иначе 403)
+- [ ] `internal/auth/ldap` — provisioning users при первом логине, проверка `users.status`
+- [ ] Session lifecycle: генерация opaque token, INSERT sessions (token_hash SHA-256, role, expires_at = TTL user=5м/admin=10ч), Set-Cookie (HttpOnly, Secure, SameSite)
+- [ ] `internal/access` (R2) — `access.Provider.Authenticate`: lookup api_keys по prefix → bcrypt verify → check users.status → `Result{Principal=user_id, Metadata={api_key_id}}`
+- [ ] `access.RegisterProvider("db-apikey", ...)` + `access.SetExclusiveProvider("db-apikey")`
+- [ ] `internal/cache` — in-process кэш за интерфейсом: session_lookup, api_key_lookup (TTL 5–15с)
+- [ ] Unit tests: ldap (mock LDAP), access (cache hit/miss, blocked user), session TTL
+
+**Acceptance:** логин по LDAP создаёт cookie, запрос с API-key авторизуется, заблокированный пользователь отвергается, кэш даёт ≥95% hit ratio в steady-state тесте.
+
+---
+
+## Фаза 3 — Core contracts ADR-9
+**Цель:** 7 контрактов расширения ядра, wiring, запуск сервиса.
+
+- [ ] `sdkAuth.RegisterTokenStore(store)` вызывается ДО Builder (в `main.go`)
+- [ ] `internal/auth/selector` — `coreauth.Selector.Pick`: apply model_overrides, filter allow-list, round-robin/fill-first (заглушка R10 — без ProxyURL, в Ф5)
+- [ ] `internal/usage` — `usage.Plugin.HandleUsage`: чтение `record.APIKey` (user_id) + `record.Metadata[api_key_id]`, async bulk INSERT в usage_events, throttled update api_keys.last_used_at
+- [ ] `internal/usage` — `coreauth.Hook` (OnResult для доп. наблюдения)
+- [ ] `internal/watcher` — `WatcherFactory`: poll upstream_accounts, advisory lock leader election, push `watcher.AuthUpdate` в очередь ядра
+- [ ] `internal/modelregistry` — `ModelRegistryHook`: подписка на изменения реестра → mirror snapshot в Postgres
+- [ ] `cmd/cliproxy/main.go` — полный wiring: config → db → security → store → RegisterTokenStore → coreManager → Builder.With* → RegisterUsagePlugin → Service.Run
+- [ ] Contract tests для всех 7 контрактов (mock ядра через интерфейсы)
+
+**Acceptance:** сервис запускается и проксирует inference-запрос (с тестовым auth), auto-refresh работает (mock провайдера), usage_events записываются, leader election переключается при падении реплики (multi-instance тест).
+
+---
+
+## Фаза 4 — Management API (R9)
+**Цель:** полный management-API, OpenAPI-first.
+
+- [ ] `openapi.yaml` — все management-эндпоинты (R9.U, R9.A, oauth/sessions) + прокси-роуты (без body-схем) + системные (/healthz, /readyz, /metrics, /openapi.json)
+- [ ] Генерация типов/хендлеров из openapi.yaml (ogen/oapi-codegen)
+- [ ] `internal/httpapi` — management routes через `api.WithRouterConfigurator`:
+  - `/api/v1/login`, `/api/v1/logout` (R1)
+  - `/api/v1/me/keys` CRUD (R9.U.2), `/api/v1/me/usage` (R9.U.3)
+  - `/api/v1/admin/users`, `/api/v1/admin/keys` (R9.A.3 — блокировка через status)
+- [ ] R9.A.1 OAuth flow: `internal/auth/oauth` (FlowManager) — callback-flow (Codex/Claude/Antigravity) + device-flow (Kimi/xAI), сессии в oauth_sessions, `Store.Save` после exchange
+- [ ] R9.A.5 testing: `internal/auth/testing` (Checker) — Refresh для OAuth, HttpRequest для API-key
+- [ ] R9.A.2 batch API-keys провайдеров
+- [ ] R9.A.4 просмотр квоты (из Auth.Quota / AntigravityCreditsHint)
+- [ ] R9.A.6 allow-list моделей + model-mapping (через model_overrides)
+- [ ] R9.A.7 export/import OAuth JSON (dedup provider+email)
+- [ ] `admin_audit_log` writing на все mutating admin-действия
+- [ ] Middleware: LDAP-cookie auth, role-guard (user/admin), CORS, request_id
+- [ ] Functional tests (HTTP end-to-end) для всех management-эндпоинтов
+
+**Acceptance:** все R9-функции работают через REST, OpenAPI спецификация валидируется, drift-check с кодом проходит, `admin_audit_log` покрывает 100% mutating actions.
+
+---
+
+## Фаза 5 — Per-call-type proxy (R10)
+**Цель:** динамический ProxyURL в Selector.
+
+- [ ] Config-секция `proxy: { inference, auth, quota, models }` (direct если пусто)
+- [ ] Механизм определения call-type в `Selector.Pick` (по `opts.SourceFormat`, metadata, роуту)
+- [ ] Выставление `auth.ProxyURL` = `proxyFor(callType, provider)` — temporary, идемпотентно
+- [ ] В `Store.Save` — восстановление default ProxyURL (не persist временного значения)
+- [ ] Для управляемых вызовов (quota/models через R9.A) — выставление ProxyURL в точке вызова
+- [ ] Тест гонок: concurrent inference (proxy_inf) + refresh (default proxy) — ProxyURL не персистит временное значение
+- [ ] Документация: ограничение auto-refresh (default proxy, не call-type)
+
+**Acceptance:** inference идёт через inference-прокси, quota/models через свои, auto-refresh через default аккаунта, гонок нет (verified by race detector).
+
+---
+
+## Фаза 6 — Observability + Deployment (R6)
+**Цель:** prod-ready: k8s, metrics, traces, health, OpenAPI-serving.
+
+- [ ] Prometheus `/metrics`: request_count/latency histogram, refresh_success/failure, cache_hit/miss, db_pool_stats, usage_queue_depth
+- [ ] OpenTelemetry traces: span на inference + access.Provider + Selector + Execute; trace-context propagation
+- [ ] `slog` structured JSON + redaction (никогда не логировать credentials/tokens/passwords)
+- [ ] `/healthz` (liveness), `/readyz` (readiness = DB ping)
+- [ ] `/openapi.json` (serve spec) + опц. `/docs` (Swagger UI / Redoc)
+- [ ] Dockerfile (multi-stage: build → scratch/distroless)
+- [ ] k8s manifests: Deployment (≥2 replicas, HPA), ConfigMap (config.yaml), Secret (env), Service, Ingress
+- [ ] Graceful shutdown: `Service.Shutdown(ctx)`, drain in-flight ≤ 30с
+- [ ] Liveness/readiness probes в k8s
+- [ ] Configuration: config.yaml.example, .env.example, deployment README
+
+**Acceptance:** деплоится в k8s (≥2 replicas), `/metrics` отдаёт метрики, traces идут в Jaeger/Tempo, graceful shutdown работает, `/openapi.json` доступен.
+
+---
+
+## Фаза 7 — Testing & Hardening
+**Цель:** валидация SLA, security, v1 ready.
+
+- [ ] Load-тесты по SLA ([architecture-principles.md](architecture-principles.md) §2.1): vegeta/k6 — overhead бизнес-слоя ≤ 5мс p95, cache hit ≥ 95%
+- [ ] E2E тесты: login → API-key → inference → analytics → admin operations
+- [ ] Contract test suite: все 7 контрактов ADR-9 (mock ядра) — 100% покрытие
+- [ ] Integration tests: testcontainers PG + mock OAuth-провайдер
+- [ ] Coverage report + CI gate (≥ 70% для internal/*)
+- [ ] Security audit: grep секретов в логах/тестах, no plaintext credentials, no `fmt.Println` с секретами
+- [ ] Race detection: `go test -race` зелёный во всём
+- [ ] Documentation: godoc для всех пакетов, README update, runbook (restore backup, rotate AES key, rotate API-key, rotate LDAP bind)
+- [ ] Regression suite: SLA-метрики как CI gate (не regress'ить)
+- [ ] Chaos: kill leader → проверка failover; kill replica → сервис жив
+
+**Acceptance:** все SLA из architecture-principles.md соблюдены, coverage ≥ 70%, security audit чист, race detector зелёный, v1 ready to release.
+
+---
+
+## Сводка
+
+| Фаза | Длительность | Зависимости | Deliverable |
+|------|--------------|-------------|-------------|
+| Ф0 Foundation | 1–2 нед | — | Компилируемый проект + CI |
+| Ф1 Persistence | 1–2 нед | Ф0 | БД + Store + шифрование |
+| Ф2 Auth | 2 нед | Ф1 | LDAP + session + API-keys |
+| Ф3 Contracts ADR-9 | 2 нед | Ф1 | 7 контрактов + запуск |
+| Ф4 Management API | 3–4 нед | Ф2, Ф3 | R9 + OpenAPI |
+| Ф5 R10 proxy | 1 нед | Ф3 | Per-call-type прокси |
+| Ф6 Observability + k8s | 2 нед | Ф4, Ф5 | Prod deployment |
+| Ф7 Testing + Hardening | 2 нед | Ф6 | v1 ready |
+| **Итого** | **~16–19 нед** (1 dev) / **~8–10 нед** (2–3 dev) | | |
+
+## Что НЕ в плане v1 (явные ограничения)
+
+- Квоты и rate-limit (отложено, роль репо)
+- Web UI (R9.G — только REST API; UI отдельной итерацией)
+- Плагины (используем контракты ADR-9, не plugin host)
+- Redis (ADR-8 — Postgres достаточно на v1)
+- Fork/patch ядра (ADR-1)
+- Поддержка Home-режима ядра (не наш use-case)
+
+## История
+- 2026-07-12 — план зафиксирован; scope v1 = всё из R1–R11 (кроме явных «не делаем»).
+  Старт с Ф0 Foundation.

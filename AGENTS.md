@@ -141,6 +141,8 @@ go test ./...           # тесты
   SDK ядра или реализацией контрактов ADR-9.
 - [`docs/adr/ADR-10-per-call-type-proxy.md`](docs/adr/ADR-10-per-call-type-proxy.md)
   — per-call-type прокси. **Читать перед:** правками `Selector`/прокси.
+- [`docs/implementation-phases.md`](docs/implementation-phases.md) — план
+  имплементации по фазам (Ф0–Ф7). **Читать перед:** началом работы над фазой.
 
 ## Соглашения
 

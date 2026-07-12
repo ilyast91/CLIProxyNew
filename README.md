@@ -56,10 +56,11 @@ docs/            — требования, ADR, дизайн
 - [`docs/database-schema.md`](docs/database-schema.md) — схема БД (ER, таблицы, индексы, миграции)
 - [`docs/sdk-reference.md`](docs/sdk-reference.md) — референс публичного API SDK ядра (типы, интерфейсы, сигнатуры)
 - [`docs/design/r9-oauth-and-testing.md`](docs/design/r9-oauth-and-testing.md) — дизайн OAuth login-flow и тестирования аккаунтов (R9.A.1, R9.A.5)
+- [`docs/implementation-phases.md`](docs/implementation-phases.md) — план имплементации по фазам (Ф0–Ф7)
 - [`docs/adr/ADR-9-sdk-contracts.md`](docs/adr/ADR-9-sdk-contracts.md) — контракты интеграции с ядром (7 интерфейсов)
 - [`docs/adr/ADR-10-per-call-type-proxy.md`](docs/adr/ADR-10-per-call-type-proxy.md) — per-call-type egress proxy routing
 - [`AGENTS.md`](AGENTS.md) — инструкция для агентов
 
 ## Статус
 
-📋 Требования зафиксированы (10 ADR закрыты). Архитектурный дизайн и схема БД описаны. Следующий этап — имплементация компонентов.
+📋 Требования зафиксированы (R1–R11, 10 ADR). Архитектура, БД и план по фазам описаны. **Имплементация: Фаза 0 (Foundation).**
