@@ -572,3 +572,9 @@
     metadata-endpoints (API-key). Execute/CountTokens не используются.
   - Новая таблица `oauth_sessions` в БД; дизайн в docs/design/.
   - См. [docs/design/r9-oauth-and-testing.md](design/r9-oauth-and-testing.md).
+- 2026-07-12 — **сравнение R9.A.1 с CLIProxyAPIBusiness** подтвердило решения:
+  референс переиспользует готовые handlers ядра, но OAuth-сессии in-memory +
+  файл callback → multi-replica не работает (сознательное ограничение).
+  Наш подход (своя реализация + Postgres-сессии) обоснован требованием R6.2.
+  R5 (AES-GCM) остаётся строже референса (plaintext) — подтверждено. Сравнение
+  зафиксировано в docs/design/r9-oauth-and-testing.md.

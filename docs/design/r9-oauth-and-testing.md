@@ -4,6 +4,56 @@
 > **Связанные:** [requirements.md](../requirements.md) R9.A.1, R9.A.5;
 > [sdk-reference.md](../sdk-reference.md); [ADR-9](../adr/ADR-9-sdk-contracts.md).
 
+## Сравнение с референсом CLIProxyAPIBusiness
+
+Прежде чем переходить к деталям — почему мы не делаем как референс.
+
+CLIProxyAPIBusiness переиспользует готовые handlers ядра:
+```go
+tokenRequester := sdkapi.NewManagementTokenRequester(cfg, baseHandler.AuthManager)
+authed.POST("/tokens/anthropic", tokenRequester.RequestAnthropicToken)
+// ...
+```
+Это ~10 строк wiring'а. Но у этого подхода два жёстких ограничения:
+
+1. **OAuth-сессии хранятся in-memory в ядре** (`oauthSessions` — package-global
+   map, TTL 30мин) + callback доставляется через **локальный файл**
+   `.oauth-<provider>-<state>.oauth` под `cfg.AuthDir`. В multi-replica (R6.2)
+   replica A стартует flow, replica B не находит ни state, ни файла → flow
+   падает. Референс **сознательно не решает** это (Redis у них только для
+   rate-limit).
+2. **Credentials хранятся plaintext** в `auths.content` (jsonb без шифрования).
+
+### Почему мы пошли иначе
+
+| Аспект | CLIProxyAPIBusiness | CLIProxyNew | Решение |
+|--------|---------------------|-------------|---------|
+| Login-flow | Переиспользует `ManagementTokenRequester` ядра | Своя реализация над низкоуровневыми сервисами | ✅ Обосновано multi-replica |
+| `Manager.Login()` | ❌ не используется (даже ядром из HTTP) | ❌ не используется | ✅ Посылка подтверждена |
+| Session store | In-memory + файл callback | **Postgres** `oauth_sessions` | ✅ Multi-replica работает |
+| Multi-replica | ❌ Не работает | ✅ Решено | ✅ Наше преимущество |
+| Шифрование credentials | Plaintext jsonb | **AES-256-GCM** (R5) | ✅ Строже ради compliance |
+
+### Цена нашего подхода
+
+- Больше кода: per-provider логика PKCE/device поверх `claude.NewClaudeAuth`,
+  `codex.NewCodexAuth`, `kimi.NewKimiAuth`, `xaiauth.NewXAIAuth`,
+  `antigravity.NewAntigravityAuth`.
+- Поддержка при апгрейдах ядра: если ядро меняет сигнатуры низкоуровневых
+  сервисов, наша обёртка требует правок (в отличие от re-export'а handlers).
+- Принято сознательно: multi-replica в k8s — базовое требование R6.2, и
+  откладывать это на «sticky-session MVP» создаст миграционный долг.
+
+### Что переиспользуем из ядра
+
+Хотя login-flow свой, низкоуровневые хелперы берём из `sdk/api/management.go`:
+- `RegisterOAuthSession`, `IsOAuthSessionPending`, `CompleteOAuthSession`,
+  `CancelOAuthSession` — базовые операции (мапим на Postgres вместо in-memory).
+- `WriteOAuthCallbackFileForPendingSession`, `ValidateOAuthState`,
+  `NormalizeOAuthProvider` — утилиты валидации/нормализации.
+
+---
+
 ## Контекст: почему `sdkAuth.Manager.Login` не подходит
 
 `sdkAuth.Manager.Login()` — **блокирующий синхронный** вызов:
