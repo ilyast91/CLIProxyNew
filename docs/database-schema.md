@@ -62,7 +62,7 @@ erDiagram
     }
 
     upstream_accounts {
-        bigint id PK
+        text id PK
         text provider UK
         text email
         text auth_type
@@ -90,7 +90,7 @@ erDiagram
         bigint id PK
         bigint user_id FK
         bigint api_key_id FK
-        bigint upstream_account_id FK
+        text upstream_account_id FK
         text provider
         text model
         int input_tokens
@@ -165,7 +165,7 @@ erDiagram
 
 | Поле | Тип | Назначение |
 |------|-----|-----------|
-| `id` | bigint identity PK | **но `coreauth.Auth.ID` — строка** → хранить как text PK или маппинг. Решение: `id text PK` = Auth.ID (ядро управляет ID). |
+| `id` | text PK | **= `coreauth.Auth.ID` (строка, управляется ядром)**. Не bigint/identity — ядро генерирует ID при Login/импорте. |
 | `provider` | text, not null | |
 | `email` | text, not null | для dedup (R9.A.7) |
 | `auth_type` | text, not null | `oauth` \| `api-key` |
@@ -180,8 +180,15 @@ erDiagram
 
 **Уникальность:** `(provider, email)` — для dedup при импорте (R9.A.7).
 **Шифрование:** при Save/Load — бизнес-слой шифрует/расшифровывает blob (AES-GCM). Ядро видит уже расшифрованный `*Auth`.
+**Удаление аккаунта (политика FK):** при удалении `upstream_accounts` —
+`usage_events.upstream_account_id` = `ON DELETE SET NULL` (аналитика
+сохраняется, аккаунт обнуляется — отчёты не теряют историю, но теряется
+привязка к удалённому аккаунту). `admin_audit_log.target_id` — text без FK
+(append-only, аудит не должен блокировать удаление).
 
-⚠️ **Нюанс:** `coreauth.Auth.ID` — string (управляется ядром). Хранить `id text PK`, генерируемый ядром при Login/импорте. Бизнес-слой не генерирует ID.
+⚠️ **Нюанс:** `coreauth.Auth.ID` — string (управляется ядром). Хранить `id text PK`,
+генерируемый ядром при Login/импорте. Бизнес-слой не генерирует ID. Все FK на
+`upstream_accounts(id)` — тоже `text`.
 
 ### `model_overrides` (R9.A.6)
 Allow-list + model-mapping, хранимые админом.
@@ -205,7 +212,7 @@ Allow-list + model-mapping, хранимые админом.
 | `id` | bigint identity PK | (внутри partition) |
 | `user_id` | bigint FK | |
 | `api_key_id` | bigint FK | |
-| `upstream_account_id` | text FK → upstream_accounts(id) | = `usage.Record.AuthID` |
+| `upstream_account_id` | text FK → upstream_accounts(id) `ON DELETE SET NULL` | = `usage.Record.AuthID` (string). См. политику удаления ниже. |
 | `provider` | text | |
 | `model` | text | |
 | `input_tokens`, `output_tokens`, `reasoning_tokens`, `cached_tokens`, `total_tokens` | int | из `Record.Detail` |

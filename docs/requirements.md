@@ -139,6 +139,11 @@
 - ✅ **Решено:** `access.Provider` дополнительно проверяет `users.status` —
   API-key заблокированного пользователя (`status=blocked`) отклоняется
   (с учётом eventual consistency R2.4).
+- ✅ **Решено:** бизнес-слой **полностью заменяет** встроенный `config-api-key`
+  ядром inline-провайдер через `access.SetExclusiveProvider("db-api-key")` —
+  inline `cfg.APIKeys` ядра **не используются** (все клиентские API-keys живут
+  только в БД). Это исключает двойной путь auth и случайно оставленные
+  inline-ключи в конфиге.
 
 ### R3. Аналитика использования
 - R3.1 Сбор событий на каждый запрос: пользователь, токен/API-key, провайдер,
@@ -209,6 +214,10 @@
 
 ### R6. Надёжность, масштабирование, observability, k8s
 - R6.1 Приложение **stateless**, всё состояние — в Postgres.
+- ✅ **Решено:** `Config.Routing.SessionAffinity` ядра — **отключён**
+  (`SessionAffinity: false`). `SessionCache` ядра — in-memory, в multi-replica
+  аффинность нарушается между репликами (stateless R6.1 конфликтует с
+  in-memory affinity). Используется только round-robin/fill-first роутинг.
 - R6.2 Запуск в нескольких репликах в k8s; горизонтальное масштабирование.
 - R6.3 Liveness/readiness probes, graceful shutdown.
 - R6.4 **Бэкапы Postgres — вне ответственности репозитория** (задача
@@ -292,17 +301,26 @@
   Gemini/Grok и т.д.). Регистрация/обновление OAuth-app провайдера, запуск
   authorization-flow через ядро (`sdkAuth.Manager.Login`), хранение полученных
   upstream-credentials в БД (зашифрованные, R5).
-  ✅ **API-driven flow (без UI):**
-  - `GET` возвращает **ссылку авторизации** провайдера (+ state) для админа;
-  - админ открывает ссылку, проходит OAuth у провайдера, провайдер
-    редиректит на `redirect_uri`;
-  - `redirect_uri` настраивается как `localhost` (провайдер редиректит на
-    локальный адрес админа, админ копирует callback URL/код);
-  - админ отправляет callback (URL с кодом) обратно в сервис через
-    `POST`/`PUT`/`PATCH` → сервис завершает exchange через ядро и сохраняет
-    credentials.
-  Сервис сам не слушает callback-эндпоинт (нет inbound redirect-handler);
-  обмен кода на токен инициируется явным POST от админа.
+  ✅ **API-driven flow (без UI).** Реализация зависит от режима
+  `Authenticator.Login` (см. SDK-референс `sdk/auth`):
+  - **PKCE-flow (Codex port 1455, Claude port 54545):** ядро при `Login`
+    открывает **callback-сервер** на `CallbackPort` и возвращает auth-URL.
+    Варианты получения callback:
+    (а) callback-сервер ядра доступен (exposed port / port-forward в k8s) —
+    провайдер редиректит напрямую, `Login` завершается автоматически;
+    (б) callback-сервер недоступен извне (типично для k8s без exposed port) —
+    админ копирует callback URL вручную и передаёт через
+    `LoginOptions.Prompt` (ядро ждёт ввод ~15с, затем вызывает Prompt).
+  - **Device-flow (Codex через `Metadata["codex_login_mode"]="device"`, Kimi,
+    xAI):** `Login` возвращает user-code + URL; админ вводит код на странице
+    провайдера; ядро poll-ит завершение. Callback-сервер не нужен.
+  - `GET` management-API возвращает auth-URL (+ state/user-code);
+    `POST`/`PUT` передаёт callback (URL с кодом) или подтверждает завершение;
+    сервис сохраняет credentials через `Store.Save`.
+  ❓ **Открыто:** как именно прокидывать callback в k8s (exposed port vs
+  Prompt-based ручной ввод) — зафиксировать при дизайне R9.A.1 по per-provider.
+  ❓ **Открыто:** требуется ли exposed callback-port в k8s Service/Ingress
+  для PKCE-провайдеров, или использовать только device-flow / Prompt.
 - **R9.A.2** Настройка **API-keys для провайдеров** (batch, по API).
   Регистрация набора статических upstream API-keys (напр. OpenRouter,
   кастомные OpenAI-compatible эндпоинты) — сохраняются как `coreauth.Auth`
@@ -323,6 +341,9 @@
   конкретного upstream-аккаунта (OAuth-токена или API-key) — вызов
   `ProviderExecutor.Refresh` (для OAuth) / пробный запрос (`Execute`) и
   отображение результата (валиден / ошибка / квота).
+  ❓ **Открыто:** пробный `Execute` тратит upstream-квоту подписки. Варианты:
+  минимальный запрос (1 токен), или принять стоимость, или только Refresh
+  для OAuth. Зафиксировать при дизайне R9.
 - **R9.A.6** Настройка **списка доступных моделей**: override/фильтр
   глобального реестра моделей (R8, ModelRegistryHook). Администратор задаёт,
   какие модели из реестра ядра разрешены клиентам (allow-list), а также
@@ -372,12 +393,18 @@
 ### R10. Per-call-type egress proxy routing
 - **R10.1** Для каждого **типа upstream-вызова** настраивается отдельный
   egress-прокси:
-  - **inference** — вызовы completion/generation к провайдерам (основной трафик);
-  - **auth** — OAuth-флоу (login, device-flow, token-exchange);
-  - **quota** — запросы квоты/лимитов подписки провайдера;
-  - **models** — запросы списка/обновления моделей провайдеров.
+  - **inference** — вызовы completion/generation к провайдерам (основной
+    трафик, путь через `Selector.Pick`);
+  - **quota** — запросы квоты/лимитов подписки провайдера (управляется
+    business-слоем через R9.A.4);
+  - **models** — запросы списка/обновления моделей провайдеров (R9.A.6).
   Каждый тип имеет свой прокси-адрес (HTTP/SOCKS) в конфигурации.
   **Если прокси не указан — подключение напрямую (direct).**
+  ⚠️ **Уточнение по `auth`/`refresh`:** OAuth login (`sdkAuth.Manager.Login`)
+  и auto-refresh (`StartAutoRefresh`) — это **отдельные пути, не идущие через
+  `Selector.Pick`**. Прокси для них задаётся как **`Auth.ProxyURL` аккаунта по
+  умолчанию** (persisted в Store), а не как динамический per-call-type.
+  Т.е. «auth» — не call-type в смысле R10, а default-прокси аккаунта. См. ADR-10.
 - **R10.2** Назначение прокси — **глобально per call-type** (без per-provider
   override прокси). Хранится в конфигурации сервиса.
 - **R10.3** **Per-provider `base_url`** (отдельное требование): каждый
@@ -389,17 +416,14 @@
   (per-request Options) невозможен в рамках контрактов ядра v7, а подход B
   (N регистраций) неприемлем из-за дублирования. См.
   [docs/adr/ADR-10-per-call-type-proxy.md](adr/ADR-10-per-call-type-proxy.md).
-  ⚠️ **Известное ограничение (auth/quota при auto-refresh):** ядро вызывает
+  ⚠️ **Известное ограничение (refresh):** ядро вызывает
   `ProviderExecutor.Refresh` напрямую по `auth.ID` в рамках
   `StartAutoRefresh`, **минуя `Selector.Pick`**. Поэтому для auto-refresh
-  business-слой не может выставить `auth`-прокси через Selector в момент
-  вызова. Опции: (а) выставлять default-proxy аккаунта (напр. inference-прокси
-  как долгоживущий `Auth.ProxyURL` по умолчанию) и принимать, что refresh идёт
-  через него; (б) расширять ядро (противоречит ADR-1). На первой версии —
-  принять вариант (а): **per-call-type прокси точно применяется к inference
-  и к управляемым business-слоем вызовам (quota/models через R9.A); для
-  авто-refresh — используется default-прокси аккаунта.** Зафиксировать при
-  дизайне R10.
+  бизнес-слой не может выставить `auth`-прокси через Selector в момент
+  вызова — используется `Auth.ProxyURL` аккаунта по умолчанию (persisted).
+  Per-call-type прокси точно применяется к inference (Selector.Pick) и к
+  управляемым бизнес-слоем вызовам (quota/models). Для login/auto-refresh —
+  default-прокси аккаунта. См. ADR-10.
 - ❓ **Открыто:** точный механизм определения call-type в `Selector.Pick` и
   формат конфиг-секции прокси — при дизайне R10.
 
@@ -492,3 +516,18 @@
 - 2026-07-11 — **архитектурный дизайн:** созданы
   docs/architecture.md (components, data flows, deployment) и
   docs/database-schema.md (ER, таблицы, индексы, миграции).
+- 2026-07-12 — **третье ревью (сверка с SDK-референсом):** исправлены
+  критические неточности, выявленные после анализа реальных контрактов ядра:
+  - DB: `upstream_accounts.id` = text PK (= Auth.ID string), FK в
+    usage_events/admin_audit_log приведены к text; политика удаления аккаунта
+    (ON DELETE SET NULL для аналитики);
+  - R9.A.1: OAuth-flow переписан — PKCE-провайдеры (Codex/Claude) сами
+    открывают callback-сервер на CallbackPort; device-flow (Codex/Kimi/xAI)
+    не требует; вопрос exposed-port в k8s открыт;
+  - R10: call-type `auth` убран (это login-flow, не inference-путь);
+    auto-refresh/login = default ProxyURL аккаунта;
+  - R2: SetExclusiveProvider("db-api-key") — inline cfg.APIKeys не нужны;
+  - R6.1: SessionAffinity отключён (конфликтует с stateless multi-replica);
+  - R9.A.5: отмечено как открытое (Execute тратит квоту);
+  - ADR-9: добавлены поля watcher.AuthUpdate, опциональный CooldownStateStore;
+  - architecture.md: исправлен вызов RegisterTokenStore в wiring-диаграмме.

@@ -126,7 +126,30 @@ type WatcherFactory func(configPath, authDir string, reload func(*config.Config)
 ```
 
 Реализация: `internal/watcher` — **poll БД** (не файловая система). Пушит
-`coreauth.Auth`-обновления в очередь ядра через `SetAuthUpdateQueue`.
+`watcher.AuthUpdate`-обновления в очередь ядра через `SetAuthUpdateQueue`.
+Структура `watcher.AuthUpdate` (из `internal/watcher/watcher.go`):
+```go
+type AuthUpdate struct {
+    Action AuthUpdateAction   // "add" | "modify" | "delete"
+    ID     string
+    Auth   *coreauth.Auth
+}
+```
+В multi-replica poller работает только на лидере (advisory lock, ADR-7).
+
+### Контракт 5б (опциональный) — CooldownStateStore
+
+```go
+// sdk/cliproxy/auth/cooldown_state.go
+type CooldownStateStore interface {
+    Load(context.Context) ([]CooldownStateRecord, error)
+    Save(context.Context, []CooldownStateRecord) error
+}
+```
+Ядро поддерживает персистенцию cooldown-состояния между рестартами (при
+`Config.SaveCooldownStatus: true`). На первой версии — **не реализуем**
+(`SaveCooldownStatus: false`, cooldown in-memory). При необходимости добавить
+таблицу `cooldown_states` в схему БД.
 В multi-replica работает только на лидере (Postgres advisory lock, ADR-7).
 
 ### Контракт 6 — Зеркало реестра моделей: `ModelRegistryHook`

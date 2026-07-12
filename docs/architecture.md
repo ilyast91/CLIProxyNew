@@ -91,7 +91,7 @@ sequenceDiagram
     M->>DB: pgxpool.New dsn
     M->>S: NewAES env CLIPROXY_ENCRYPTION_KEY
     M->>Store: New db aes
-    M->>Store: RegisterTokenStore store
+    M->>C: sdkAuth.RegisterTokenStore store
     M->>CoreMgr: NewManager store selector hook
     M->>B: Builder WithConfig WithCoreAuthManager WithWatcherFactory WithServerOptions
     Note over B: Builder собирает Service с DI контрактов
