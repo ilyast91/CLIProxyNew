@@ -103,8 +103,8 @@ sequenceDiagram
     API->>Prov: GenerateAuthURL verifier challenge state
     Prov-->>API: auth_url
     API-->>A: 200 auth_url state
-    A->>Prov: открывает auth_url в браузере
-    Prov-->>A: redirect localhost port code state
+    Note over A: админ открывает auth_url в браузере вне системы
+    Note over A: провайдер редиректит на localhost CallbackPort
     Note over A: админ копирует redirect_url вручную
     A->>API: POST admin oauth provider complete state redirect_url
     API->>DB: SELECT oauth_sessions WHERE state
@@ -135,7 +135,7 @@ sequenceDiagram
     Prov-->>API: device_code user_code verification_uri expires_in
     API->>DB: INSERT oauth_sessions state pending device_code user_code
     API-->>A: 200 auth_url user_code expires_in flow device
-    A->>Prov: открывает verification_uri вводит user_code
+    Note over A: админ открывает verification_uri вводит user_code вне системы
     loop goroutine poll до expires_in
         API->>Prov: WaitForAuthorization device_code
         Prov-->>API: pending или success tokens

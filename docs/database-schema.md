@@ -26,10 +26,11 @@ erDiagram
     users }o--o{ admin_audit_log : "actor"
 
     upstream_accounts ||--o{ usage_events : "auth_id"
-    upstream_accounts ||--o{ admin_audit_log : "target"
     upstream_accounts ||--o{ model_overrides : "модели"
 
     api_keys ||--o{ usage_events : "авторизует"
+
+    oauth_sessions }o--o| upstream_accounts : "создаёт (auth_id)"
 
     users {
         bigint id PK
@@ -117,6 +118,20 @@ erDiagram
         text target_id
         jsonb details
         inet actor_ip
+        timestamptz created_at
+    }
+
+    oauth_sessions {
+        text state PK
+        text provider
+        text flow_type
+        text status
+        text auth_id FK
+        text pkce_verifier
+        text device_code
+        text user_code
+        text error_message
+        timestamptz expires_at
         timestamptz created_at
     }
 ```

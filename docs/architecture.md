@@ -19,8 +19,11 @@ graph TB
 
     subgraph CLIProxyNew["CLIProxyNew — бизнес-слой"]
         H["httpapi<br/>middleware + management-API"]
-        A["access.Provider<br/>проверка API-keys"]
-        SEL["auth.Selector<br/>выбор аккаунта + R10 прокси"]
+        A["access.Provider<br/>проверка API-keys + status"]
+        LDAP["auth/ldap<br/>LDAP-login + cookie"]
+        SEL["auth/selector<br/>выбор аккаунта + R10 прокси"]
+        OAUTH["auth/oauth<br/>FlowManager R9.A.1"]
+        TEST["auth/testing<br/>Checker R9.A.5"]
         USG["usage.Plugin<br/>аналитика"]
         ST["store<br/>pgx+sqlc to Postgres"]
         SEC["security<br/>bcrypt + AES-GCM"]
@@ -36,28 +39,33 @@ graph TB
 
     subgraph DS["Хранилища"]
         PG[("Postgres")]
-        LDAP["LDAP/AD"]
     end
 
     U -->|login LDAP| H
     U -->|cookie mgmt-API| H
     APP -->|API-key /v1/* прокси| H
     H --> A
+    H --> LDAP
+    H --> OAUTH
+    H --> TEST
     H --> SEL
     H --> SVC
     SVC --> EXEC
     SVC --> REG
     A --> ST
+    LDAP -.->|service bind| LDAPSrv["LDAP/AD"]
+    LDAP --> ST
     SEL --> ST
+    OAUTH --> ST
     USG --> ST
     W --> ST
     MR --> ST
     ST <--> PG
-    A -.->|проверяет| LDAP
+    A -.->|шифр bcrypt| SEC
     SVC -.->|Store.Save| ST
     SVC -.->|usage.Record| USG
     REG -.->|ModelRegistryHook| MR
-    SEC -.->|шифр| ST
+    SEC -.->|AES-GCM| ST
 ```
 
 ### Развязка ответственности
@@ -83,6 +91,7 @@ sequenceDiagram
     participant DB as pgx pool
     participant S as security
     participant Store as store
+    participant Reg as sdkAuth
     participant CoreMgr as coreauth.Manager
     participant B as cliproxy.Builder
     participant Svc as Service.Run
@@ -91,7 +100,7 @@ sequenceDiagram
     M->>DB: pgxpool.New dsn
     M->>S: NewAES env CLIPROXY_ENCRYPTION_KEY
     M->>Store: New db aes
-    M->>C: sdkAuth.RegisterTokenStore store
+    M->>Reg: RegisterTokenStore store
     M->>CoreMgr: NewManager store selector hook
     M->>B: Builder WithConfig WithCoreAuthManager WithWatcherFactory WithServerOptions
     Note over B: Builder собирает Service с DI контрактов
@@ -133,7 +142,7 @@ sequenceDiagram
     AP->>AP: bcrypt verify hash vs key
     AP->>DB: check users.status = active cache
     AP-->>Gin: Result principal user_id api_key_id в ctx
-    Note over Gin: ядро заполняет Record.APIKey из Principal и Record.Metadata из opts.Metadata
+    Note over Gin: Record.APIKey из Principal, Metadata из opts
     Gin->>Sel: Pick provider model opts auths
     Sel->>DB: load model_overrides cache
     Sel->>Sel: выставить auth.ProxyURL = proxyFor inference
@@ -192,7 +201,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Core as coreauth.Manager
-    participant Exec as ProviderExecutor.Refresh
+    participant Exec as ProviderExecutor
     participant Up as Upstream
     participant Store as store
     participant DB as Postgres
@@ -213,28 +222,39 @@ sequenceDiagram
 
 ## 6. Поток: management — настройка OAuth (R9.A.1)
 
-API-driven OAuth-flow без UI.
+Своя асинхронная реализация (НЕ через блокирующий `sdkAuth.Manager.Login`).
+Сессии в Postgres → multi-replica. См. детальный дизайн
+[docs/design/r9-oauth-and-testing.md](design/r9-oauth-and-testing.md).
 
 ```mermaid
 sequenceDiagram
     participant A as Админ
     participant H as httpapi mgmt
-    participant Core as sdkAuth.Manager
-    participant Prov as Провайдер OAuth
+    participant FM as auth.oauth FlowManager
+    participant DB as Postgres
+    participant Svc as claude.NewClaudeAuth
     participant Store as store
-    participant Audit as audit_log
 
-    A->>H: GET admin oauth provider start
-    H->>Core: Login start получить auth URL + state
-    H-->>A: auth_url state redirect_uri localhost
-    A->>Prov: открывает URL проходит OAuth
-    Prov-->>A: redirect localhost code state
-    A->>H: POST admin oauth provider callback code state
-    H->>Core: Login complete exchange code в tokens
-    Core-->>H: coreauth.Auth
-    H->>Store: Save auth шифрование AES-GCM
-    H->>Audit: INSERT action provider_oauth_setup target account
-    H-->>A: 200 account_id status
+    A->>H: POST admin oauth provider start
+    H->>FM: Start provider
+    FM->>Svc: GeneratePKCE + GenerateAuthURL
+    Svc-->>FM: auth_url + state + verifier
+    FM->>DB: INSERT oauth_sessions state pending verifier
+    FM-->>H: auth_url state
+    H-->>A: 200 auth_url state
+    Note over A: админ открывает auth_url в браузере вне системы
+    Note over A: провайдер редиректит на localhost CallbackPort
+    Note over A: админ копирует redirect_url вручную
+    A->>H: POST admin oauth provider complete state redirect_url
+    H->>FM: Complete provider state redirect_url
+    FM->>DB: SELECT oauth_sessions WHERE state
+    FM->>Svc: ExchangeCodeForTokens code verifier
+    Svc-->>FM: tokens access refresh email
+    FM->>Store: Save auth AES-GCM шифрование
+    FM->>DB: UPDATE oauth_sessions completed auth_id
+    FM->>DB: INSERT admin_audit_log action provider_oauth_setup
+    FM-->>H: account_id
+    H-->>A: 200 account_id status valid
 ```
 
 ## 7. Компоненты — детали
@@ -381,7 +401,11 @@ graph LR
     ALB --> P2
     ALB --> P3
     CM --> P1
+    CM --> P2
+    CM --> P3
     SEC --> P1
+    SEC --> P2
+    SEC --> P3
     P1 --> PG
     P2 --> PG
     P3 --> PG
