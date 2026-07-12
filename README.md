@@ -53,6 +53,7 @@ docs/            — требования, ADR, дизайн
 - [`docs/requirements.md`](docs/requirements.md) — требования R1–R10 (зафиксированы)
 - [`docs/architecture.md`](docs/architecture.md) — архитектурный дизайн (components, потоки, deployment)
 - [`docs/database-schema.md`](docs/database-schema.md) — схема БД (ER, таблицы, индексы, миграции)
+- [`docs/sdk-reference.md`](docs/sdk-reference.md) — референс публичного API SDK ядра (типы, интерфейсы, сигнатуры)
 - [`docs/adr/ADR-9-sdk-contracts.md`](docs/adr/ADR-9-sdk-contracts.md) — контракты интеграции с ядром (7 интерфейсов)
 - [`docs/adr/ADR-10-per-call-type-proxy.md`](docs/adr/ADR-10-per-call-type-proxy.md) — per-call-type egress proxy routing
 - [`AGENTS.md`](AGENTS.md) — инструкция для агентов

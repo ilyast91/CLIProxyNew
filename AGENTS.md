@@ -131,6 +131,9 @@ go test ./...           # тесты
 - [`docs/adr/ADR-9-sdk-contracts.md`](docs/adr/ADR-9-sdk-contracts.md) —
   контракты интеграции. **Читать перед:** реализацией Store/Selector/Hook/
   usage.Plugin/access.Provider/WatcherFactory/ModelRegistryHook.
+- [`docs/sdk-reference.md`](docs/sdk-reference.md) — полный референс публичного
+  API SDK ядра (типы, интерфейсы, сигнатуры). **Читать перед:** любым вызовом
+  SDK ядра или реализацией контрактов ADR-9.
 - [`docs/adr/ADR-10-per-call-type-proxy.md`](docs/adr/ADR-10-per-call-type-proxy.md)
   — per-call-type прокси. **Читать перед:** правками `Selector`/прокси.
 
