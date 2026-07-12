@@ -43,7 +43,8 @@ internal/        — бизнес-логика (неэкспортируемая
                      за интерфейсом, задел под Redis
   config/          — конфигурация сервиса
   httpapi/         — клиентские эндпоинты (делегируют ядру) + management-API
-                     (R9: user/admin операции) + middleware (LDAP-cookie)
+                     (R9: user/admin операции) + middleware (LDAP-cookie);
+                     типы/хендлеры генерируются из openapi.yaml (R11)
   modelregistry/   — ModelRegistryHook: зеркало реестра моделей в Postgres
   security/        — bcrypt (API-keys) + AES-256-GCM (upstream/ldap secrets)
   store/           — репозитории (pgx + sqlc): users, api_keys, auths,

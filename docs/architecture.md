@@ -358,13 +358,18 @@ sequenceDiagram
 Реализует `cliproxy.ModelRegistryHook`:
 - подписка на изменения in-memory реестра ядра → mirror snapshot в Postgres (для UI/model-mapping).
 
-### `internal/httpapi` (R8, R9)
+### `internal/httpapi` (R8, R9, R11)
 - **Прокси-эндпоинты** (`/v1/*`) — роутит ядро (Gin); бизнес-слой не пишет хендлеры.
 - **Management-API** (`/api/v1/*`) — через `api.WithRouterConfigurator`:
   - `/api/v1/login`, `/api/v1/logout` (R1);
   - `/api/v1/me/keys` (CRUD user API-keys, R9.U.2);
   - `/api/v1/me/usage` (личная статистика, R9.U.3);
   - `/api/v1/admin/users`, `/api/v1/admin/keys`, `/api/v1/admin/oauth/*`, `/api/v1/admin/providers/keys`, `/api/v1/admin/quota/*`, `/api/v1/admin/accounts/test`, `/api/v1/admin/models`, `/api/v1/admin/oauth/export|import` (R9.A).
+- **Системные роуты:** `/healthz` (liveness), `/readyz` (readiness), `/metrics` (Prometheus),
+  `/openapi.json` (OpenAPI 3.1 спецификация), `/docs` (Swagger UI / Redoc, R11).
+- **OpenAPI (R11):** spec-first — `openapi.yaml` первичен; Go-типы и хендлеры
+  генерируются из спецификации. Покрытие: все роуты (management с полными
+  схемами; прокси `/v1/*` без body-схем, только auth + общие errors).
 - **Middleware:** LDAP-cookie auth для management; logging; CORS; role-guard (user/admin).
 
 ### `internal/cache` (R6)

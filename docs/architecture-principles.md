@@ -152,6 +152,7 @@ graph TB
 | **Логирование** | structured `slog`; уровни Debug/Info/Warn/Error; **никогда** не логируем секреты |
 | **Контекст** | `context.Context` первым параметром во всех публичных методах; cancellation уважируется; для стриминга principal копируется в Record, не из ctx |
 | **Миграции** | `golang-migrate`, `YYYYMMDDHHMMSS_<name>.up.sql` + `.down.sql`; идемпотентные |
+| **API-контракт** | OpenAPI 3.1; spec-first (`openapi.yaml`); генерация типов из спеки; ручные правки кода не допускаются (R11) |
 
 ## 6. Cross-cutting concerns
 
@@ -162,6 +163,7 @@ graph TB
 | **Observability** | middleware + плагины | Сквозная инструментация; trace context через все слои |
 | **Security** | `internal/security`, `internal/access` | Шифрование за интерфейсом; проверка статуса на каждый запрос |
 | **Multi-tenancy** | плоская (R4) | `user_id` во всех таблицах; role guard в middleware |
+| **API-контракт (Swagger)** | `openapi.yaml` spec-first | OpenAPI 3.1; код генерируется из спеки; CI lint + drift-check (R11) |
 
 ## 7. Эволюция архитектуры
 
@@ -182,3 +184,6 @@ graph TB
 - 2026-07-12 — сформулированы требования к архитектуре: принципы, quality
   attributes с жёсткими SLA-метриками, полная тест-пирамида с CI gate
   (запуск до build), ADR immutable + supersede.
+- 2026-07-12 — **R11 OpenAPI:** добавлен cross-cutting concern «API-контракт
+  (Swagger)» — spec-first, OpenAPI 3.1, генерация кода из спецификации,
+  CI lint + drift-check (R11).
