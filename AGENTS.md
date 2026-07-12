@@ -123,6 +123,10 @@ go test ./...           # тесты
 - [`docs/requirements.md`](docs/requirements.md) — требования R1–R10 и ADR.
   **Читать перед:** правками go.mod/зависимостей, контрактов с SDK ядра,
   схемы БД, слойности `internal/`.
+- [`docs/architecture-principles.md`](docs/architecture-principles.md) —
+  требования к архитектуре: принципы, quality attributes с SLA-метриками,
+  тест-пирамида (CI gate до build), ADR immutable.
+  **Читать перед:** любыми архитектурными решениями и правками CI.
 - [`docs/architecture.md`](docs/architecture.md) — архитектурный дизайн
   (components, потоки данных, deployment). **Читать перед:** правками
   потоков/wiring/middleware.

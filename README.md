@@ -51,6 +51,7 @@ docs/            — требования, ADR, дизайн
 ## Документация
 
 - [`docs/requirements.md`](docs/requirements.md) — требования R1–R10 (зафиксированы)
+- [`docs/architecture-principles.md`](docs/architecture-principles.md) — требования к архитектуре (принципы, quality attributes, SLA, тестирование)
 - [`docs/architecture.md`](docs/architecture.md) — архитектурный дизайн (components, потоки, deployment)
 - [`docs/database-schema.md`](docs/database-schema.md) — схема БД (ER, таблицы, индексы, миграции)
 - [`docs/sdk-reference.md`](docs/sdk-reference.md) — референс публичного API SDK ядра (типы, интерфейсы, сигнатуры)
