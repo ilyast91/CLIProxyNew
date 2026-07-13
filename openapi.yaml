@@ -1,0 +1,218 @@
+# CLIProxyNew — OpenAPI 3.1 спецификация (R11).
+#
+# Spec-first: эта спецификация первична. Go-типы и хендлеры генерируются
+# через ogen (см. docs/requirements.md R11.2).
+#
+# Структура:
+#   /api/v1/*     — management-API (R9): логин, user/admin, OAuth, testing.
+#                   С полными схемами request/response. Добавляются в Ф4.
+#   /v1/*         — прокси-роуты (R8): chat/completions, messages, generateContent.
+#                   Без body-схем (проксируются ядром). Только auth + errors.
+#                   Добавляются в Ф3/Ф4.
+#   /healthz,
+#   /readyz,
+#   /metrics,
+#   /openapi.json,
+#   /docs         — системные роуты (R6, R11). Описаны ниже.
+#
+# CI lint: spectral (github.com/stoplightio/spectral) + drift-check с кодом.
+
+openapi: 3.1.0
+
+info:
+  title: CLIProxyNew API
+  version: 0.1.0
+  description: |
+    Бизнес-обвязка над upstream relay-движком CLIProxyAPI v7.
+
+    - Management-API (`/api/v1/*`) — авторизация, управление API-keys,
+      настройка провайдеров, OAuth login-flow, тестирование аккаунтов.
+    - Прокси-API (`/v1/*`) — OpenAI/Gemini/Claude/Codex/Grok-совместимые
+      эндпоинты, проксируются ядру.
+    - Системные роуты — health, metrics, спецификация.
+
+    См. docs/requirements.md, docs/architecture.md.
+  contact:
+    name: CLIProxyNew
+    url: https://github.com/ilyast91/CLIProxyNew
+  license:
+    name: TBD
+
+servers:
+  - url: /
+    description: Relative (для работы за прокси/ingress)
+
+# ───────────────────────────────────────────────────────────────────────────
+# Теги для группировки эндпоинтов в Swagger UI / Redoc.
+# ───────────────────────────────────────────────────────────────────────────
+tags:
+  - name: System
+    description: Системные роуты (health, metrics, docs)
+  - name: Auth
+    description: LDAP-логин, session-cookie (R1)
+  - name: User
+    description: Пользовательские операции — свои API-keys, личная статистика (R9.U)
+  - name: Admin
+    description: Администраторские операции — настройка провайдеров, управление (R9.A)
+  - name: Proxy
+    description: Прокси-API (OpenAI/Gemini/Claude/...-совместимые) — делегируется ядру (R8)
+
+# ───────────────────────────────────────────────────────────────────────────
+# Глобальные схемы безопасности.
+# ───────────────────────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    # Session-cookie — для management-API (R1, R9.G.1).
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: cliproxy_session
+      description: Opaque session-токен, устанавливается после LDAP-логина (R1.2).
+
+    # Bearer API-key — для прокси-API (R2.1).
+    BearerApiKey:
+      type: http
+      scheme: bearer
+      bearerFormat: API-key
+      description: Long-lived API-key (как у OpenAI), проверяется через access.Provider (R2).
+
+  # Общий формат ошибок (OpenAI-compatible).
+  responses:
+    Unauthorized:
+      description: Не авторизован
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Доступ запрещён (роль, статус пользователя)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InternalError:
+      description: Внутренняя ошибка
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    # Общий формат ошибки (OpenAI-compatible error envelope).
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [message]
+          properties:
+            message:
+              type: string
+            type:
+              type: string
+            code:
+              type: string
+
+# ───────────────────────────────────────────────────────────────────────────
+# Системные роуты (Ф0/Ф6).
+# ───────────────────────────────────────────────────────────────────────────
+paths:
+  /healthz:
+    get:
+      tags: [System]
+      summary: Liveness probe
+      description: Возвращает 200, если процесс жив. Не проверяет БД.
+      operationId: healthz
+      security: []
+      responses:
+        "200":
+          description: Процесс жив
+          content:
+            text/plain:
+              schema:
+                type: string
+                enum: [ok]
+                const: ok
+
+  /readyz:
+    get:
+      tags: [System]
+      summary: Readiness probe
+      description: |
+        Возвращает 200, если сервис готов принимать трафик (DB ping успешен).
+        Используется k8s readiness-probe (R6.3).
+      operationId: readyz
+      security: []
+      responses:
+        "200":
+          description: Готов
+          content:
+            text/plain:
+              schema:
+                type: string
+        "503":
+          description: Не готов (БД недоступна)
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /metrics:
+    get:
+      tags: [System]
+      summary: Prometheus metrics
+      description: Метрики в Prometheus exposition format (R6.5).
+      operationId: metrics
+      security: []
+      responses:
+        "200":
+          description: Метрики
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Prometheus exposition format
+
+  /openapi.json:
+    get:
+      tags: [System]
+      summary: OpenAPI спецификация
+      description: |
+        Отдаёт текущую OpenAPI 3.1 спецификацию сервиса (R11.4).
+        Генерируется из openapi.yaml (может быть embed-нута в бинарник).
+      operationId: openapiJson
+      security: []
+      responses:
+        "200":
+          description: OpenAPI спецификация
+          content:
+            application/json:
+              schema:
+                type: object
+                description: OpenAPI 3.1 document
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Management-API и Proxy-API добавляются в Ф4.
+  # Заглушки-комментарии для планируемых разделов:
+  #
+  # /api/v1/login            (Auth, R1)
+  # /api/v1/logout           (Auth, R1)
+  # /api/v1/me/keys          (User, R9.U.2)
+  # /api/v1/me/usage         (User, R9.U.3)
+  # /api/v1/admin/users      (Admin, R9.A.3)
+  # /api/v1/admin/keys       (Admin, R9.A.3)
+  # /api/v1/admin/oauth/*    (Admin, R9.A.1)
+  # /api/v1/admin/accounts/{id}/test  (Admin, R9.A.5)
+  # /api/v1/admin/providers/keys      (Admin, R9.A.2)
+  # /api/v1/admin/quota/*   (Admin, R9.A.4)
+  # /api/v1/admin/models     (Admin, R9.A.6)
+  # /api/v1/admin/oauth/export|import (Admin, R9.A.7)
+  # /api/v1/admin/oauth/sessions      (Admin, R9.A.1)
+  #
+  # /v1/chat/completions     (Proxy, R8 — без body-схемы)
+  # /v1/messages             (Proxy, R8)
+  # /v1beta/models/{model}:generateContent  (Proxy, R8)
+  # /v1/responses            (Proxy, R8)
+  # /v1/models               (Proxy, R8)
+  # ─────────────────────────────────────────────────────────────────────────

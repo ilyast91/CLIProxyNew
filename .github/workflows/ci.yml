@@ -1,0 +1,126 @@
+# CI pipeline для CLIProxyNew (architecture-principles.md §4 — тест-пирамида).
+#
+# Запускается на PR и push в main. Порядок: static checks → build → test.
+# По мере роста фаз добавятся: integration tests (testcontainers),
+# coverage gate (≥ 70%), OpenAPI lint (spectral), contract tests.
+#
+# Ключевой принцип: build/package происходит ТОЛЬКО если все проверки прошли.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Отменяем параллельные запуски того же PR/branch для экономии ресурсов.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.26.0"
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Статические проверки: gofmt, go vet.
+  # ─────────────────────────────────────────────────────────────────────────
+  static-checks:
+    name: Static checks (fmt + vet)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: gofmt
+        # Проверяет, что все .go файлы отформатированы через gofmt.
+        # Должен вывести 0 строк — иначе fail.
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then
+            echo "::error::Не отформатированы gofmt:"
+            echo "$out"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Сборка: компилируем все пакеты.
+  # ─────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: static-checks
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build all packages
+        run: go build ./...
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Тесты: unit + contract (-short). Integration/E2E — отдельные job'ы в Ф7.
+  # ─────────────────────────────────────────────────────────────────────────
+  test:
+    name: Test (unit + contract)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests (short, race detector)
+        # -short: пропускает integration-тесты (testcontainers) — они в отдельной job.
+        # -race: включает race detector (важно для горутин, кэша, watcher'а).
+        run: go test -short -race -timeout 5m ./...
+
+      - name: Check modules tidy
+        # Гарантирует, что go.mod/go.sum консистентны.
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # OpenAPI lint: проверка спецификации (R11.5).
+  # ─────────────────────────────────────────────────────────────────────────
+  openapi-lint:
+    name: OpenAPI lint (spectral)
+    runs-on: ubuntu-latest
+    needs: static-checks
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Spectral
+        run: npm install -g @stoplight/spectral-cli
+
+      - name: Lint OpenAPI спецификацию
+        run: spectral lint -r .spectral.yaml openapi.yaml

@@ -1,0 +1,33 @@
+# CLIProxyNew — пример конфигурации (R6).
+# Реальный config.yaml монтируется из k8s ConfigMap. Секреты — только из env.
+# Копируйте как config.yaml для локальной разработки.
+
+server:
+  addr: ":8080"           # сетевой интерфейс и порт
+
+db:
+  dsn: "postgres://cliproxy@localhost:5432/cliproxy?sslmode=disable"
+  # пароль — из env DB_PASSWORD (подставляется в DSN через pgxpassfile или
+  # переменную окружения; см. .env.example)
+
+ldap:
+  url: "ldaps://ldap.corp.example.com"   # LDAP/AD, обязательно TLS
+  bind_dn: "CN=svc-cliproxy,OU=Service,DC=corp,DC=example"
+  # bind пароль — из env LDAP_BIND_PASSWORD
+  user_base: "OU=Users,DC=corp,DC=example"
+  user_filter: "(sAMAccountName={username})"
+  user_group_dn: "CN=cliproxy-users,OU=Groups,DC=corp,DC=example"
+  admin_group_dn: "CN=cliproxy-admins,OU=Groups,DC=corp,DC=example"
+
+proxy:                     # per-call-type egress-прокси (R10); пусто = direct
+  inference: ""            # напр. "socks5://proxy-inf:1080"
+  auth: ""                 # OAuth-login / auto-refresh (default аккаунта)
+  quota: ""                # запросы квоты/лимитов подписки
+  models: ""               # запросы списка/обновления моделей
+
+logging:
+  level: "info"            # debug | info | warn | error
+  format: "json"           # json | text
+
+encryption:
+  key_version: 1           # активная версия мастер-ключа (сам ключ — env)
