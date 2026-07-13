@@ -19,7 +19,6 @@ import (
 )
 
 // ErrConfigNotFound возвращается, когда файл конфигурации не существует.
-// На Ф0 конфиг опционален — main.go использует Default() при этой ошибке.
 var ErrConfigNotFound = errors.New("config file not found")
 
 // Config — главный тип конфигурации сервиса (R6).
@@ -85,6 +84,14 @@ func Default() *Config {
 		},
 		Encryption: EncryptionConfig{KeyVersion: 1},
 	}
+}
+
+// FromEnvironment возвращает defaults с применёнными env-override.
+// Используется для env-only запуска без config.yaml.
+func FromEnvironment() *Config {
+	cfg := Default()
+	cfg.applyEnvOverrides()
+	return cfg
 }
 
 // Load читает config.yaml и применяет env-override.

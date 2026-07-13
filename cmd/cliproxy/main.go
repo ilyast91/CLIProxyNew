@@ -1,8 +1,7 @@
 // Пакет main — точка входа CLIProxyNew.
 //
-// На фазе Ф0 (Foundation) здесь базовый wiring: загрузка конфигурации,
-// проверка доступности SDK ядра CLIProxyAPI v7. Полная интеграция
-// (Builder + Service.Run + 7 контрактов ADR-9) — фаза Ф3.
+// Здесь собирается инфраструктурный wiring: конфигурация, Postgres и SDK ядра.
+// Полная интеграция Builder + Service.Run + 7 контрактов ADR-9 — фаза Ф3.
 package main
 
 import (
@@ -15,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/ilyast91/CLIProxyNew/internal/config"
+	"github.com/ilyast91/CLIProxyNew/internal/store"
 	// Импорт SDK ядра для валидации доступности на Ф0.
 	// Реальное использование — в Ф3 (wiring Builder + Service.Run).
 	_ "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy"
@@ -41,11 +41,10 @@ func run() error {
 	}
 	cfg, err := config.Load(configPath)
 	if err != nil {
-		// Конфиг пока опционален на Ф0 (ещё нет эндпоинтов).
 		if !errors.Is(err, config.ErrConfigNotFound) {
 			return fmt.Errorf("load config: %w", err)
 		}
-		cfg = config.Default()
+		cfg = config.FromEnvironment()
 		slog.Warn("config not found, using defaults", "path", configPath)
 	}
 
@@ -64,8 +63,15 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// Ф0: stub. Полный wiring (Builder + Service.Run) — в Ф3.
-	slog.Info("foundation phase: SDK available, wiring pending (see implementation-phases.md Ф3)")
+	dbPool, err := store.OpenPool(ctx, cfg.DB.DSN)
+	if err != nil {
+		return fmt.Errorf("connect database: %w", err)
+	}
+	defer dbPool.Close()
+	slog.Info("database connected")
+
+	// Полный wiring SDK (Builder + Service.Run) — в Ф3.
+	slog.Info("persistence ready, SDK wiring pending (see implementation-phases.md Ф3)")
 	<-ctx.Done()
 	slog.Info("shutdown signal received")
 	return nil
