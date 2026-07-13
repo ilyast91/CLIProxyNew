@@ -1,35 +1,33 @@
 # Spectral ruleset для CLIProxyNew OpenAPI 3.1 (R11.5).
 #
-# Базируется на спектре stoplightio/spectral (npm i -g @stoplight/spectral-cli).
 # Запуск: spectral lint openapi.yaml
+# CI: .github/workflows/ci.yml (job openapi-lint).
 #
-# Использует стандартные правила:
-#   - @stoplight/spectral-owasp-ruleset   (security best practices)
+# Расширяет стандартные правила Spectral OAS (bundled, доступно из коробки).
+# Имена правил проверены по packages/rulesets/src/oas/index.ts.
+# OWASP-ruleset (@stoplight/spectral-owasp-ruleset) НЕ bundled по умолчанию —
+# требует отдельной npm-установки; добавим позже при необходимости.
 extends:
   - spectral:oas
-  - spectral:owasp
 
 rules:
   # Обязательные поля на уровне документа.
   oas3-api-servers: error
   info-contact: error
   info-license: off   # лицензия TBD на Ф0
+  openapi-tags: error           # tags определены на уровне документа
 
-  # Именование.
-  operation-operationId: error           # каждый endpoint обязан иметь operationId
-  operation-operationId-unique: error
-  operation-tags-defined: error
-
-  # Описания.
-  operation-description: warn            # желательно описание у каждого endpoint
-  operation-summary: error               # summary обязателен (для Swagger UI)
+  # Описание операций.
+  operation-description: warn   # желательно описание у каждого endpoint
+  operation-tag-defined: error  # тег операции должен быть объявлен в tags
+  operation-tags: error         # каждая операция имеет хотя бы один тег
+  operation-success-response: error  # хотя бы один 2xx-ответ
 
   # Параметры и ответы.
-  operation-parameters: error
+  operation-parameters: error   # уникальные параметры, нет дублей
+  path-params: error            # path-параметры в шаблоне определены и наоборот
   oas3-operation-security-defined: error
 
-  # OWASP top-10 для API.
-  owasp:api4:2019-string-restricted: warn  # строки с длиной/формат без limit
-
-  # Человеко-читаемые сообщения.
-  operation-tag-defined: error
+  # Структура пути.
+  path-keys-no-trailing-slash: error
+  path-declarations-must-exist: error

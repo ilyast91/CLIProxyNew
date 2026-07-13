@@ -132,7 +132,6 @@ paths:
             text/plain:
               schema:
                 type: string
-                enum: [ok]
                 const: ok
 
   /readyz:
