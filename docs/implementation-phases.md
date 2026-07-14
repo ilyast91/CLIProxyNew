@@ -65,10 +65,13 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   6. oauth_sessions
 - [x] Миграция `users.identity_source`: source/namespace CHECK, совместимый
   default `ldap` и guarded down (R1.5)
-- [ ] sqlc config + сгенерированные запросы для всех таблиц
-- [ ] Partition management SQL-функция (create future + drop old) + cron-job stub
+- [ ] sqlc config + сгенерированные запросы для всех таблиц; готовы users,
+  api_keys, sessions, upstream_accounts, model_overrides, usage_events и runtime_revisions
+- [x] Partition management SQL-функция (create future + drop old); cron-job
+  wiring остаётся задачей Ф6 deployment
 - [x] `internal/security` — bcrypt cost 12 + AES-256-GCM с key-version prefix (R5)
-- [ ] `internal/store` — репозитории для users, api_keys, sessions, admin_audit_log, oauth_sessions, model_overrides
+- [ ] `internal/store` — готовы users, api_keys, sessions, model_overrides,
+  usage_events и runtime_revisions; остаются admin_audit_log и oauth_sessions
 - [x] `internal/store` — реализация `coreauth.Store` (List/Save/Delete) с transparent AES-шифрованием credentials
 - [x] Integration tests с testcontainers PG (миграции up/down идемпотентны)
 
@@ -85,9 +88,11 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   env, namespace `static:<username>`; LDAP не является fallback
 - [x] `internal/auth/ldap` — provisioning users при первом логине, проверка `users.status`
 - [x] Session lifecycle: генерация opaque token, INSERT sessions (token_hash SHA-256, role, expires_at = TTL user=5м/admin=10ч), Set-Cookie (HttpOnly, Secure, SameSite)
-- [x] `internal/access` (R2) — `access.Provider.Authenticate`: lookup api_keys по prefix → bcrypt verify → check users.status → `Result{Principal=user_id, Metadata={api_key_id}}`
+- [x] `internal/access` (R2) — lookup api_keys по prefix → bcrypt verify →
+  check users.status → versioned Principal с user_id/api_key_id для analytics
 - [x] `access.RegisterProvider("db-apikey", ...)` + `access.SetExclusiveProvider("db-apikey")`
-- [ ] `internal/cache` — in-process кэш за интерфейсом: session_lookup, api_key_lookup (TTL 5–15с)
+- [ ] `internal/cache` — generic TTL и api_key_lookup готовы; session_lookup
+  требует общей invalidation при блокировке пользователя
 - [ ] Unit tests: ldap (mock LDAP), access (cache hit/miss, blocked user), session TTL
 - [ ] Unit/integration tests: запрет static в production, source isolation для
   session/API-key, non-rolling mode switch и guarded migration down
@@ -100,10 +105,14 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 **Цель:** 7 контрактов расширения ядра, wiring, запуск сервиса.
 
 - [x] `sdkAuth.RegisterTokenStore(store)` вызывается ДО Builder (в `main.go`)
-- [ ] `internal/auth/selector` — `coreauth.Selector.Pick`: apply model_overrides, filter allow-list, round-robin/fill-first (заглушка R10 — без ProxyURL, в Ф5)
-- [ ] `internal/usage` — `usage.Plugin.HandleUsage`: чтение `record.APIKey` (user_id), async bulk INSERT в usage_events, throttled update api_keys.last_used_at. **Блокер R12:** SDK v7.2.71 не переносит `api_key_id` из `executor.Options.Metadata` в публичный `usage.Record`; до публичного дополнения SDK поле `usage_events.api_key_id` не может быть заполнено корректно.
+- [ ] `internal/auth/selector` — allow-list, provider filter и fill-first готовы;
+  alias → upstream model mapping и R10 ProxyURL остаются
+- [ ] `internal/usage` — Plugin декодирует versioned `record.APIKey` и пишет
+  usage_events; остаются async bulk INSERT и throttled update api_keys.last_used_at
 - [ ] `internal/usage` — `coreauth.Hook` (OnResult для доп. наблюдения)
-- [ ] `internal/watcher` — `WatcherFactory`: poll upstream_accounts, advisory lock leader election, push `watcher.AuthUpdate` в очередь ядра
+- [ ] `internal/watcher` — вместо недоступного публичного WatcherWrapper готов
+  DB revision poller + controlled restart; transactionally increment revision
+  при management-изменениях и k8s deployment wiring остаются
 - [ ] `internal/modelregistry` — `ModelRegistryHook`: подписка на изменения реестра → mirror snapshot в Postgres
 - [ ] `cmd/cliproxy/main.go` — полный wiring: config → db → security → store → RegisterTokenStore → coreManager → Builder.With* → RegisterUsagePlugin → Service.Run
 - [ ] Contract tests для всех 7 контрактов (mock ядра через интерфейсы)
@@ -222,3 +231,5 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   миграция identity_source, source isolation и non-rolling переключение mode.
 - 2026-07-14 — добавлен R12: compatibility gate и runbook обновления внешнего
   SDK без fork/internal-импортов.
+- 2026-07-14 — progress: добавлены model overrides, usage persistence, runtime
+  revisions, controlled restart и versioned principal adapter для analytics.
