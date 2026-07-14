@@ -135,7 +135,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   - [x] `/api/v1/login`, `/api/v1/logout`, `/api/v1/me` (R1, session-cookie middleware)
   - [x] `/api/v1/me/keys` CRUD (R9.U.2; create/list/revoke)
   - [x] `/api/v1/me/usage` (R9.U.3; totals, модели и API-ключи за период)
-  - [ ] `/api/v1/admin/users`, `/api/v1/admin/keys` (R9.A.3; users list/status готов, all-keys pending)
+  - [x] `/api/v1/admin/users`, `/api/v1/admin/keys` (R9.A.3; users list/status + all-keys)
 - [ ] R9.A.1 OAuth flow: `internal/auth/oauth` (FlowManager) — callback-flow (Codex/Claude/Antigravity) + device-flow (Kimi/xAI), сессии в oauth_sessions, `Store.Save` после exchange
 - [ ] R9.A.5 testing: `internal/auth/testing` (Checker) — Refresh для OAuth, HttpRequest для API-key
 - [ ] R9.A.2 batch API-keys провайдеров

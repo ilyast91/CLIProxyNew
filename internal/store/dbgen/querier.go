@@ -29,6 +29,7 @@ type Querier interface {
 	InsertAdminAuditLog(ctx context.Context, arg InsertAdminAuditLogParams) error
 	InsertUsageEvent(ctx context.Context, arg InsertUsageEventParams) error
 	ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error)
+	ListAllAPIKeys(ctx context.Context) ([]ListAllAPIKeysRow, error)
 	ListModelOverrides(ctx context.Context) ([]ModelOverride, error)
 	ListUpstreamAccounts(ctx context.Context) ([]UpstreamAccount, error)
 	ListUsageByAPIKeyForUser(ctx context.Context, arg ListUsageByAPIKeyForUserParams) ([]ListUsageByAPIKeyForUserRow, error)

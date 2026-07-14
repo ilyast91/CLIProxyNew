@@ -49,3 +49,21 @@ SELECT id, user_id, key_prefix, name, status, expires_at, scope, last_used_at, c
 FROM api_keys
 WHERE user_id = $1
 ORDER BY id DESC;
+
+-- name: ListAllAPIKeys :many
+SELECT
+    api_keys.id,
+    api_keys.user_id,
+    api_keys.key_prefix,
+    api_keys.name,
+    api_keys.status,
+    api_keys.expires_at,
+    api_keys.scope,
+    api_keys.last_used_at,
+    api_keys.created_at,
+    users.username AS owner_username,
+    users.identity_source AS owner_identity_source,
+    users.status AS owner_status
+FROM api_keys
+JOIN users ON users.id = api_keys.user_id
+ORDER BY api_keys.id DESC;

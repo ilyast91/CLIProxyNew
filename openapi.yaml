@@ -310,6 +310,31 @@ components:
         status:
           type: string
           enum: [active, blocked]
+    AdminAPIKey:
+      allOf:
+        - $ref: "#/components/schemas/APIKey"
+        - type: object
+          required: [user_id, owner_username, owner_identity_source, owner_status]
+          properties:
+            user_id:
+              type: integer
+              format: int64
+            owner_username:
+              type: string
+            owner_identity_source:
+              type: string
+              enum: [ldap, static]
+            owner_status:
+              type: string
+              enum: [active, blocked]
+    AdminAPIKeyListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminAPIKey"
 
 # ───────────────────────────────────────────────────────────────────────────
 # Системные роуты (Ф0/Ф6).
@@ -596,6 +621,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/admin/keys:
+    get:
+      tags: [Admin]
+      summary: Список всех пользовательских API-ключей
+      description: Возвращает безопасные metadata ключей и их владельцев. Полные ключи и bcrypt-хэши не раскрываются.
+      operationId: listAllAPIKeys
+      security:
+        - SessionCookie: []
+      responses:
+        "200":
+          description: API-ключи пользователей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAPIKeyListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalError"
 

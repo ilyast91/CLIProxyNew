@@ -173,6 +173,26 @@ func (r *APIKeyRepository) ListByUser(ctx context.Context, userID int64) ([]APIK
 	return keys, nil
 }
 
+// ListAll возвращает безопасные metadata всех API-ключей для admin management API.
+func (r *APIKeyRepository) ListAll(ctx context.Context) ([]AdminAPIKey, error) {
+	rows, err := r.queries.ListAllAPIKeys(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list all API-keys: %w", err)
+	}
+	keys := make([]AdminAPIKey, 0, len(rows))
+	for _, row := range rows {
+		keys = append(keys, AdminAPIKey{
+			APIKey: APIKey{
+				ID: row.ID, UserID: row.UserID, Prefix: row.KeyPrefix, Name: row.Name.String,
+				Status: row.Status, ExpiresAt: datePointer(row.ExpiresAt), Scope: append([]byte(nil), row.Scope...),
+				LastUsedAt: timestamptzPointer(row.LastUsedAt), CreatedAt: row.CreatedAt.Time,
+			},
+			OwnerUsername: row.OwnerUsername, OwnerIdentitySource: row.OwnerIdentitySource, OwnerStatus: row.OwnerStatus,
+		})
+	}
+	return keys, nil
+}
+
 // Revoke отзывает активный ключ пользователя.
 func (r *APIKeyRepository) Revoke(ctx context.Context, userID, keyID int64) error {
 	revoked, err := r.queries.RevokeAPIKey(ctx, dbgen.RevokeAPIKeyParams{ID: keyID, UserID: userID})

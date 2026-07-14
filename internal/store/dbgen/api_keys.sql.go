@@ -226,6 +226,73 @@ func (q *Queries) ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAP
 	return items, nil
 }
 
+const listAllAPIKeys = `-- name: ListAllAPIKeys :many
+SELECT
+    api_keys.id,
+    api_keys.user_id,
+    api_keys.key_prefix,
+    api_keys.name,
+    api_keys.status,
+    api_keys.expires_at,
+    api_keys.scope,
+    api_keys.last_used_at,
+    api_keys.created_at,
+    users.username AS owner_username,
+    users.identity_source AS owner_identity_source,
+    users.status AS owner_status
+FROM api_keys
+JOIN users ON users.id = api_keys.user_id
+ORDER BY api_keys.id DESC
+`
+
+type ListAllAPIKeysRow struct {
+	ID                  int64              `json:"id"`
+	UserID              int64              `json:"user_id"`
+	KeyPrefix           string             `json:"key_prefix"`
+	Name                pgtype.Text        `json:"name"`
+	Status              string             `json:"status"`
+	ExpiresAt           pgtype.Date        `json:"expires_at"`
+	Scope               []byte             `json:"scope"`
+	LastUsedAt          pgtype.Timestamptz `json:"last_used_at"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	OwnerUsername       string             `json:"owner_username"`
+	OwnerIdentitySource string             `json:"owner_identity_source"`
+	OwnerStatus         string             `json:"owner_status"`
+}
+
+func (q *Queries) ListAllAPIKeys(ctx context.Context) ([]ListAllAPIKeysRow, error) {
+	rows, err := q.db.Query(ctx, listAllAPIKeys)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAllAPIKeysRow{}
+	for rows.Next() {
+		var i ListAllAPIKeysRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.KeyPrefix,
+			&i.Name,
+			&i.Status,
+			&i.ExpiresAt,
+			&i.Scope,
+			&i.LastUsedAt,
+			&i.CreatedAt,
+			&i.OwnerUsername,
+			&i.OwnerIdentitySource,
+			&i.OwnerStatus,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const revokeAPIKey = `-- name: RevokeAPIKey :execrows
 UPDATE api_keys
 SET status = 'revoked'

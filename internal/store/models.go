@@ -55,6 +55,14 @@ type APIKey struct {
 	CreatedAt  time.Time
 }
 
+// AdminAPIKey — безопасные metadata API-ключа вместе с данными владельца.
+type AdminAPIKey struct {
+	APIKey
+	OwnerUsername       string
+	OwnerIdentitySource string
+	OwnerStatus         string
+}
+
 // CreateAPIKeyParams — параметры сохранения нового API-ключа.
 type CreateAPIKeyParams struct {
 	UserID    int64

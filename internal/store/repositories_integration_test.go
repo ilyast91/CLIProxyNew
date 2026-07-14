@@ -156,6 +156,19 @@ func TestIntegrationUserAPIKeyAndSessionRepositories(t *testing.T) {
 	if len(listedKeys) != 1 || listedKeys[0].ID != key.ID {
 		t.Fatalf("ListByUser() = %+v", listedKeys)
 	}
+	allKeys, err := apiKeys.ListAll(ctx)
+	if err != nil {
+		t.Fatalf("ListAll() error = %v", err)
+	}
+	foundKey := false
+	for _, listed := range allKeys {
+		if listed.ID == key.ID && listed.OwnerUsername == user.Username && listed.OwnerIdentitySource == "ldap" && listed.OwnerStatus == "active" {
+			foundKey = true
+		}
+	}
+	if !foundKey {
+		t.Fatalf("ListAll() does not contain expected owner metadata: %+v", allKeys)
+	}
 	if err := apiKeys.Revoke(ctx, user.ID, key.ID); err != nil {
 		t.Fatalf("Revoke() error = %v", err)
 	}
