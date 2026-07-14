@@ -588,7 +588,13 @@ func ServiceTierFromContext(ctx context.Context) string
 ```
 
 ⚠️ **R3 стриминг:** `HandleUsage` может вызываться асинхронно после отмены context.
-Principal/user_id копируйте в Record при старте запроса, не из context в момент HandleUsage.
+Principal/user_id копируется ядром в `Record.APIKey` при старте запроса, не из context в момент `HandleUsage`.
+
+**Compatibility gap (SDK v7.2.71):** `executor.Options.Metadata` содержит
+`api_key_id`, но публичный `usage.Record` не содержит metadata или отдельного
+поля API-key ID. Бизнес-слой не читает upstream `internal/*` и не применяет
+reflect-обходы (R12); для заполнения `usage_events.api_key_id` требуется
+публичное дополнение SDK, переносящее этот идентификатор в `Record`.
 
 ---
 

@@ -101,7 +101,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 
 - [x] `sdkAuth.RegisterTokenStore(store)` вызывается ДО Builder (в `main.go`)
 - [ ] `internal/auth/selector` — `coreauth.Selector.Pick`: apply model_overrides, filter allow-list, round-robin/fill-first (заглушка R10 — без ProxyURL, в Ф5)
-- [ ] `internal/usage` — `usage.Plugin.HandleUsage`: чтение `record.APIKey` (user_id) + `record.Metadata[api_key_id]`, async bulk INSERT в usage_events, throttled update api_keys.last_used_at
+- [ ] `internal/usage` — `usage.Plugin.HandleUsage`: чтение `record.APIKey` (user_id), async bulk INSERT в usage_events, throttled update api_keys.last_used_at. **Блокер R12:** SDK v7.2.71 не переносит `api_key_id` из `executor.Options.Metadata` в публичный `usage.Record`; до публичного дополнения SDK поле `usage_events.api_key_id` не может быть заполнено корректно.
 - [ ] `internal/usage` — `coreauth.Hook` (OnResult для доп. наблюдения)
 - [ ] `internal/watcher` — `WatcherFactory`: poll upstream_accounts, advisory lock leader election, push `watcher.AuthUpdate` в очередь ядра
 - [ ] `internal/modelregistry` — `ModelRegistryHook`: подписка на изменения реестра → mirror snapshot в Postgres
