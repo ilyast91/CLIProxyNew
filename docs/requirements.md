@@ -512,6 +512,25 @@
 - ❓ **Открыто:** версия URL (`/api/v1` confirmed; нужен ли `/api/v2`
   механизм версионирования с самого начала).
 
+### R12. Обновляемость SDK ядра
+- R12.1 `github.com/router-for-me/CLIProxyAPI/v7` остаётся внешней
+  версионированной зависимостью. Бизнес-слой использует только публичные
+  пакеты `sdk/*`; импорт `internal/*` SDK, fork, patch и reflect-обходы
+  запрещены.
+- R12.2 Версия SDK фиксируется в `go.mod`. Обновления выполняются отдельным
+  reviewable изменением с release notes и перечнем breaking changes upstream;
+  автоматическое обновление на новый major запрещено.
+- R12.3 Перед merge обновления SDK обязательны `go mod tidy`, `go vet`, build,
+  unit/race/integration тесты и contract-тесты всех 7 расширений ADR-9.
+  [`sdk-reference.md`](sdk-reference.md) сверяется с публичным API и
+  актуализируется в том же изменении.
+- R12.4 Несовместимость SDK адаптируется в boundary-пакете `internal/*`, без
+  копирования upstream-логики и без изменения бизнес-контракта без ADR.
+  Откат — возврат `go.mod`/`go.sum` к последней проверенной версии.
+- ✅ **Решено:** обновления patch/minor внутри v7 допускаются только после
+  compatibility gate; переход на новый major требует отдельного ADR и
+  миграционного плана.
+
 ---
 
 ## Открытые архитектурные решения
@@ -657,3 +676,6 @@
 - 2026-07-14 — **R1.5:** добавлен static identity source для development/test:
   явный `auth.mode`, secrets только из env, namespace `static:`, source-gating
   session/API-key и запрет rolling-переключения с LDAP.
+- 2026-07-14 — **R12:** добавлен compatibility gate для обновления внешнего
+  SDK: публичные `sdk/*` контракты, фиксированная версия, contract/integration
+  проверки и отдельный ADR для нового major.

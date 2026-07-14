@@ -1,7 +1,7 @@
 # Архитектура CLIProxyNew
 
 > **Статус:** Дизайн.
-> **Связанные:** [requirements.md](requirements.md) (R1–R11), [ADR-9](adr/ADR-9-sdk-contracts.md), [ADR-10](adr/ADR-10-per-call-type-proxy.md), [database-schema.md](database-schema.md).
+> **Связанные:** [requirements.md](requirements.md) (R1–R12), [ADR-9](adr/ADR-9-sdk-contracts.md), [ADR-10](adr/ADR-10-per-call-type-proxy.md), [database-schema.md](database-schema.md).
 
 ## 1. Обзор
 
@@ -82,6 +82,15 @@ graph TB
 | Gin-сервер, роутинг `/v1/*` | `WatcherFactory` (poll БД + leader) |
 | | `ModelRegistryHook` (зеркало моделей) |
 | | Management-API, identity auth, observability |
+
+### Граница обновления SDK (R12)
+
+Ядро подключается только как версионированный модуль `CLIProxyAPI/v7`. Все
+вызовы бизнес-слоя проходят через публичные `sdk/*` контракты ADR-9; код не
+импортирует `internal/*` ядра и не зависит от неэкспортируемого состояния.
+Обновление patch/minor проверяется сборкой, contract-тестами и интеграциями.
+Переход на новый major — отдельное архитектурное изменение с ADR и
+миграционным планом.
 
 ## 2. Запуск приложения (cmd/cliproxy/main.go)
 

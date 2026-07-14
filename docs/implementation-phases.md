@@ -1,7 +1,7 @@
 # План имплементации CLIProxyNew по фазам
 
 > **Статус:** Принят.
-> **Scope v1:** ВСЁ из R1–R11 (кроме явных «не делаем» — квоты/rate-limit, UI,
+> **Scope v1:** ВСЁ из R1–R12 (кроме явных «не делаем» — квоты/rate-limit, UI,
 > плагины, Redis, fork ядра). Откладываний нет.
 > **Связанные:** [requirements.md](requirements.md), [architecture-principles.md](architecture-principles.md),
 > [architecture.md](architecture.md), [database-schema.md](database-schema.md).
@@ -46,6 +46,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [x] CI pipeline (GitHub Actions): `go vet`, `gofmt -l`, `go build`, `go test -short`
 - [ ] Выбор и настройка OpenAPI-генератора (`ogen` или `oapi-codegen`) — Spike, решение зафиксировать
 - [x] Базовый `openapi.yaml` (OpenAPI 3.1) + spectral lint в CI
+- [ ] R12: SDK compatibility gate — contract compile-test для 7 публичных
+  `sdk/*` расширений и CI-проверка обновлений `go.mod`/`go.sum`
 
 **Acceptance:** `go build ./...` зелёный, ядро в зависимостях, CI проходит на пустых тестах, `openapi.yaml` валидируется.
 
@@ -180,6 +182,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [ ] Coverage report + CI gate (≥ 70% для internal/*)
 - [ ] Security audit: grep секретов в логах/тестах, no plaintext credentials, no `fmt.Println` с секретами
 - [ ] Race detection: `go test -race` зелёный во всём
+- [ ] R12: runbook обновления SDK (release notes → upgrade branch →
+  `sdk-reference.md` → contract/integration/race gates → rollback version)
 - [ ] Documentation: godoc для всех пакетов, README update, runbook (restore backup, rotate AES key, rotate API-key, rotate LDAP bind)
 - [ ] Regression suite: SLA-метрики как CI gate (не regress'ить)
 - [ ] Chaos: kill leader → проверка failover; kill replica → сервис жив
@@ -212,7 +216,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - Поддержка Home-режима ядра (не наш use-case)
 
 ## История
-- 2026-07-12 — план зафиксирован; scope v1 = всё из R1–R11 (кроме явных «не делаем»).
+- 2026-07-12 — план зафиксирован; scope v1 = всё из R1–R12 (кроме явных «не делаем»).
   Старт с Ф0 Foundation.
 - 2026-07-14 — добавлен R1.5: static identity source для development/test,
   миграция identity_source, source isolation и non-rolling переключение mode.
+- 2026-07-14 — добавлен R12: compatibility gate и runbook обновления внешнего
+  SDK без fork/internal-импортов.

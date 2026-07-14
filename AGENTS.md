@@ -53,7 +53,7 @@ internal/        — бизнес-логика (неэкспортируемая
   usage/           — usage.Plugin: аналитика запросов (→ Postgres)
   watcher/         — WatcherFactory: poll БД + leader election (advisory lock)
 db/migrations/   — SQL-миграции (golang-migrate)
-docs/            — требования (R1–R11), ADR-9/ADR-10, дизайн
+docs/            — требования (R1–R12), ADR-9/ADR-10, дизайн
 ```
 
 - В `cmd/` только wiring. Логику — в `internal/`.
@@ -85,6 +85,9 @@ docs/            — требования (R1–R11), ADR-9/ADR-10, дизайн
   Блокировка пользователя — обратимая (users.status active/blocked).
 - **Логи:** `slog`. **Метрики:** Prometheus. **Трейсы:** OpenTelemetry.
 - **Без Redis** на первой версии (ADR-8).
+- **Обновление SDK (R12):** только через публичные `sdk/*` пакеты и версию в
+  `go.mod`; перед merge обновления обязательны `sdk-reference.md`,
+  contract/integration/race проверки. Новый major — только с ADR.
 
 ## Контракты ядра, которые мы реализуем (ADR-9)
 
@@ -125,10 +128,13 @@ go test ./...           # тесты
 - **Static identity (R1.5):** разрешён только при
   `server.environment=development|test`; никогда не используйте его как LDAP
   fallback и не переключайте `auth.mode` rolling-обновлением.
+- **SDK boundary (R12):** не импортируйте `internal/*` upstream SDK и не
+  используйте reflect-обходы. SDK обновляется отдельным reviewable изменением;
+  patch/minor после compatibility gate, major — после ADR и миграционного плана.
 
 ## Документация (читать перед sensitive правками)
 
-- [`docs/requirements.md`](docs/requirements.md) — требования R1–R11 и ADR.
+- [`docs/requirements.md`](docs/requirements.md) — требования R1–R12 и ADR.
   **Читать перед:** правками go.mod/зависимостей, контрактов с SDK ядра,
   схемы БД, слойности `internal/`.
 - [`docs/architecture-principles.md`](docs/architecture-principles.md) —
@@ -167,3 +173,5 @@ go test ./...           # тесты
   пакетов, 7 контрактов ядра, gotchas по auto-refresh/стримингу/гонкам).
 - 2026-07-14 — добавлен R1.5: static identity source только для
   development/test, namespace `static:` и запрет rolling-переключения mode.
+- 2026-07-14 — добавлен R12: обновляемость внешнего SDK через публичные
+  контракты, compatibility gate и ADR для major-версий.

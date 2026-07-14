@@ -4,7 +4,7 @@
 > **Назначение:** принципы, качественные атрибуты с метриками, ограничения и
 > стандарты, на основе которых проектируется и валидируется архитектура.
 > Это **не** функциональные требования (см. [requirements.md](requirements.md)
-> R1–R11) и **не** ADR (см. [adr/](adr/)) — это системные -ilities и conventions.
+> R1–R12) и **не** ADR (см. [adr/](adr/)) — это системные -ilities и conventions.
 >
 > **Связанные:** [requirements.md](requirements.md), [architecture.md](architecture.md),
 > [database-schema.md](database-schema.md), ADR-1..10.
@@ -20,6 +20,7 @@
 | **Слоистость** | `cmd → httpapi → services → store`. Запрет обратных зависимостей: HTTP-слой не вызывается из store, store не знает про HTTP. | — |
 | **Изоляция ядра** | Ядро CLIProxyAPI — внешняя go-зависимость. Бизнес-слой не дублирует upstream-специфику (refresh, transport, реестр моделей как источник истины). | ADR-1 |
 | **Contract-based расширение** | Расширение ядра — только через 7 контрактов ADR-9. Никаких fork/patch ядра. | ADR-9 |
+| **SDK compatibility** | Ядро обновляется через публичный `sdk/*` API, pinned версию и compatibility gate; новый major требует ADR. | R12 |
 | **Stateless-first** | Всё состояние в Postgres. In-memory кэш — только за интерфейсом (`internal/cache`), с заделом под Redis. | R6.1, ADR-8 |
 | **Interface segregation** | Кэш, шифрование, репозитории — за интерфейсами. Реализация заменяема (Postgres ↔ ClickHouse, in-process ↔ Redis). | ADR-5, ADR-8 |
 | **Configuration over code** | Режим identity source, группы LDAP, прокси per-call-type, allow-list моделей — в конфиге, не в коде. | R1, R9.A.6, R10 |
@@ -74,6 +75,7 @@ SLA на накладные расходы бизнес-слоя (без upstrea
 | Revocation latency | eventual consistency ≤ TTL кэша (5–15с) |
 | Audit completeness | 100% mutating admin-действий в `admin_audit_log` (append-only) |
 | No secret leakage | CI-проверка: grep секретов в логах/тестах; no `fmt.Println` credential |
+| SDK updateability | Patch/minor SDK проходит build, contract/race/integration gates; новый major — ADR и миграционный план | R12 |
 
 ### 2.5 Observability
 
@@ -130,6 +132,7 @@ graph TB
 |---------|---------------|-------------|---------|
 | **Unit** | бизнес-логика `internal/*` (auth/identity, auth/ldap, selector, security, usage, oauth, testing) | `testing`, `testify` | coverage ≥ 70% |
 | **Contract** | 7 контрактов ADR-9 (Store, Selector, Hook, usage.Plugin, access.Provider, WatcherFactory, ModelRegistryHook) — mock ядра через интерфейсы | `testify/mock`, `gomock` | 100% контрактов покрыты |
+| **SDK compatibility** | Обновление `CLIProxyAPI/v7`: публичные `sdk/*` вызовы, contract-тесты и wiring | `go test`, `go vet`, `go build` | merge запрещён при incompatibility |
 | **Integration** | store ↔ реальная PG (testcontainers), static/LDAP source isolation, OAuth-flow ↔ mock провайдера, миграции `up`/`down` | `testcontainers-go`, `dockertest` | миграции идемпотентны |
 | **Functional / E2E** | HTTP API энд-ту-энд (login → API-key → inference → analytics), load-тесты по SLA §2.1 | `httptest`, `vegeta`/`k6` | SLA-метрики не regress'иты |
 
@@ -140,6 +143,8 @@ graph TB
 4. coverage report + gate (≥ 70%)
 5. `go build ./...` (только если 1–4 прошли)
 6. `docker build` + push (только если build прошёл)
+7. Для изменения версии SDK: `sdk-reference.md`, contract-тесты ADR-9 и
+   integration suite до merge.
 
 ## 5. Стандарты и conventions
 
@@ -154,6 +159,7 @@ graph TB
 | **Контекст** | `context.Context` первым параметром во всех публичных методах; cancellation уважируется; для стриминга principal копируется в Record, не из ctx |
 | **Миграции** | `golang-migrate`, `YYYYMMDDHHMMSS_<name>.up.sql` + `.down.sql`; идемпотентные |
 | **API-контракт** | OpenAPI 3.1; spec-first (`openapi.yaml`); генерация типов из спеки; ручные правки кода не допускаются (R11) |
+| **SDK-зависимость** | Только публичные `sdk/*` импорты; версия pinned в `go.mod`; обновление проходит R12 compatibility gate |
 
 ## 6. Cross-cutting concerns
 
@@ -165,6 +171,7 @@ graph TB
 | **Security** | `internal/security`, `internal/access`, identity middleware | Шифрование за интерфейсом; проверка статуса и identity source на каждый запрос |
 | **Multi-tenancy** | плоская (R4) | `user_id` во всех таблицах; role guard в middleware |
 | **API-контракт (Swagger)** | `openapi.yaml` spec-first | OpenAPI 3.1; код генерируется из спеки; CI lint + drift-check (R11) |
+| **SDK compatibility** | `go.mod`, `docs/sdk-reference.md`, 7 контрактов ADR-9 | Обновляемая внешняя зависимость без fork/internal-импортов (R12) |
 
 ## 7. Эволюция архитектуры
 
@@ -191,3 +198,5 @@ graph TB
 - 2026-07-14 — **R1.5 static identity source:** configuration-over-code
   расширен явным режимом identity source; добавлены production gate,
   source-isolation и тестовые требования для static/LDAP credentials.
+- 2026-07-14 — **R12 SDK compatibility:** закреплены публичная граница
+  `sdk/*`, compatibility gate для обновлений v7 и ADR-процесс для major.
