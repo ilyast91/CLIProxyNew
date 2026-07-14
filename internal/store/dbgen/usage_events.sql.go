@@ -11,6 +11,52 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getUsageSummaryByUser = `-- name: GetUsageSummaryByUser :one
+SELECT
+    count(*)::bigint AS request_count,
+    count(*) FILTER (WHERE failed)::bigint AS failed_request_count,
+    COALESCE(sum(input_tokens), 0)::bigint AS input_tokens,
+    COALESCE(sum(output_tokens), 0)::bigint AS output_tokens,
+    COALESCE(sum(reasoning_tokens), 0)::bigint AS reasoning_tokens,
+    COALESCE(sum(cached_tokens), 0)::bigint AS cached_tokens,
+    COALESCE(sum(total_tokens), 0)::bigint AS total_tokens
+FROM usage_events
+WHERE user_id = $1
+  AND created_at >= $2
+  AND created_at < $3
+`
+
+type GetUsageSummaryByUserParams struct {
+	UserID      pgtype.Int8        `json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	CreatedAt_2 pgtype.Timestamptz `json:"created_at_2"`
+}
+
+type GetUsageSummaryByUserRow struct {
+	RequestCount       int64 `json:"request_count"`
+	FailedRequestCount int64 `json:"failed_request_count"`
+	InputTokens        int64 `json:"input_tokens"`
+	OutputTokens       int64 `json:"output_tokens"`
+	ReasoningTokens    int64 `json:"reasoning_tokens"`
+	CachedTokens       int64 `json:"cached_tokens"`
+	TotalTokens        int64 `json:"total_tokens"`
+}
+
+func (q *Queries) GetUsageSummaryByUser(ctx context.Context, arg GetUsageSummaryByUserParams) (GetUsageSummaryByUserRow, error) {
+	row := q.db.QueryRow(ctx, getUsageSummaryByUser, arg.UserID, arg.CreatedAt, arg.CreatedAt_2)
+	var i GetUsageSummaryByUserRow
+	err := row.Scan(
+		&i.RequestCount,
+		&i.FailedRequestCount,
+		&i.InputTokens,
+		&i.OutputTokens,
+		&i.ReasoningTokens,
+		&i.CachedTokens,
+		&i.TotalTokens,
+	)
+	return i, err
+}
+
 const insertUsageEvent = `-- name: InsertUsageEvent :exec
 INSERT INTO usage_events (
     user_id, api_key_id, upstream_account_id, provider, model,
@@ -61,4 +107,111 @@ func (q *Queries) InsertUsageEvent(ctx context.Context, arg InsertUsageEventPara
 		arg.Failed,
 	)
 	return err
+}
+
+const listUsageByAPIKeyForUser = `-- name: ListUsageByAPIKeyForUser :many
+SELECT
+    api_key_id,
+    count(*)::bigint AS request_count,
+    count(*) FILTER (WHERE failed)::bigint AS failed_request_count,
+    COALESCE(sum(total_tokens), 0)::bigint AS total_tokens
+FROM usage_events
+WHERE user_id = $1
+  AND created_at >= $2
+  AND created_at < $3
+  AND api_key_id IS NOT NULL
+GROUP BY api_key_id
+ORDER BY total_tokens DESC, api_key_id ASC
+`
+
+type ListUsageByAPIKeyForUserParams struct {
+	UserID      pgtype.Int8        `json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	CreatedAt_2 pgtype.Timestamptz `json:"created_at_2"`
+}
+
+type ListUsageByAPIKeyForUserRow struct {
+	ApiKeyID           pgtype.Int8 `json:"api_key_id"`
+	RequestCount       int64       `json:"request_count"`
+	FailedRequestCount int64       `json:"failed_request_count"`
+	TotalTokens        int64       `json:"total_tokens"`
+}
+
+func (q *Queries) ListUsageByAPIKeyForUser(ctx context.Context, arg ListUsageByAPIKeyForUserParams) ([]ListUsageByAPIKeyForUserRow, error) {
+	rows, err := q.db.Query(ctx, listUsageByAPIKeyForUser, arg.UserID, arg.CreatedAt, arg.CreatedAt_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUsageByAPIKeyForUserRow{}
+	for rows.Next() {
+		var i ListUsageByAPIKeyForUserRow
+		if err := rows.Scan(
+			&i.ApiKeyID,
+			&i.RequestCount,
+			&i.FailedRequestCount,
+			&i.TotalTokens,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUsageByModelForUser = `-- name: ListUsageByModelForUser :many
+SELECT
+    model,
+    count(*)::bigint AS request_count,
+    count(*) FILTER (WHERE failed)::bigint AS failed_request_count,
+    COALESCE(sum(total_tokens), 0)::bigint AS total_tokens
+FROM usage_events
+WHERE user_id = $1
+  AND created_at >= $2
+  AND created_at < $3
+  AND model IS NOT NULL
+  AND model <> ''
+GROUP BY model
+ORDER BY total_tokens DESC, model ASC
+`
+
+type ListUsageByModelForUserParams struct {
+	UserID      pgtype.Int8        `json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	CreatedAt_2 pgtype.Timestamptz `json:"created_at_2"`
+}
+
+type ListUsageByModelForUserRow struct {
+	Model              pgtype.Text `json:"model"`
+	RequestCount       int64       `json:"request_count"`
+	FailedRequestCount int64       `json:"failed_request_count"`
+	TotalTokens        int64       `json:"total_tokens"`
+}
+
+func (q *Queries) ListUsageByModelForUser(ctx context.Context, arg ListUsageByModelForUserParams) ([]ListUsageByModelForUserRow, error) {
+	rows, err := q.db.Query(ctx, listUsageByModelForUser, arg.UserID, arg.CreatedAt, arg.CreatedAt_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUsageByModelForUserRow{}
+	for rows.Next() {
+		var i ListUsageByModelForUserRow
+		if err := rows.Scan(
+			&i.Model,
+			&i.RequestCount,
+			&i.FailedRequestCount,
+			&i.TotalTokens,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

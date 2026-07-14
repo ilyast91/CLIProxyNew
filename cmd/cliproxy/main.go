@@ -125,7 +125,7 @@ func run() error {
 		WithConfigPath(configPath).
 		WithCoreAuthManager(coreManager).
 		WithWatcherFactory(watcher.NoopFactory).
-		WithServerOptions(sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction), sessionAuthenticator, httpapi.LogoutHandler(sessions, cfg.Auth.Mode), httpapi.NewAPIKeyHandler(store.NewAPIKeyRepository(dbPool))))).
+		WithServerOptions(sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction), sessionAuthenticator, httpapi.LogoutHandler(sessions, cfg.Auth.Mode), httpapi.NewAPIKeyHandler(store.NewAPIKeyRepository(dbPool)), httpapi.NewUsageHandler(store.NewUsageEventRepository(dbPool))))).
 		Build()
 	if err != nil {
 		return fmt.Errorf("build SDK service: %w", err)

@@ -128,6 +128,35 @@ type UsageEvent struct {
 	Failed            bool
 }
 
+// UsageSummary — личная агрегированная статистика за выбранный период.
+type UsageSummary struct {
+	RequestCount       int64
+	FailedRequestCount int64
+	InputTokens        int64
+	OutputTokens       int64
+	ReasoningTokens    int64
+	CachedTokens       int64
+	TotalTokens        int64
+	ByModel            []UsageModelSummary
+	ByAPIKey           []UsageAPIKeySummary
+}
+
+// UsageModelSummary — статистика пользователя по одной модели.
+type UsageModelSummary struct {
+	Model              string
+	RequestCount       int64
+	FailedRequestCount int64
+	TotalTokens        int64
+}
+
+// UsageAPIKeySummary — статистика пользователя по одному API-ключу.
+type UsageAPIKeySummary struct {
+	APIKeyID           int64
+	RequestCount       int64
+	FailedRequestCount int64
+	TotalTokens        int64
+}
+
 func validModelOverrideParams(params UpsertModelOverrideParams) bool {
 	return params.Provider != "" && params.ModelAlias != "" && params.UpstreamModel != "" &&
 		(len(params.Config) == 0 || json.Valid(params.Config))

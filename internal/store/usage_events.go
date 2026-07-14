@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/ilyast91/CLIProxyNew/internal/store/dbgen"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -29,6 +30,55 @@ func (r *UsageEventRepository) Insert(ctx context.Context, event UsageEvent) err
 		return fmt.Errorf("insert usage event: %w", err)
 	}
 	return nil
+}
+
+// GetSummaryByUser возвращает личную статистику за полуоткрытый интервал [from, to).
+func (r *UsageEventRepository) GetSummaryByUser(ctx context.Context, userID int64, from, to time.Time) (UsageSummary, error) {
+	if r == nil || r.queries == nil || userID <= 0 || !from.Before(to) {
+		return UsageSummary{}, ErrInvalidInput
+	}
+	params := usageSummaryParams(userID, from, to)
+	total, err := r.queries.GetUsageSummaryByUser(ctx, params)
+	if err != nil {
+		return UsageSummary{}, fmt.Errorf("get usage summary: %w", err)
+	}
+	models, err := r.queries.ListUsageByModelForUser(ctx, dbgen.ListUsageByModelForUserParams(params))
+	if err != nil {
+		return UsageSummary{}, fmt.Errorf("list usage by model: %w", err)
+	}
+	keys, err := r.queries.ListUsageByAPIKeyForUser(ctx, dbgen.ListUsageByAPIKeyForUserParams(params))
+	if err != nil {
+		return UsageSummary{}, fmt.Errorf("list usage by API-key: %w", err)
+	}
+
+	result := UsageSummary{
+		RequestCount: total.RequestCount, FailedRequestCount: total.FailedRequestCount,
+		InputTokens: total.InputTokens, OutputTokens: total.OutputTokens,
+		ReasoningTokens: total.ReasoningTokens, CachedTokens: total.CachedTokens,
+		TotalTokens: total.TotalTokens,
+		ByModel:     make([]UsageModelSummary, 0, len(models)), ByAPIKey: make([]UsageAPIKeySummary, 0, len(keys)),
+	}
+	for _, model := range models {
+		result.ByModel = append(result.ByModel, UsageModelSummary{
+			Model: model.Model.String, RequestCount: model.RequestCount,
+			FailedRequestCount: model.FailedRequestCount, TotalTokens: model.TotalTokens,
+		})
+	}
+	for _, key := range keys {
+		result.ByAPIKey = append(result.ByAPIKey, UsageAPIKeySummary{
+			APIKeyID: key.ApiKeyID.Int64, RequestCount: key.RequestCount,
+			FailedRequestCount: key.FailedRequestCount, TotalTokens: key.TotalTokens,
+		})
+	}
+	return result, nil
+}
+
+func usageSummaryParams(userID int64, from, to time.Time) dbgen.GetUsageSummaryByUserParams {
+	return dbgen.GetUsageSummaryByUserParams{
+		UserID:      pgtype.Int8{Int64: userID, Valid: true},
+		CreatedAt:   pgtype.Timestamptz{Time: from, Valid: true},
+		CreatedAt_2: pgtype.Timestamptz{Time: to, Valid: true},
+	}
 }
 
 func usageEventParams(event UsageEvent) (dbgen.InsertUsageEventParams, error) {
