@@ -109,6 +109,25 @@ type UpsertModelOverrideParams struct {
 	Config        []byte
 }
 
+// UsageEvent — аналитика одного upstream-вызова без исходного request payload.
+type UsageEvent struct {
+	UserID            *int64
+	APIKeyID          *int64
+	UpstreamAccountID string
+	Provider          string
+	Model             string
+	InputTokens       int64
+	OutputTokens      int64
+	ReasoningTokens   int64
+	CachedTokens      int64
+	TotalTokens       int64
+	StatusCode        int
+	Error             string
+	LatencyMS         int64
+	TTFTMS            int64
+	Failed            bool
+}
+
 func validModelOverrideParams(params UpsertModelOverrideParams) bool {
 	return params.Provider != "" && params.ModelAlias != "" && params.UpstreamModel != "" &&
 		(len(params.Config) == 0 || json.Valid(params.Config))

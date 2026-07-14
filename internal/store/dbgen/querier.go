@@ -22,6 +22,7 @@ type Querier interface {
 	GetSessionByTokenHashForSource(ctx context.Context, arg GetSessionByTokenHashForSourceParams) (GetSessionByTokenHashForSourceRow, error)
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
+	InsertUsageEvent(ctx context.Context, arg InsertUsageEventParams) error
 	ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error)
 	ListModelOverrides(ctx context.Context) ([]ModelOverride, error)
 	ListUpstreamAccounts(ctx context.Context) ([]UpstreamAccount, error)
