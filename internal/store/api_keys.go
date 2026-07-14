@@ -2,22 +2,42 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/ilyast91/CLIProxyNew/internal/cache"
 	"github.com/ilyast91/CLIProxyNew/internal/security"
 	"github.com/ilyast91/CLIProxyNew/internal/store/dbgen"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // APIKeyRepository хранит bcrypt-хэши клиентских API-ключей.
 type APIKeyRepository struct {
-	queries *dbgen.Queries
+	queries         *dbgen.Queries
+	candidatesCache *cache.TTL[apiKeyCacheKey, []apiKeyCandidate]
+}
+
+const apiKeyCandidatesCacheTTL = 10 * time.Second
+
+type apiKeyCacheKey struct {
+	prefix         string
+	identitySource string
+}
+
+type apiKeyCandidate struct {
+	id      int64
+	userID  int64
+	keyHash string
 }
 
 // NewAPIKeyRepository создаёт репозиторий API-ключей.
 func NewAPIKeyRepository(db dbgen.DBTX) *APIKeyRepository {
-	return &APIKeyRepository{queries: dbgen.New(db)}
+	return &APIKeyRepository{
+		queries:         dbgen.New(db),
+		candidatesCache: cache.NewTTL[apiKeyCacheKey, []apiKeyCandidate](apiKeyCandidatesCacheTTL, nil),
+	}
 }
 
 // Create хэширует и сохраняет API-ключ, не сохраняя plaintext.
@@ -42,6 +62,7 @@ func (r *APIKeyRepository) Create(ctx context.Context, params CreateAPIKeyParams
 	if err != nil {
 		return APIKey{}, fmt.Errorf("create API-key: %w", err)
 	}
+	r.invalidateCandidates(params.Plaintext[:APIKeyPrefixLength])
 	return apiKeyFromDB(row), nil
 }
 
@@ -51,13 +72,20 @@ func (r *APIKeyRepository) Authenticate(ctx context.Context, plaintext string) (
 		return APIKeyPrincipal{}, ErrInvalidCredential
 	}
 
-	candidates, err := r.queries.FindAPIKeyCandidates(ctx, plaintext[:APIKeyPrefixLength])
+	candidates, err := r.findCandidates(ctx, apiKeyCacheKey{prefix: plaintext[:APIKeyPrefixLength]})
 	if err != nil {
-		return APIKeyPrincipal{}, fmt.Errorf("find API-key candidates: %w", err)
+		return APIKeyPrincipal{}, err
 	}
 	for _, candidate := range candidates {
-		if candidate.UserStatus == "active" && security.VerifySecret(candidate.KeyHash, plaintext) {
-			return APIKeyPrincipal{UserID: candidate.UserID, APIKeyID: candidate.ID}, nil
+		if !security.VerifySecret(candidate.keyHash, plaintext) {
+			continue
+		}
+		active, err := r.userIsActive(ctx, candidate.userID)
+		if err != nil {
+			return APIKeyPrincipal{}, err
+		}
+		if active {
+			return APIKeyPrincipal{UserID: candidate.userID, APIKeyID: candidate.id}, nil
 		}
 	}
 	return APIKeyPrincipal{}, ErrInvalidCredential
@@ -69,19 +97,66 @@ func (r *APIKeyRepository) AuthenticateForSource(ctx context.Context, plaintext,
 		return APIKeyPrincipal{}, ErrInvalidCredential
 	}
 
-	candidates, err := r.queries.FindAPIKeyCandidatesForSource(ctx, dbgen.FindAPIKeyCandidatesForSourceParams{
-		KeyPrefix:      plaintext[:APIKeyPrefixLength],
-		IdentitySource: identitySource,
+	candidates, err := r.findCandidates(ctx, apiKeyCacheKey{
+		prefix:         plaintext[:APIKeyPrefixLength],
+		identitySource: identitySource,
 	})
 	if err != nil {
-		return APIKeyPrincipal{}, fmt.Errorf("find API-key candidates for source: %w", err)
+		return APIKeyPrincipal{}, err
 	}
 	for _, candidate := range candidates {
-		if candidate.UserStatus == "active" && security.VerifySecret(candidate.KeyHash, plaintext) {
-			return APIKeyPrincipal{UserID: candidate.UserID, APIKeyID: candidate.ID}, nil
+		if !security.VerifySecret(candidate.keyHash, plaintext) {
+			continue
+		}
+		active, err := r.userIsActive(ctx, candidate.userID)
+		if err != nil {
+			return APIKeyPrincipal{}, err
+		}
+		if active {
+			return APIKeyPrincipal{UserID: candidate.userID, APIKeyID: candidate.id}, nil
 		}
 	}
 	return APIKeyPrincipal{}, ErrInvalidCredential
+}
+
+func (r *APIKeyRepository) findCandidates(ctx context.Context, key apiKeyCacheKey) ([]apiKeyCandidate, error) {
+	if candidates, ok := r.candidatesCache.Get(key); ok {
+		return candidates, nil
+	}
+
+	var (
+		candidates []apiKeyCandidate
+		err        error
+	)
+	if key.identitySource == "" {
+		rows, queryErr := r.queries.FindAPIKeyCandidates(ctx, key.prefix)
+		err = queryErr
+		candidates = make([]apiKeyCandidate, 0, len(rows))
+		for _, row := range rows {
+			candidates = append(candidates, apiKeyCandidate{id: row.ID, userID: row.UserID, keyHash: row.KeyHash})
+		}
+	} else {
+		rows, queryErr := r.queries.FindAPIKeyCandidatesForSource(ctx, dbgen.FindAPIKeyCandidatesForSourceParams{
+			KeyPrefix: key.prefix, IdentitySource: key.identitySource,
+		})
+		err = queryErr
+		candidates = make([]apiKeyCandidate, 0, len(rows))
+		for _, row := range rows {
+			candidates = append(candidates, apiKeyCandidate{id: row.ID, userID: row.UserID, keyHash: row.KeyHash})
+		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("find API-key candidates: %w", err)
+	}
+
+	r.candidatesCache.Set(key, candidates)
+	return candidates, nil
+}
+
+func (r *APIKeyRepository) invalidateCandidates(prefix string) {
+	r.candidatesCache.Delete(apiKeyCacheKey{prefix: prefix})
+	r.candidatesCache.Delete(apiKeyCacheKey{prefix: prefix, identitySource: "ldap"})
+	r.candidatesCache.Delete(apiKeyCacheKey{prefix: prefix, identitySource: "static"})
 }
 
 // ListByUser возвращает безопасные метаданные ключей без bcrypt-хэшей.
@@ -107,7 +182,19 @@ func (r *APIKeyRepository) Revoke(ctx context.Context, userID, keyID int64) erro
 	if revoked == 0 {
 		return ErrNotFound
 	}
+	r.candidatesCache.Clear()
 	return nil
+}
+
+func (r *APIKeyRepository) userIsActive(ctx context.Context, userID int64) (bool, error) {
+	user, err := r.queries.GetUserByID(ctx, userID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("get API-key user: %w", err)
+	}
+	return user.Status == "active", nil
 }
 
 func apiKeyFromDB(row dbgen.CreateAPIKeyRow) APIKey {
