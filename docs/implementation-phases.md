@@ -83,8 +83,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [x] `internal/auth/identity` — `IdentityProvider` и static provider: только
   `auth.mode=static` + `server.environment=development|test`, credentials из
   env, namespace `static:<username>`; LDAP не является fallback
-- [ ] `internal/auth/ldap` — provisioning users при первом логине, проверка `users.status`
-- [ ] Session lifecycle: генерация opaque token, INSERT sessions (token_hash SHA-256, role, expires_at = TTL user=5м/admin=10ч), Set-Cookie (HttpOnly, Secure, SameSite)
+- [x] `internal/auth/ldap` — provisioning users при первом логине, проверка `users.status`
+- [x] Session lifecycle: генерация opaque token, INSERT sessions (token_hash SHA-256, role, expires_at = TTL user=5м/admin=10ч), Set-Cookie (HttpOnly, Secure, SameSite)
 - [x] `internal/access` (R2) — `access.Provider.Authenticate`: lookup api_keys по prefix → bcrypt verify → check users.status → `Result{Principal=user_id, Metadata={api_key_id}}`
 - [x] `access.RegisterProvider("db-apikey", ...)` + `access.SetExclusiveProvider("db-apikey")`
 - [ ] `internal/cache` — in-process кэш за интерфейсом: session_lookup, api_key_lookup (TTL 5–15с)

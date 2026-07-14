@@ -78,6 +78,12 @@ components:
 
   # Общий формат ошибок (OpenAI-compatible).
   responses:
+    BadRequest:
+      description: Некорректное тело запроса
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     Unauthorized:
       description: Не авторизован
       content:
@@ -113,6 +119,30 @@ components:
               type: string
             code:
               type: string
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+          format: password
+    LoginResponse:
+      type: object
+      required: [user_id, role, expires_at]
+      properties:
+        user_id:
+          type: integer
+          format: int64
+        role:
+          type: string
+          enum: [user, admin]
+        expires_at:
+          type: string
+          format: date-time
 
 # ───────────────────────────────────────────────────────────────────────────
 # Системные роуты (Ф0/Ф6).
@@ -191,11 +221,46 @@ paths:
                 type: object
                 description: OpenAPI 3.1 document
 
+  /api/v1/login:
+    post:
+      tags: [Auth]
+      summary: Login через активный identity source
+      description: |
+        Проверяет credentials через LDAP либо static source согласно `auth.mode`.
+        В ответ устанавливает opaque cookie; session-token не возвращается в JSON.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login успешен; opaque session передана в cookie
+          headers:
+            Set-Cookie:
+              description: HttpOnly opaque session-cookie `cliproxy_session`.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
   # ─────────────────────────────────────────────────────────────────────────
   # Management-API и Proxy-API добавляются в Ф4.
   # Заглушки-комментарии для планируемых разделов:
   #
-  # /api/v1/login            (Auth, R1)
   # /api/v1/logout           (Auth, R1)
   # /api/v1/me/keys          (User, R9.U.2)
   # /api/v1/me/usage         (User, R9.U.3)

@@ -23,6 +23,8 @@ var (
 	ErrInvalidCredentials = errors.New("неверные учётные данные")
 	// ErrInvalidConfiguration означает некорректные параметры identity provider.
 	ErrInvalidConfiguration = errors.New("некорректная конфигурация identity provider")
+	// ErrAccessDenied означает, что identity подтверждена, но не имеет права на вход.
+	ErrAccessDenied = errors.New("доступ запрещён")
 )
 
 // Identity — результат успешной аутентификации из выбранного source.

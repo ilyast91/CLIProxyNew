@@ -213,7 +213,9 @@ sequenceDiagram
 - Логика групп (R1): admin → admin; иначе user → user; иначе отказ.
 - `users.status` проверяется после identity provider (R9.A.3).
 - TTL фикс.: user=5мин, admin=10ч.
-- Cookie: HttpOnly, Secure, SameSite=Lax (открытый пункт R1 — финализировать по домену).
+- Cookie: HttpOnly, SameSite=Lax; `Secure=true` в production, а в
+  development/test допускается `false` для локального HTTP static identity.
+  Домен и Path финализируются при deployment-дизайне.
 - Static mode разрешён только в development/test и не является fallback для LDAP.
 - Переключение `auth.mode` требует остановки всех dev/test реплик; mixed-mode
   rolling deployment запрещён.

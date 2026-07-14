@@ -16,7 +16,7 @@ const staticUsernamePrefix = "static:"
 
 var (
 	// ErrAccessDenied означает, что LDAP-пользователь не состоит в разрешённой группе.
-	ErrAccessDenied = errors.New("доступ LDAP-пользователя запрещён")
+	ErrAccessDenied = identity.ErrAccessDenied
 	// ErrInvalidConfiguration означает небезопасную или неполную LDAP-конфигурацию.
 	ErrInvalidConfiguration = errors.New("некорректная LDAP-конфигурация")
 )
