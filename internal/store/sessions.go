@@ -90,6 +90,23 @@ func (r *SessionRepository) DeleteByUser(ctx context.Context, userID int64) erro
 	return nil
 }
 
+// DeleteByTokenForSource удаляет текущую сессию активного identity source.
+func (r *SessionRepository) DeleteByTokenForSource(ctx context.Context, token, identitySource string) error {
+	if token == "" || !validIdentitySource(identitySource) {
+		return ErrInvalidCredential
+	}
+	deleted, err := r.queries.DeleteSessionByTokenHashForSource(ctx, dbgen.DeleteSessionByTokenHashForSourceParams{
+		TokenHash: hashSessionToken(token), IdentitySource: identitySource,
+	})
+	if err != nil {
+		return fmt.Errorf("delete session by token: %w", err)
+	}
+	if deleted == 0 {
+		return ErrInvalidCredential
+	}
+	return nil
+}
+
 // DeleteExpired удаляет истёкшие сессии и возвращает их количество.
 func (r *SessionRepository) DeleteExpired(ctx context.Context) (int64, error) {
 	count, err := r.queries.DeleteExpiredSessions(ctx)

@@ -66,6 +66,27 @@ func (q *Queries) DeleteExpiredSessions(ctx context.Context) (int64, error) {
 	return result.RowsAffected(), nil
 }
 
+const deleteSessionByTokenHashForSource = `-- name: DeleteSessionByTokenHashForSource :execrows
+DELETE FROM sessions
+USING users
+WHERE sessions.user_id = users.id
+  AND sessions.token_hash = $1
+  AND users.identity_source = $2
+`
+
+type DeleteSessionByTokenHashForSourceParams struct {
+	TokenHash      string `json:"token_hash"`
+	IdentitySource string `json:"identity_source"`
+}
+
+func (q *Queries) DeleteSessionByTokenHashForSource(ctx context.Context, arg DeleteSessionByTokenHashForSourceParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteSessionByTokenHashForSource, arg.TokenHash, arg.IdentitySource)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteSessionsByUser = `-- name: DeleteSessionsByUser :exec
 DELETE FROM sessions
 WHERE user_id = $1

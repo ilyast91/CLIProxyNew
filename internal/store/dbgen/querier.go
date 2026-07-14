@@ -14,6 +14,7 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	DeleteExpiredSessions(ctx context.Context) (int64, error)
 	DeleteModelOverride(ctx context.Context, modelAlias string) (int64, error)
+	DeleteSessionByTokenHashForSource(ctx context.Context, arg DeleteSessionByTokenHashForSourceParams) (int64, error)
 	DeleteSessionsByUser(ctx context.Context, userID int64) error
 	DeleteUpstreamAccount(ctx context.Context, id string) error
 	FindAPIKeyCandidates(ctx context.Context, keyPrefix string) ([]FindAPIKeyCandidatesRow, error)

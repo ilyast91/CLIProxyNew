@@ -44,6 +44,13 @@ WHERE sessions.token_hash = sqlc.arg(token_hash)
 DELETE FROM sessions
 WHERE user_id = $1;
 
+-- name: DeleteSessionByTokenHashForSource :execrows
+DELETE FROM sessions
+USING users
+WHERE sessions.user_id = users.id
+  AND sessions.token_hash = sqlc.arg(token_hash)
+  AND users.identity_source = sqlc.arg(identity_source);
+
 -- name: DeleteExpiredSessions :execrows
 DELETE FROM sessions
 WHERE expires_at <= now();
