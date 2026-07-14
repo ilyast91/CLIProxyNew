@@ -112,7 +112,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [ ] `internal/usage` — `coreauth.Hook` (OnResult для доп. наблюдения)
 - [ ] `internal/watcher` — вместо недоступного публичного WatcherWrapper готов
   DB revision poller + controlled restart; transactionally increment revision
-  при Store Save/Delete; management-изменения и k8s deployment wiring остаются
+  при Store Save/Delete; SDK file watcher заменён public no-op factory;
+  management-изменения и k8s deployment wiring остаются
 - [ ] `internal/modelregistry` — `ModelRegistryHook`: подписка на изменения реестра → mirror snapshot в Postgres
 - [ ] `cmd/cliproxy/main.go` — полный wiring: config → db → security → store → RegisterTokenStore → coreManager → Builder.With* → RegisterUsagePlugin → Service.Run
 - [x] `internal/config` — минимальный SDK config bridge для listener; file-backed
