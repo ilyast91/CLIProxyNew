@@ -2,8 +2,10 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/netip"
 
 	"github.com/ilyast91/CLIProxyNew/internal/store/dbgen"
 	"github.com/jackc/pgx/v5"
@@ -11,11 +13,14 @@ import (
 )
 
 // OAuthSessionRepository хранит multi-replica OAuth-сессии в Postgres.
-type OAuthSessionRepository struct{ queries *dbgen.Queries }
+type OAuthSessionRepository struct {
+	db      dbgen.DBTX
+	queries *dbgen.Queries
+}
 
 // NewOAuthSessionRepository создаёт репозиторий OAuth-сессий.
 func NewOAuthSessionRepository(db dbgen.DBTX) *OAuthSessionRepository {
-	return &OAuthSessionRepository{queries: dbgen.New(db)}
+	return &OAuthSessionRepository{db: db, queries: dbgen.New(db)}
 }
 
 // Create сохраняет pending OAuth-сессию.
@@ -62,6 +67,36 @@ func (r *OAuthSessionRepository) Cancel(ctx context.Context, state string) error
 	}
 	if n == 0 {
 		return ErrNotFound
+	}
+	return nil
+}
+
+// CancelWithAudit отменяет pending flow и пишет audit-запись в одной транзакции.
+func (r *OAuthSessionRepository) CancelWithAudit(ctx context.Context, actorUserID int64, state string, actorIP *netip.Addr) error {
+	if r == nil || actorUserID <= 0 || state == "" {
+		return ErrInvalidInput
+	}
+	beginner, ok := r.db.(transactionBeginner)
+	if !ok {
+		return fmt.Errorf("OAuth session repository requires transactional database")
+	}
+	tx, err := beginner.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin OAuth cancel transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+	if err := NewOAuthSessionRepository(tx).Cancel(ctx, state); err != nil {
+		return err
+	}
+	details, err := json.Marshal(map[string]string{"status": "cancelled"})
+	if err != nil {
+		return fmt.Errorf("marshal OAuth cancel audit details: %w", err)
+	}
+	if err := NewAdminAuditLogRepository(tx).Insert(ctx, AdminAuditLogEntry{ActorUserID: actorUserID, Action: "oauth.session.cancelled", TargetType: "oauth_session", TargetID: state, Details: details, ActorIP: actorIP}); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit OAuth cancel transaction: %w", err)
 	}
 	return nil
 }
