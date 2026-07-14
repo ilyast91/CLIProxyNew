@@ -12,6 +12,7 @@ import (
 
 	"github.com/ilyast91/CLIProxyNew/internal/security"
 	"github.com/ilyast91/CLIProxyNew/internal/store/dbgen"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 )
@@ -26,6 +27,7 @@ var persistedAttributeAllowlist = map[string]struct{}{
 
 // CoreAuthStore реализует SDK-контракт coreauth.Store поверх PostgreSQL.
 type CoreAuthStore struct {
+	db              dbgen.DBTX
 	queries         *dbgen.Queries
 	keyring         *security.Keyring
 	defaultProxyURL string
@@ -34,6 +36,7 @@ type CoreAuthStore struct {
 // NewCoreAuthStore создаёт encrypted credential store.
 func NewCoreAuthStore(db dbgen.DBTX, keyring *security.Keyring, defaultProxyURL string) *CoreAuthStore {
 	store := &CoreAuthStore{
+		db:              db,
 		keyring:         keyring,
 		defaultProxyURL: strings.TrimSpace(defaultProxyURL),
 	}
@@ -123,7 +126,7 @@ func (s *CoreAuthStore) Save(ctx context.Context, auth *coreauth.Auth) (string, 
 		return "", fmt.Errorf("encode public attributes for %q: %w", id, err)
 	}
 
-	savedID, err := s.queries.UpsertUpstreamAccount(ctx, dbgen.UpsertUpstreamAccountParams{
+	params := dbgen.UpsertUpstreamAccountParams{
 		ID:               id,
 		Provider:         provider,
 		Email:            accountEmail(persisted),
@@ -135,7 +138,29 @@ func (s *CoreAuthStore) Save(ctx context.Context, auth *coreauth.Auth) (string, 
 		Status:           databaseAuthStatus(persisted),
 		LastRefreshedAt:  nullableTimestamptz(persisted.LastRefreshedAt),
 		NextRefreshAfter: nullableTimestamptz(persisted.NextRefreshAfter),
-	})
+	}
+	if starter, ok := s.db.(interface {
+		Begin(context.Context) (pgx.Tx, error)
+	}); ok {
+		tx, err := starter.Begin(ctx)
+		if err != nil {
+			return "", fmt.Errorf("begin save upstream account: %w", err)
+		}
+		defer tx.Rollback(ctx)
+		queries := s.queries.WithTx(tx)
+		savedID, err := queries.UpsertUpstreamAccount(ctx, params)
+		if err != nil {
+			return "", fmt.Errorf("save upstream account %q: %w", id, err)
+		}
+		if _, err := queries.IncrementRuntimeRevision(ctx, UpstreamAccountsRevision); err != nil {
+			return "", fmt.Errorf("increment upstream accounts revision: %w", err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return "", fmt.Errorf("commit save upstream account: %w", err)
+		}
+		return savedID, nil
+	}
+	savedID, err := s.queries.UpsertUpstreamAccount(ctx, params)
 	if err != nil {
 		return "", fmt.Errorf("save upstream account %q: %w", id, err)
 	}
@@ -147,8 +172,31 @@ func (s *CoreAuthStore) Delete(ctx context.Context, id string) error {
 	if s == nil || s.queries == nil || strings.TrimSpace(id) == "" {
 		return ErrInvalidInput
 	}
+	if starter, ok := s.db.(interface {
+		Begin(context.Context) (pgx.Tx, error)
+	}); ok {
+		tx, err := starter.Begin(ctx)
+		if err != nil {
+			return fmt.Errorf("begin delete upstream account: %w", err)
+		}
+		defer tx.Rollback(ctx)
+		queries := s.queries.WithTx(tx)
+		if err := queries.DeleteUpstreamAccount(ctx, strings.TrimSpace(id)); err != nil {
+			return fmt.Errorf("delete upstream account: %w", err)
+		}
+		if _, err := queries.IncrementRuntimeRevision(ctx, UpstreamAccountsRevision); err != nil {
+			return fmt.Errorf("increment upstream accounts revision: %w", err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return fmt.Errorf("commit delete upstream account: %w", err)
+		}
+		return nil
+	}
 	if err := s.queries.DeleteUpstreamAccount(ctx, strings.TrimSpace(id)); err != nil {
 		return fmt.Errorf("delete upstream account: %w", err)
+	}
+	if _, err := s.queries.IncrementRuntimeRevision(ctx, UpstreamAccountsRevision); err != nil {
+		return fmt.Errorf("increment upstream accounts revision: %w", err)
 	}
 	return nil
 }
