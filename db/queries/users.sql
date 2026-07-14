@@ -26,6 +26,11 @@ SELECT id, username, email, role, status, identity_source, created_at, updated_a
 FROM users
 WHERE username = $1;
 
+-- name: ListUsers :many
+SELECT id, username, email, role, status, identity_source, created_at, updated_at
+FROM users
+ORDER BY id DESC;
+
 -- name: SetUserStatus :execrows
 UPDATE users
 SET status = sqlc.arg(status), updated_at = now()

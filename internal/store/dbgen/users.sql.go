@@ -98,6 +98,52 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUs
 	return i, err
 }
 
+const listUsers = `-- name: ListUsers :many
+SELECT id, username, email, role, status, identity_source, created_at, updated_at
+FROM users
+ORDER BY id DESC
+`
+
+type ListUsersRow struct {
+	ID             int64              `json:"id"`
+	Username       string             `json:"username"`
+	Email          pgtype.Text        `json:"email"`
+	Role           string             `json:"role"`
+	Status         string             `json:"status"`
+	IdentitySource string             `json:"identity_source"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
+	rows, err := q.db.Query(ctx, listUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUsersRow{}
+	for rows.Next() {
+		var i ListUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.Email,
+			&i.Role,
+			&i.Status,
+			&i.IdentitySource,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setUserStatus = `-- name: SetUserStatus :execrows
 UPDATE users
 SET status = $1, updated_at = now()

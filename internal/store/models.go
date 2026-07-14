@@ -157,6 +157,16 @@ type UsageAPIKeySummary struct {
 	TotalTokens        int64
 }
 
+// AdminAuditLogEntry — append-only запись о mutating-действии администратора.
+type AdminAuditLogEntry struct {
+	ActorUserID int64
+	Action      string
+	TargetType  string
+	TargetID    string
+	Details     []byte
+	ActorIP     *netip.Addr
+}
+
 func validModelOverrideParams(params UpsertModelOverrideParams) bool {
 	return params.Provider != "" && params.ModelAlias != "" && params.UpstreamModel != "" &&
 		(len(params.Config) == 0 || json.Valid(params.Config))

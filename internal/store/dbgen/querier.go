@@ -26,12 +26,14 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
 	IncrementRuntimeRevision(ctx context.Context, name string) (int64, error)
+	InsertAdminAuditLog(ctx context.Context, arg InsertAdminAuditLogParams) error
 	InsertUsageEvent(ctx context.Context, arg InsertUsageEventParams) error
 	ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error)
 	ListModelOverrides(ctx context.Context) ([]ModelOverride, error)
 	ListUpstreamAccounts(ctx context.Context) ([]UpstreamAccount, error)
 	ListUsageByAPIKeyForUser(ctx context.Context, arg ListUsageByAPIKeyForUserParams) ([]ListUsageByAPIKeyForUserRow, error)
 	ListUsageByModelForUser(ctx context.Context, arg ListUsageByModelForUserParams) ([]ListUsageByModelForUserRow, error)
+	ListUsers(ctx context.Context) ([]ListUsersRow, error)
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
 	SetUserStatus(ctx context.Context, arg SetUserStatusParams) (int64, error)
 	UpsertModelOverride(ctx context.Context, arg UpsertModelOverrideParams) (ModelOverride, error)

@@ -269,6 +269,47 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/UsageAPIKeySummary"
+    AdminUser:
+      type: object
+      required: [id, username, email, role, status, identity_source, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        status:
+          type: string
+          enum: [active, blocked]
+        identity_source:
+          type: string
+          enum: [ldap, static]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AdminUserListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+    SetUserStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [active, blocked]
 
 # ───────────────────────────────────────────────────────────────────────────
 # Системные роуты (Ф0/Ф6).
@@ -493,6 +534,68 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/admin/users:
+    get:
+      tags: [Admin]
+      summary: Список пользователей
+      description: Доступно только администратору через session-cookie.
+      operationId: listUsers
+      security:
+        - SessionCookie: []
+      responses:
+        "200":
+          description: Пользователи
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/admin/users/{userID}:
+    patch:
+      tags: [Admin]
+      summary: Изменить статус пользователя
+      description: Блокировка инвалидирует сессии пользователя. Каждое изменение записывается в admin audit log.
+      operationId: setUserStatus
+      security:
+        - SessionCookie: []
+      parameters:
+        - name: userID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetUserStatusRequest"
+      responses:
+        "204":
+          description: Статус изменён
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           $ref: "#/components/responses/InternalError"
 

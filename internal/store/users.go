@@ -67,6 +67,19 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (User, error) {
 	return userFromValues(row.ID, row.Username, row.Email, row.Role, row.Status, row.IdentitySource, row.CreatedAt, row.UpdatedAt), nil
 }
 
+// List возвращает пользователей для management API.
+func (r *UserRepository) List(ctx context.Context) ([]User, error) {
+	rows, err := r.queries.ListUsers(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list users: %w", err)
+	}
+	users := make([]User, 0, len(rows))
+	for _, row := range rows {
+		users = append(users, userFromValues(row.ID, row.Username, row.Email, row.Role, row.Status, row.IdentitySource, row.CreatedAt, row.UpdatedAt))
+	}
+	return users, nil
+}
+
 // SetStatus блокирует или разблокирует пользователя.
 func (r *UserRepository) SetStatus(ctx context.Context, id int64, status string) error {
 	if status != "active" && status != "blocked" {
