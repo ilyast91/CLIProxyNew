@@ -14,6 +14,8 @@ import (
 	"syscall"
 
 	businessaccess "github.com/ilyast91/CLIProxyNew/internal/access"
+	"github.com/ilyast91/CLIProxyNew/internal/auth/identity"
+	ldapidentity "github.com/ilyast91/CLIProxyNew/internal/auth/ldap"
 	"github.com/ilyast91/CLIProxyNew/internal/config"
 	"github.com/ilyast91/CLIProxyNew/internal/security"
 	"github.com/ilyast91/CLIProxyNew/internal/store"
@@ -51,6 +53,10 @@ func run() error {
 	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("validate config: %w", err)
 	}
+	identityProvider, err := identityProviderFromConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("create identity provider: %w", err)
+	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -61,7 +67,9 @@ func run() error {
 		"app", appName,
 		"version", appVersion,
 		"server_addr", cfg.Server.Addr,
+		"identity_source", cfg.Auth.Mode,
 	)
+	_ = identityProvider // Login HTTP wiring появится вместе с management router.
 
 	// Graceful shutdown context.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -95,4 +103,26 @@ func run() error {
 	<-ctx.Done()
 	slog.Info("shutdown signal received")
 	return nil
+}
+
+func identityProviderFromConfig(cfg *config.Config) (identity.Provider, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("config is nil")
+	}
+	switch cfg.Auth.Mode {
+	case config.AuthModeStatic:
+		return identity.NewStaticProvider(cfg.Auth.StaticUsername, cfg.Auth.StaticPassword, cfg.Auth.StaticRole)
+	case config.AuthModeLDAP:
+		return ldapidentity.NewProvider(ldapidentity.Config{
+			URL:          cfg.LDAP.URL,
+			BindDN:       cfg.LDAP.BindDN,
+			BindPassword: os.Getenv("LDAP_BIND_PASSWORD"),
+			UserBase:     cfg.LDAP.UserBase,
+			UserFilter:   cfg.LDAP.UserFilter,
+			UserGroupDN:  cfg.LDAP.UserGroupDN,
+			AdminGroupDN: cfg.LDAP.AdminGroupDN,
+		}, nil)
+	default:
+		return nil, fmt.Errorf("unsupported auth.mode %q", cfg.Auth.Mode)
+	}
 }
