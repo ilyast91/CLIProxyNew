@@ -13,6 +13,7 @@ type Querier interface {
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (CreateAPIKeyRow, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	DeleteExpiredSessions(ctx context.Context) (int64, error)
+	DeleteModelOverride(ctx context.Context, modelAlias string) (int64, error)
 	DeleteSessionsByUser(ctx context.Context, userID int64) error
 	DeleteUpstreamAccount(ctx context.Context, id string) error
 	FindAPIKeyCandidates(ctx context.Context, keyPrefix string) ([]FindAPIKeyCandidatesRow, error)
@@ -22,9 +23,11 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
 	ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error)
+	ListModelOverrides(ctx context.Context) ([]ModelOverride, error)
 	ListUpstreamAccounts(ctx context.Context) ([]UpstreamAccount, error)
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
 	SetUserStatus(ctx context.Context, arg SetUserStatusParams) (int64, error)
+	UpsertModelOverride(ctx context.Context, arg UpsertModelOverrideParams) (ModelOverride, error)
 	UpsertStaticUser(ctx context.Context, arg UpsertStaticUserParams) (UpsertStaticUserRow, error)
 	UpsertUpstreamAccount(ctx context.Context, arg UpsertUpstreamAccountParams) (string, error)
 	UpsertUserFromLDAP(ctx context.Context, arg UpsertUserFromLDAPParams) (UpsertUserFromLDAPRow, error)

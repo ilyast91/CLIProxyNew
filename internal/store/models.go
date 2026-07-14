@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"errors"
 	"net/netip"
 	"time"
@@ -87,4 +88,28 @@ type CreateSessionParams struct {
 	Role      string
 	ExpiresAt time.Time
 	CreatedIP *netip.Addr
+}
+
+// ModelOverride задаёт разрешённую модель и её upstream mapping.
+type ModelOverride struct {
+	ID            int64
+	Provider      string
+	ModelAlias    string
+	UpstreamModel string
+	Enabled       bool
+	Config        []byte
+}
+
+// UpsertModelOverrideParams — параметры создания или обновления model override.
+type UpsertModelOverrideParams struct {
+	Provider      string
+	ModelAlias    string
+	UpstreamModel string
+	Enabled       bool
+	Config        []byte
+}
+
+func validModelOverrideParams(params UpsertModelOverrideParams) bool {
+	return params.Provider != "" && params.ModelAlias != "" && params.UpstreamModel != "" &&
+		(len(params.Config) == 0 || json.Valid(params.Config))
 }
