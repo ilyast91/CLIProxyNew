@@ -143,6 +143,41 @@ components:
         expires_at:
           type: string
           format: date-time
+    APIKey:
+      type: object
+      required: [id, prefix, name, status, created_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        prefix:
+          type: string
+          description: Отображаемый префикс ключа; полный ключ не возвращается.
+        name:
+          type: string
+        status:
+          type: string
+          enum: [active, revoked]
+        expires_at:
+          type: [string, "null"]
+          format: date-time
+        scope:
+          type: [object, array, "null"]
+          additionalProperties: true
+        last_used_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    APIKeyListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/APIKey"
 
 # ───────────────────────────────────────────────────────────────────────────
 # Системные роуты (Ф0/Ф6).
@@ -257,12 +292,31 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /api/v1/me/keys:
+    get:
+      tags: [User]
+      summary: Список собственных API-ключей
+      description: Возвращает только безопасные метаданные ключей текущего пользователя. Полный ключ и bcrypt-хэш не раскрываются.
+      operationId: listMyAPIKeys
+      security:
+        - SessionCookie: []
+      responses:
+        "200":
+          description: Метаданные API-ключей
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIKeyListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
   # ─────────────────────────────────────────────────────────────────────────
   # Management-API и Proxy-API добавляются в Ф4.
   # Заглушки-комментарии для планируемых разделов:
   #
   # /api/v1/logout           (Auth, R1)
-  # /api/v1/me/keys          (User, R9.U.2)
   # /api/v1/me/usage         (User, R9.U.3)
   # /api/v1/admin/users      (Admin, R9.A.3)
   # /api/v1/admin/keys       (Admin, R9.A.3)

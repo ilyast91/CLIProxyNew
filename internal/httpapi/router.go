@@ -8,7 +8,7 @@ import (
 )
 
 // RouterConfigurator возвращает конфигуратор management-маршрутов для SDK ядра.
-func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthenticator, logout gin.HandlerFunc) func(*gin.Engine, *handlers.BaseAPIHandler, *config.Config) {
+func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthenticator, logout gin.HandlerFunc, keys *APIKeyHandler) func(*gin.Engine, *handlers.BaseAPIHandler, *config.Config) {
 	return func(router *gin.Engine, _ *handlers.BaseAPIHandler, _ *config.Config) {
 		if login != nil {
 			router.POST("/api/v1/login", login.Handle)
@@ -19,6 +19,9 @@ func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthentic
 		if sessions != nil {
 			management := router.Group("/api/v1", SessionMiddleware(sessions))
 			management.GET("/me", CurrentUserHandler)
+			if keys != nil {
+				management.GET("/me/keys", keys.List)
+			}
 		}
 	}
 }
