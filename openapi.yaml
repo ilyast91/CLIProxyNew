@@ -178,6 +178,27 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/APIKey"
+    CreateAPIKeyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Необязательная пользовательская метка ключа.
+        expires_at:
+          type: [string, "null"]
+          format: date-time
+        scope:
+          type: [object, array, "null"]
+          additionalProperties: true
+    CreateAPIKeyResponse:
+      type: object
+      required: [api_key, key]
+      properties:
+        api_key:
+          $ref: "#/components/schemas/APIKey"
+        key:
+          type: string
+          description: Полное значение ключа; показывается только в этом ответе.
 
 # ───────────────────────────────────────────────────────────────────────────
 # Системные роуты (Ф0/Ф6).
@@ -309,6 +330,64 @@ paths:
                 $ref: "#/components/schemas/APIKeyListResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      tags: [User]
+      summary: Выпустить API-ключ
+      description: Создаёт ключ для текущего пользователя. Полное значение возвращается только в ответе `201` и в БД не хранится.
+      operationId: createMyAPIKey
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAPIKeyRequest"
+      responses:
+        "201":
+          description: Ключ выпущен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateAPIKeyResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/me/keys/{keyID}:
+    delete:
+      tags: [User]
+      summary: Отозвать API-ключ
+      description: Отзывает ключ, принадлежащий текущему пользователю.
+      operationId: revokeMyAPIKey
+      security:
+        - SessionCookie: []
+      parameters:
+        - name: keyID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        "204":
+          description: Ключ отозван
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Ключ не найден или не принадлежит текущему пользователю
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           $ref: "#/components/responses/InternalError"
 

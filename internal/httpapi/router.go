@@ -21,6 +21,8 @@ func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthentic
 			management.GET("/me", CurrentUserHandler)
 			if keys != nil {
 				management.GET("/me/keys", keys.List)
+				management.POST("/me/keys", keys.Create)
+				management.DELETE("/me/keys/:keyID", keys.Revoke)
 			}
 		}
 	}
