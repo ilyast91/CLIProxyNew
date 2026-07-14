@@ -175,6 +175,20 @@ type AdminAuditLogEntry struct {
 	ActorIP     *netip.Addr
 }
 
+// OAuthSession — состояние асинхронного upstream OAuth-flow.
+type OAuthSession struct {
+	State, Provider, FlowType, Status                        string
+	AuthID, PKCEVerifier, DeviceCode, UserCode, ErrorMessage string
+	ExpiresAt, CreatedAt, UpdatedAt                          time.Time
+}
+
+// CreateOAuthSessionParams — параметры запуска OAuth-flow.
+type CreateOAuthSessionParams struct {
+	State, Provider, FlowType          string
+	PKCEVerifier, DeviceCode, UserCode string
+	ExpiresAt                          time.Time
+}
+
 func validModelOverrideParams(params UpsertModelOverrideParams) bool {
 	return params.Provider != "" && params.ModelAlias != "" && params.UpstreamModel != "" &&
 		(len(params.Config) == 0 || json.Valid(params.Config))

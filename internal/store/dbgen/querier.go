@@ -10,15 +10,20 @@ import (
 
 type Querier interface {
 	BlockUserAndDeleteSessions(ctx context.Context, id int64) (int64, error)
+	CancelOAuthSession(ctx context.Context, state string) (int64, error)
+	CompleteOAuthSession(ctx context.Context, arg CompleteOAuthSessionParams) (int64, error)
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (CreateAPIKeyRow, error)
+	CreateOAuthSession(ctx context.Context, arg CreateOAuthSessionParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	DeleteExpiredSessions(ctx context.Context) (int64, error)
 	DeleteModelOverride(ctx context.Context, modelAlias string) (int64, error)
 	DeleteSessionByTokenHashForSource(ctx context.Context, arg DeleteSessionByTokenHashForSourceParams) (int64, error)
 	DeleteSessionsByUser(ctx context.Context, userID int64) error
 	DeleteUpstreamAccount(ctx context.Context, id string) error
+	FailOAuthSession(ctx context.Context, arg FailOAuthSessionParams) (int64, error)
 	FindAPIKeyCandidates(ctx context.Context, keyPrefix string) ([]FindAPIKeyCandidatesRow, error)
 	FindAPIKeyCandidatesForSource(ctx context.Context, arg FindAPIKeyCandidatesForSourceParams) ([]FindAPIKeyCandidatesForSourceRow, error)
+	GetOAuthSession(ctx context.Context, state string) (OauthSession, error)
 	GetRuntimeRevision(ctx context.Context, name string) (int64, error)
 	GetSessionByTokenHash(ctx context.Context, tokenHash string) (GetSessionByTokenHashRow, error)
 	GetSessionByTokenHashForSource(ctx context.Context, arg GetSessionByTokenHashForSourceParams) (GetSessionByTokenHashForSourceRow, error)
@@ -31,6 +36,7 @@ type Querier interface {
 	ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error)
 	ListAllAPIKeys(ctx context.Context) ([]ListAllAPIKeysRow, error)
 	ListModelOverrides(ctx context.Context) ([]ModelOverride, error)
+	ListPendingOAuthSessions(ctx context.Context) ([]OauthSession, error)
 	ListUpstreamAccounts(ctx context.Context) ([]UpstreamAccount, error)
 	ListUsageByAPIKeyForUser(ctx context.Context, arg ListUsageByAPIKeyForUserParams) ([]ListUsageByAPIKeyForUserRow, error)
 	ListUsageByModelForUser(ctx context.Context, arg ListUsageByModelForUserParams) ([]ListUsageByModelForUserRow, error)
