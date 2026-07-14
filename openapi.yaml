@@ -164,6 +164,7 @@ components:
         scope:
           type: [object, array, "null"]
           additionalProperties: true
+          items: {}
         last_used_at:
           type: [string, "null"]
           format: date-time
@@ -190,6 +191,7 @@ components:
         scope:
           type: [object, array, "null"]
           additionalProperties: true
+          items: {}
     CreateAPIKeyResponse:
       type: object
       required: [api_key, key]
@@ -650,6 +652,7 @@ paths:
     get:
       tags: [Admin]
       summary: Pending OAuth-сессии
+      description: Возвращает pending OAuth-сессии без PKCE verifier и device code.
       operationId: listPendingOAuthSessions
       security:
         - SessionCookie: []
@@ -669,6 +672,7 @@ paths:
     delete:
       tags: [Admin]
       summary: Отменить OAuth-сессию
+      description: Отменяет pending OAuth-flow и записывает действие в admin audit log.
       operationId: cancelOAuthSession
       security:
         - SessionCookie: []
