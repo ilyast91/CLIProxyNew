@@ -17,12 +17,18 @@ import (
 	businessaccess "github.com/ilyast91/CLIProxyNew/internal/access"
 	"github.com/ilyast91/CLIProxyNew/internal/auth/identity"
 	ldapidentity "github.com/ilyast91/CLIProxyNew/internal/auth/ldap"
+	"github.com/ilyast91/CLIProxyNew/internal/auth/selector"
 	"github.com/ilyast91/CLIProxyNew/internal/config"
+	"github.com/ilyast91/CLIProxyNew/internal/httpapi"
 	"github.com/ilyast91/CLIProxyNew/internal/security"
 	"github.com/ilyast91/CLIProxyNew/internal/store"
+	"github.com/ilyast91/CLIProxyNew/internal/usage"
 	"github.com/ilyast91/CLIProxyNew/internal/watcher"
 	sdkaccess "github.com/router-for-me/CLIProxyAPI/v7/sdk/access"
+	sdkapi "github.com/router-for-me/CLIProxyAPI/v7/sdk/api"
 	sdkauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
+	cliproxy "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 )
 
 const (
@@ -105,14 +111,34 @@ func run() error {
 		stop,
 	)
 	go revisionPoller.Run(ctx)
+	users := store.NewUserRepository(dbPool)
+	sessions := store.NewSessionRepository(dbPool)
+	loginService := identity.NewLoginService(identityProvider, cfg.Auth.Mode, users, sessions)
+	sdkCfg, err := cfg.SDKConfig()
+	if err != nil {
+		return fmt.Errorf("build SDK config: %w", err)
+	}
+	coreManager := coreauth.NewManager(authStore, selector.New(store.NewModelOverrideRepository(dbPool)), coreauth.NoopHook{})
+	service, err := cliproxy.NewBuilder().
+		WithConfig(sdkCfg).
+		WithConfigPath(configPath).
+		WithCoreAuthManager(coreManager).
+		WithWatcherFactory(watcher.NoopFactory).
+		WithServerOptions(sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction)))).
+		Build()
+	if err != nil {
+		return fmt.Errorf("build SDK service: %w", err)
+	}
+	service.RegisterUsagePlugin(usage.NewPlugin(store.NewUsageEventRepository(dbPool)))
 	slog.Info("credential store registered", "key_version", cfg.Encryption.KeyVersion)
 	slog.Info("API key provider registered", "identity_source", cfg.Auth.Mode)
 	slog.Info("runtime revision poller started", "revision", store.UpstreamAccountsRevision)
 
-	// Полный wiring SDK (Builder + Service.Run) — в Ф3.
-	slog.Info("persistence ready, SDK wiring pending (see implementation-phases.md Ф3)")
-	<-ctx.Done()
-	slog.Info("shutdown signal received")
+	slog.Info("SDK service ready")
+	if err := service.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+		return fmt.Errorf("run SDK service: %w", err)
+	}
+	slog.Info("shutdown complete")
 	return nil
 }
 

@@ -115,7 +115,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   при Store Save/Delete; SDK file watcher заменён public no-op factory;
   management-изменения и k8s deployment wiring остаются
 - [ ] `internal/modelregistry` — `ModelRegistryHook`: подписка на изменения реестра → mirror snapshot в Postgres
-- [ ] `cmd/cliproxy/main.go` — полный wiring: config → db → security → store → RegisterTokenStore → coreManager → Builder.With* → RegisterUsagePlugin → Service.Run
+- [x] `cmd/cliproxy/main.go` — доступный runtime wiring: config bridge → db →
+  security → Store → RegisterTokenStore → coreManager → Builder → login router
+  → RegisterUsagePlugin → Service.Run
 - [x] `internal/config` — минимальный SDK config bridge для listener; file-backed
   auth/watcher намеренно не bridge'ится, источник credentials — Postgres Store
 - [ ] Contract tests для всех 7 контрактов (mock ядра через интерфейсы)
