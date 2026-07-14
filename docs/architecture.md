@@ -1,14 +1,15 @@
 # Архитектура CLIProxyNew
 
 > **Статус:** Дизайн.
-> **Связанные:** [requirements.md](requirements.md) (R1–R10), [ADR-9](adr/ADR-9-sdk-contracts.md), [ADR-10](adr/ADR-10-per-call-type-proxy.md), [database-schema.md](database-schema.md).
+> **Связанные:** [requirements.md](requirements.md) (R1–R11), [ADR-9](adr/ADR-9-sdk-contracts.md), [ADR-10](adr/ADR-10-per-call-type-proxy.md), [database-schema.md](database-schema.md).
 
 ## 1. Обзор
 
 `CLIProxyNew` — бизнес-обвязка над upstream relay-движком
 `github.com/router-for-me/CLIProxyAPI/v7` (далее «ядро»). Бизнес-слой
-реализует **7 контрактов расширения** ядра (ADR-9) и добавляет: auth (LDAP),
-аналитику, management-API, per-call-type прокси, observability, multi-replica в k8s.
+реализует **7 контрактов расширения** ядра (ADR-9) и добавляет: identity auth
+(LDAP в production, static в development/test), аналитику, management-API,
+per-call-type прокси, observability, multi-replica в k8s.
 
 ```mermaid
 graph TB
@@ -20,7 +21,8 @@ graph TB
     subgraph CLIProxyNew["CLIProxyNew — бизнес-слой"]
         H["httpapi<br/>middleware + management-API"]
         A["access.Provider<br/>проверка API-keys + status"]
-        LDAP["auth/ldap<br/>LDAP-login + cookie"]
+        IDP["auth/identity<br/>LDAP/static provider"]
+        LDAP["auth/ldap<br/>LDAP provider"]
         SEL["auth/selector<br/>выбор аккаунта + R10 прокси"]
         OAUTH["auth/oauth<br/>FlowManager R9.A.1"]
         TEST["auth/testing<br/>Checker R9.A.5"]
@@ -41,11 +43,12 @@ graph TB
         PG[("Postgres")]
     end
 
-    U -->|login LDAP| H
+    U -->|login| H
     U -->|cookie mgmt-API| H
     APP -->|API-key /v1/* прокси| H
     H --> A
-    H --> LDAP
+    H --> IDP
+    IDP --> LDAP
     H --> OAUTH
     H --> TEST
     H --> SEL
@@ -78,7 +81,7 @@ graph TB
 | Auto-refresh (`StartAutoRefresh`) | `access.Provider` (API-key проверка) |
 | Gin-сервер, роутинг `/v1/*` | `WatcherFactory` (poll БД + leader) |
 | | `ModelRegistryHook` (зеркало моделей) |
-| | Management-API, LDAP-auth, observability |
+| | Management-API, identity auth, observability |
 
 ## 2. Запуск приложения (cmd/cliproxy/main.go)
 
@@ -118,7 +121,7 @@ sequenceDiagram
 7. **access.Provider** — `internal/access`: проверка API-key + `users.status`.
 8. **WatcherFactory** — `internal/watcher`: poll БД + leader election (advisory lock).
 9. **ModelRegistryHook** — `internal/modelregistry`.
-10. **ServerOptions** — `api.WithMiddleware` (LDAP-cookie auth для management-API, logging, CORS), `api.WithRouterConfigurator` (management-роуты `/api/v1/*`).
+10. **ServerOptions** — `api.WithMiddleware` (session-cookie auth для management-API, logging, CORS), `api.WithRouterConfigurator` (management-роуты `/api/v1/*`).
 11. **Builder.Build() → Service.Run(ctx)** — ядро само: грузит auths, поднимает Gin, запускает `StartAutoRefresh(15m)`, регистрирует model-refresh callback.
 
 ## 3. Поток: inference-запрос клиента
@@ -162,13 +165,20 @@ sequenceDiagram
 - **Selector выставляет ProxyURL** (R10, подход A) — временно, не persist.
 - **usage.Plugin** пишет асинхронно в `usage_events`.
 
-## 4. Поток: LDAP-логин (R1)
+## 4. Поток: login через identity source (R1)
+
+В `auth.mode=ldap` используется следующий поток LDAP. В
+`auth.mode=static` HTTP login вызывает static provider, который сравнивает
+credentials из env, возвращает identity с role из конфигурации и internal
+username `static:<username>`; LDAP-сеть при этом не используется. После
+получения identity provisioning, проверка `users.status` и выпуск session
+одинаковы для обоих режимов.
 
 ```mermaid
 sequenceDiagram
     participant U as Пользователь
     participant H as httpapi login
-    participant L as LDAP
+    participant L as LDAP provider
     participant DB as Postgres
 
     U->>H: POST /api/v1/login username password
@@ -192,9 +202,12 @@ sequenceDiagram
 
 **Решения:**
 - Логика групп (R1): admin → admin; иначе user → user; иначе отказ.
-- `users.status` проверяется после LDAP-проверки (R9.A.3).
+- `users.status` проверяется после identity provider (R9.A.3).
 - TTL фикс.: user=5мин, admin=10ч.
 - Cookie: HttpOnly, Secure, SameSite=Lax (открытый пункт R1 — финализировать по домену).
+- Static mode разрешён только в development/test и не является fallback для LDAP.
+- Переключение `auth.mode` требует остановки всех dev/test реплик; mixed-mode
+  rolling deployment запрещён.
 
 ## 5. Поток: auto-refresh (R7, ADR-9/ADR-10)
 
@@ -266,7 +279,8 @@ sequenceDiagram
   2. lookup `api_keys` по `key_prefix` (in-process cache TTL 5–15с);
   3. bcrypt-verify против `key_hash`;
   4. проверить `users.status = active` (cache);
-  5. вернуть `Result{Provider="db-apikey", Principal=<user_id>, Metadata={api_key_id, user_id, role}}`.
+  5. проверить `users.identity_source` против активного `auth.mode`;
+  6. вернуть `Result{Provider="db-apikey", Principal=<user_id>, Metadata={api_key_id, user_id, role}}`.
 - Регистрируется через `access.RegisterProvider("db-apikey", provider)`, затем
   **`access.SetExclusiveProvider("db-apikey")`** — отключает встроенный
   `config-api-key` ядра (inline `cfg.APIKeys` не используются, исключает
@@ -286,14 +300,22 @@ sequenceDiagram
   4. **выставить `auth.ProxyURL`** = `proxyFor(callType=inference, provider)` (R10) — временно, идемпотентно;
   5. вернуть `*Auth` (возможно shallow-copy для изоляции ProxyURL).
 
+### `internal/auth/identity` (R1)
+Внутренний `IdentityProvider` изолирует проверку username/password от HTTP и
+возвращает `{Username, Email, Role, Source}`. Wiring выбирает реализацию один
+раз по `auth.mode`:
+- `ldap.Provider` — production source;
+- `static.Provider` — только development/test, credentials из env, username
+  нормализуется в `static:<username>`.
+
 ### `internal/auth/ldap` (R1)
-- `Login(ctx, username, password) (*Session, error)`:
+- `Authenticate(ctx, username, password) (Identity, error)`:
   1. service-bind + search → user DN;
   2. user-bind → аутентификация;
   3. search memberOf → проверка групп (config-defined DN);
   4. роль: admin если в admin-group, иначе user если в user-group, иначе 403;
-  5. upsert users, проверить status;
-  6. INSERT session, вернуть cookie.
+  5. отклонить LDAP username с зарезервированным префиксом `static:`;
+  6. вернуть identity с `Source=ldap`.
 - Service-account пароль — **только из env** `LDAP_BIND_PASSWORD` (k8s Secret).
   Не хранится в БД → AES-шифрование не применяется (см. исправление R5).
 
@@ -370,7 +392,7 @@ sequenceDiagram
 - **OpenAPI (R11):** spec-first — `openapi.yaml` первичен; Go-типы и хендлеры
   генерируются из спецификации. Покрытие: все роуты (management с полными
   схемами; прокси `/v1/*` без body-схем, только auth + общие errors).
-- **Middleware:** LDAP-cookie auth для management; logging; CORS; role-guard (user/admin).
+- **Middleware:** session-cookie auth для management; logging; CORS; role-guard (user/admin).
 
 ### `internal/cache` (R6)
 In-process кэш за интерфейсом:
@@ -441,6 +463,9 @@ graph LR
 ```yaml
 server:
   addr: ":8080"
+  environment: "production" # development | test | production
+auth:
+  mode: "ldap"              # ldap | static; static только development/test
 ldap:
   url: "ldaps://ldap.corp.example"
   bind_dn: "CN=svc-cliproxy,OU=Service,DC=corp,DC=example"
@@ -464,8 +489,13 @@ encryption:
 
 **Env-секреты** (никогда в config.yaml):
 - `CLIPROXY_ENCRYPTION_KEY` (base64 32 байта)
+- `CLIPROXY_ENCRYPTION_PREVIOUS_KEYS` (опциональная JSON-карта
+  `key-version → base64`, для ротации)
 - `DB_PASSWORD`
 - `LDAP_BIND_PASSWORD`
+- `CLIPROXY_STATIC_USER_USERNAME` (только `auth.mode=static`)
+- `CLIPROXY_STATIC_USER_PASSWORD` (только `auth.mode=static`)
+- `CLIPROXY_STATIC_USER_ROLE` (только `auth.mode=static`, `user` или `admin`)
 
 ## 10. Открытые вопросы (для след. итерации дизайна)
 

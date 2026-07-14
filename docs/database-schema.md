@@ -35,6 +35,7 @@ erDiagram
     users {
         bigint id PK
         text username UK
+        text identity_source
         text email
         text role
         text status
@@ -142,13 +143,16 @@ erDiagram
 | Поле | Тип | Назначение |
 |------|-----|-----------|
 | `id` | bigint identity PK | |
-| `username` | text, unique, not null | LDAP-derived (sAMAccountName или DN) |
-| `email` | text | из LDAP |
-| `role` | text, not null | `user` \| `admin` — **не из БД**, пересчитывается live из LDAP-групп при каждом логине (R1). Хранится как snapshot для UI/аналитики, но **не как источник истины для доступа**. |
+| `username` | text, unique, not null | LDAP username или internal `static:<username>` для debug identity |
+| `identity_source` | text, not null, default `ldap` | `ldap` \| `static`; CHECK связывает source с namespace username |
+| `email` | text | из LDAP или static identity (опционально) |
+| `role` | text, not null | `user` \| `admin` — для LDAP пересчитывается live из групп; для static приходит из env. Хранится как snapshot для UI/аналитики. |
 | `status` | text, not null, default `active` | `active` \| `blocked` (R9.A.3). Блокировка → login/API-key запрещены. |
 | `created_at`, `updated_at` | timestamptz | |
 
-**Создание:** provisioning при первом успешном логине (после проверки LDAP-групп). Обновление `role`/`email` — при каждом логине из LDAP.
+**Создание:** provisioning при первом успешном login через выбранный identity
+source. LDAP обновляет `role`/`email` при каждом login; static user изолирован
+namespace `static:` и разрешён только в development/test.
 
 ### `api_keys` (R2, R9.U.2)
 | Поле | Тип | Назначение |
@@ -325,6 +329,8 @@ Allow-list + model-mapping, хранимые админом.
 4. `000004_usage_events_partitions.up.sql` — родитель + initial partition + aggregation view
 5. `000005_admin_audit_log.up.sql` — admin_audit_log
 6. `000006_oauth_sessions.up.sql` — oauth_sessions (R9.A.1) + индексы
+7. `20260714000100_users_identity_source.up.sql` — identity_source, namespace
+   CHECK и совместимый default `ldap` (R1.5)
 
 **Partition management** — отдельная SQL-функция + cron-job (leader) для создания будущих партиций и удаления старых.
 
@@ -333,3 +339,5 @@ Allow-list + model-mapping, хранимые админом.
 - TTL ретенции `usage_events` (TBD — открытый пункт R3).
 - Формат `scope` в `api_keys` (jsonb структура — определится в R9 дизайне API).
 - Глубина аудит-лога: партиционировать `admin_audit_log` по месяцам или оставить единой таблицей.
+- Rollback миграции `identity_source`: down разрешён только без static users;
+  static user с usage/audit history требует forward-fix или restore backup.

@@ -4,6 +4,12 @@
 
 server:
   addr: ":8080"           # сетевой интерфейс и порт
+  environment: "production" # development | test | production
+
+auth:
+  mode: "ldap"             # ldap | static; static разрешён только вне production
+  # Для static mode нужны env: CLIPROXY_STATIC_USER_USERNAME,
+  # CLIPROXY_STATIC_USER_PASSWORD, CLIPROXY_STATIC_USER_ROLE (user | admin).
 
 db:
   dsn: "postgres://cliproxy@localhost:5432/cliproxy?sslmode=disable"

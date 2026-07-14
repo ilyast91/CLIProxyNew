@@ -22,7 +22,8 @@
 
 - ❌ **Не пишем здесь:** refresh-протоколы провайдеров, transport, стриминг,
   парсинг ответов, реестр моделей как источник истины — это в ядре (SDK).
-- ✅ **Пишем:** auth (LDAP), аналитику, management-API, per-call-type прокси,
+- ✅ **Пишем:** auth (LDAP + static source для development/test), аналитику,
+  management-API, per-call-type прокси,
   persistence (Postgres), observability, k8s-deployment.
 - Бизнес-слой реализует **7 контрактов расширения** ядра (ADR-9) и делегирует
   upstream-вызовы через `Service.Run`.
@@ -37,22 +38,22 @@ cmd/cliproxy/    — точка входа (wiring: конфиг, DI, Builder, S
 internal/        — бизнес-логика (неэкспортируемая)
   access/          — access.Provider: проверка клиентских API-keys
                      (+ проверка users.status на каждый запрос)
-  auth/            — LDAP-логин, session-cookie, coreauth.Selector
+  auth/            — identity providers (LDAP/static), session-cookie, coreauth.Selector
                      (выбор upstream-аккаунта + per-call-type прокси R10)
   cache/           — in-process кэш (session/API-key lookup, модели)
                      за интерфейсом, задел под Redis
   config/          — конфигурация сервиса
   httpapi/         — клиентские эндпоинты (делегируют ядру) + management-API
-                     (R9: user/admin операции) + middleware (LDAP-cookie);
+                     (R9: user/admin операции) + middleware (session-cookie);
                      типы/хендлеры генерируются из openapi.yaml (R11)
   modelregistry/   — ModelRegistryHook: зеркало реестра моделей в Postgres
-  security/        — bcrypt (API-keys) + AES-256-GCM (upstream/ldap secrets)
+  security/        — bcrypt (API-keys) + AES-256-GCM (upstream credentials)
   store/           — репозитории (pgx + sqlc): users, api_keys, auths,
                      analytics, admin_audit_log, model_overrides
   usage/           — usage.Plugin: аналитика запросов (→ Postgres)
   watcher/         — WatcherFactory: poll БД + leader election (advisory lock)
 db/migrations/   — SQL-миграции (golang-migrate)
-docs/            — требования (R1–R10), ADR-9/ADR-10, дизайн
+docs/            — требования (R1–R11), ADR-9/ADR-10, дизайн
 ```
 
 - В `cmd/` только wiring. Логику — в `internal/`.
@@ -64,12 +65,15 @@ docs/            — требования (R1–R10), ADR-9/ADR-10, дизайн
 - **Доступ к БД:** `pgx/v5` + `sqlc` (без ORM) + `golang-migrate`.
 - **Аналитика:** та же Postgres, партиционирование по дню + материализованные
   агрегаты; слой репозитория абстрагирован (задел под ClickHouse).
-- **Auth:** LDAP (bind/search, live-lookup групп) + opaque session (cookie,
-  TTL user=5мин/admin=10ч, фикс. без продления) + long-lived API-keys (bcrypt).
+- **Auth:** LDAP в production (bind/search, live-lookup групп) или static
+  identity source только в development/test + opaque session (cookie, TTL
+  user=5мин/admin=10ч, фикс. без продления) + long-lived API-keys (bcrypt).
 - **Шифрование at-rest (R5):** два класса —
-  bcrypt (one-way, API-keys) + AES-256-GCM (two-way, upstream-credentials +
-  LDAP bind), мастер-ключ из env `CLIPROXY_ENCRYPTION_KEY` (k8s Secret),
-  key-versioning для ротации.
+  bcrypt (one-way, API-keys) + AES-256-GCM (two-way, upstream-credentials).
+  LDAP bind-password и static credentials живут только в env/k8s Secret;
+  мастер-ключ из env `CLIPROXY_ENCRYPTION_KEY`,
+  key-versioning для ротации; предыдущие версии ключей — из env
+  `CLIPROXY_ENCRYPTION_PREVIOUS_KEYS` (JSON-карта version → base64).
 - **Multi-tenancy:** плоская (пользователи + роли user/admin).
 - **Scheduler (R7):** auto-refresh делает ядро (`StartAutoRefresh`), бизнес-слой
   реализует `coreauth.Store` (ядро само зовёт Save) + leader election через
@@ -118,10 +122,13 @@ go test ./...           # тесты
   потока — principal/user_id копируйте в Record при старте, не из context.
 - **Гонки ProxyURL (R10):** `auth.ProxyURL` — разделяемое поле; при
   динамическом выставлении не persist'ите временное значение в Store.
+- **Static identity (R1.5):** разрешён только при
+  `server.environment=development|test`; никогда не используйте его как LDAP
+  fallback и не переключайте `auth.mode` rolling-обновлением.
 
 ## Документация (читать перед sensitive правками)
 
-- [`docs/requirements.md`](docs/requirements.md) — требования R1–R10 и ADR.
+- [`docs/requirements.md`](docs/requirements.md) — требования R1–R11 и ADR.
   **Читать перед:** правками go.mod/зависимостей, контрактов с SDK ядра,
   схемы БД, слойности `internal/`.
 - [`docs/architecture-principles.md`](docs/architecture-principles.md) —
@@ -158,3 +165,5 @@ go test ./...           # тесты
 - 2026-07-11 — переписан под модель «ядро = внешняя go-зависимость».
 - 2026-07-11 — актуализирован под R1–R10 и ADR-9/ADR-10 (полную структуру
   пакетов, 7 контрактов ядра, gotchas по auto-refresh/стримингу/гонкам).
+- 2026-07-14 — добавлен R1.5: static identity source только для
+  development/test, namespace `static:` и запрет rolling-переключения mode.

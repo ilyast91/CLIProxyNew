@@ -4,7 +4,7 @@
 > **Назначение:** принципы, качественные атрибуты с метриками, ограничения и
 > стандарты, на основе которых проектируется и валидируется архитектура.
 > Это **не** функциональные требования (см. [requirements.md](requirements.md)
-> R1–R10) и **не** ADR (см. [adr/](adr/)) — это системные -ilities и conventions.
+> R1–R11) и **не** ADR (см. [adr/](adr/)) — это системные -ilities и conventions.
 >
 > **Связанные:** [requirements.md](requirements.md), [architecture.md](architecture.md),
 > [database-schema.md](database-schema.md), ADR-1..10.
@@ -22,7 +22,7 @@
 | **Contract-based расширение** | Расширение ядра — только через 7 контрактов ADR-9. Никаких fork/patch ядра. | ADR-9 |
 | **Stateless-first** | Всё состояние в Postgres. In-memory кэш — только за интерфейсом (`internal/cache`), с заделом под Redis. | R6.1, ADR-8 |
 | **Interface segregation** | Кэш, шифрование, репозитории — за интерфейсами. Реализация заменяема (Postgres ↔ ClickHouse, in-process ↔ Redis). | ADR-5, ADR-8 |
-| **Configuration over code** | Группы LDAP, прокси per-call-type, allow-list моделей — в конфиге, не в коде. | R1, R9.A.6, R10 |
+| **Configuration over code** | Режим identity source, группы LDAP, прокси per-call-type, allow-list моделей — в конфиге, не в коде. | R1, R9.A.6, R10 |
 | **YAGNI** | Не реализуем квоты/rate-limit, UI, плагины на первой версии. Каждое новое требование проходит через «нужно ли это сейчас». | Роль репо |
 | **Idempotency** | Mutating-операции (OAuth Complete, Store.Save, audit log) безопасны при retry/duplicate. | R9.A.1 |
 
@@ -70,6 +70,7 @@ SLA на накладные расходы бизнес-слоя (без upstrea
 | At-rest шифрование | bcrypt cost 12 (API-keys) + AES-256-GCM (upstream-credentials), key-versioning (R5) |
 | In-transit | HTTPS только; LDAP over TLS (`ldaps://`) |
 | Secrets | только env/k8s Secret; **никогда** в config.yaml, логах, метриках, трейсах |
+| Debug identity | static source только в development/test; production startup запрещает его, credentials из env |
 | Revocation latency | eventual consistency ≤ TTL кэша (5–15с) |
 | Audit completeness | 100% mutating admin-действий в `admin_audit_log` (append-only) |
 | No secret leakage | CI-проверка: grep секретов в логах/тестах; no `fmt.Println` credential |
@@ -127,9 +128,9 @@ graph TB
 
 | Уровень | Что покрывает | Инструменты | CI gate |
 |---------|---------------|-------------|---------|
-| **Unit** | бизнес-логика `internal/*` (auth/ldap, selector, security, usage, oauth, testing) | `testing`, `testify` | coverage ≥ 70% |
+| **Unit** | бизнес-логика `internal/*` (auth/identity, auth/ldap, selector, security, usage, oauth, testing) | `testing`, `testify` | coverage ≥ 70% |
 | **Contract** | 7 контрактов ADR-9 (Store, Selector, Hook, usage.Plugin, access.Provider, WatcherFactory, ModelRegistryHook) — mock ядра через интерфейсы | `testify/mock`, `gomock` | 100% контрактов покрыты |
-| **Integration** | store ↔ реальная PG (testcontainers), OAuth-flow ↔ mock провайдера, миграции `up`/`down` | `testcontainers-go`, `dockertest` | миграции идемпотентны |
+| **Integration** | store ↔ реальная PG (testcontainers), static/LDAP source isolation, OAuth-flow ↔ mock провайдера, миграции `up`/`down` | `testcontainers-go`, `dockertest` | миграции идемпотентны |
 | **Functional / E2E** | HTTP API энд-ту-энд (login → API-key → inference → analytics), load-тесты по SLA §2.1 | `httptest`, `vegeta`/`k6` | SLA-метрики не regress'иты |
 
 **Порядок запуска (CI pipeline):**
@@ -161,7 +162,7 @@ graph TB
 | **Конфигурация** | `internal/config` | config.yaml (ConfigMap) + env-секреты (Secret); env-override (12-factor) |
 | **Обработка ошибок** | на уровне handlers | Единый error-response (OpenAI-compatible); mapped HTTP status |
 | **Observability** | middleware + плагины | Сквозная инструментация; trace context через все слои |
-| **Security** | `internal/security`, `internal/access` | Шифрование за интерфейсом; проверка статуса на каждый запрос |
+| **Security** | `internal/security`, `internal/access`, identity middleware | Шифрование за интерфейсом; проверка статуса и identity source на каждый запрос |
 | **Multi-tenancy** | плоская (R4) | `user_id` во всех таблицах; role guard в middleware |
 | **API-контракт (Swagger)** | `openapi.yaml` spec-first | OpenAPI 3.1; код генерируется из спеки; CI lint + drift-check (R11) |
 
@@ -187,3 +188,6 @@ graph TB
 - 2026-07-12 — **R11 OpenAPI:** добавлен cross-cutting concern «API-контракт
   (Swagger)» — spec-first, OpenAPI 3.1, генерация кода из спецификации,
   CI lint + drift-check (R11).
+- 2026-07-14 — **R1.5 static identity source:** configuration-over-code
+  расширен явным режимом identity source; добавлены production gate,
+  source-isolation и тестовые требования для static/LDAP credentials.

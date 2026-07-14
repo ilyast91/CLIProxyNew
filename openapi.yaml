@@ -49,7 +49,7 @@ tags:
   - name: System
     description: Системные роуты (health, metrics, docs)
   - name: Auth
-    description: LDAP-логин, session-cookie (R1)
+    description: Login через настроенный identity source, session-cookie (R1)
   - name: User
     description: Пользовательские операции — свои API-keys, личная статистика (R9.U)
   - name: Admin
@@ -67,7 +67,7 @@ components:
       type: apiKey
       in: cookie
       name: cliproxy_session
-      description: Opaque session-токен, устанавливается после LDAP-логина (R1.2).
+      description: Opaque session-токен, устанавливается после login через настроенный identity source (R1.2).
 
     # Bearer API-key — для прокси-API (R2.1).
     BearerApiKey:

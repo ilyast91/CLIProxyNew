@@ -39,13 +39,13 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 ## Фаза 0 — Foundation
 **Цель:** компилируемый проект с подключённым ядром, скелетом пакетов, CI.
 
-- [ ] Подключить ядро `github.com/router-for-me/CLIProxyAPI/v7` в `go.mod` (проверить, что реально резолвится)
-- [ ] Создать скелет пакетов `internal/{config,security,store,access,auth/{ldap,selector,oauth,testing},cache,httpapi,modelregistry,usage,watcher}` (пустые `doc.go` с godoc)
-- [ ] `internal/config` (R6) — структура `Config`, парсинг config.yaml, env-override (12-factor), config.example.yaml
+- [x] Подключить ядро `github.com/router-for-me/CLIProxyAPI/v7` в `go.mod` (проверить, что реально резолвится)
+- [x] Создать скелет пакетов `internal/{config,security,store,access,auth/{ldap,selector,oauth,testing},cache,httpapi,modelregistry,usage,watcher}` (пустые `doc.go` с godoc)
+- [x] `internal/config` (R6) — структура `Config`, парсинг config.yaml, env-override (12-factor), config.example.yaml
 - [ ] `cmd/cliproxy/main.go` — базовый wiring: load config → stub Builder → `Service.Run` (или заглушка, если ядро не запускается без auths)
-- [ ] CI pipeline (GitHub Actions): `go vet`, `gofmt -l`, `go build`, `go test -short`
+- [x] CI pipeline (GitHub Actions): `go vet`, `gofmt -l`, `go build`, `go test -short`
 - [ ] Выбор и настройка OpenAPI-генератора (`ogen` или `oapi-codegen`) — Spike, решение зафиксировать
-- [ ] Базовый `openapi.yaml` (OpenAPI 3.1) + spectral lint в CI
+- [x] Базовый `openapi.yaml` (OpenAPI 3.1) + spectral lint в CI
 
 **Acceptance:** `go build ./...` зелёный, ядро в зависимостях, CI проходит на пустых тестах, `openapi.yaml` валидируется.
 
@@ -54,34 +54,41 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 ## Фаза 1 — Persistence layer
 **Цель:** БД, доступ, шифрование, контракты Store.
 
-- [ ] Все миграции (порядок из [database-schema.md](database-schema.md) §«Миграции»):
+- [x] Все миграции (порядок из [database-schema.md](database-schema.md) §«Миграции»):
   1. users, api_keys, sessions
   2. upstream_accounts (Store)
   3. model_overrides
   4. usage_events (родитель + initial partition + usage_aggregates view)
   5. admin_audit_log
   6. oauth_sessions
+- [ ] Миграция `users.identity_source`: source/namespace CHECK, совместимый
+  default `ldap` и guarded down (R1.5)
 - [ ] sqlc config + сгенерированные запросы для всех таблиц
 - [ ] Partition management SQL-функция (create future + drop old) + cron-job stub
-- [ ] `internal/security` — bcrypt cost 12 + AES-256-GCM с key-version prefix (R5)
+- [x] `internal/security` — bcrypt cost 12 + AES-256-GCM с key-version prefix (R5)
 - [ ] `internal/store` — репозитории для users, api_keys, sessions, admin_audit_log, oauth_sessions, model_overrides
-- [ ] `internal/store` — реализация `coreauth.Store` (List/Save/Delete) с transparent AES-шифрованием credentials
-- [ ] Integration tests с testcontainers PG (миграции up/down идемпотентны)
+- [x] `internal/store` — реализация `coreauth.Store` (List/Save/Delete) с transparent AES-шифрованием credentials
+- [x] Integration tests с testcontainers PG (миграции up/down идемпотентны)
 
 **Acceptance:** все миграции накатываются/откатываются, sqlc генерирует код, Store проходит контрактные тесты (encrypt → save → load → decrypt = исходный Auth).
 
 ---
 
 ## Фаза 2 — Auth (R1, R2)
-**Цель:** LDAP-логин, session-cookie, API-keys, access.Provider.
+**Цель:** login через identity source, session-cookie, API-keys, access.Provider.
 
 - [ ] `internal/auth/ldap` (R1) — bind (service-account из env), search user DN, user-bind, проверка групп (admin-group, user-group из config), логика роли (admin → admin; иначе user → user; иначе 403)
+- [ ] `internal/auth/identity` — `IdentityProvider` и static provider: только
+  `auth.mode=static` + `server.environment=development|test`, credentials из
+  env, namespace `static:<username>`; LDAP не является fallback
 - [ ] `internal/auth/ldap` — provisioning users при первом логине, проверка `users.status`
 - [ ] Session lifecycle: генерация opaque token, INSERT sessions (token_hash SHA-256, role, expires_at = TTL user=5м/admin=10ч), Set-Cookie (HttpOnly, Secure, SameSite)
 - [ ] `internal/access` (R2) — `access.Provider.Authenticate`: lookup api_keys по prefix → bcrypt verify → check users.status → `Result{Principal=user_id, Metadata={api_key_id}}`
 - [ ] `access.RegisterProvider("db-apikey", ...)` + `access.SetExclusiveProvider("db-apikey")`
 - [ ] `internal/cache` — in-process кэш за интерфейсом: session_lookup, api_key_lookup (TTL 5–15с)
 - [ ] Unit tests: ldap (mock LDAP), access (cache hit/miss, blocked user), session TTL
+- [ ] Unit/integration tests: запрет static в production, source isolation для
+  session/API-key, non-rolling mode switch и guarded migration down
 
 **Acceptance:** логин по LDAP создаёт cookie, запрос с API-key авторизуется, заблокированный пользователь отвергается, кэш даёт ≥95% hit ratio в steady-state тесте.
 
@@ -90,7 +97,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 ## Фаза 3 — Core contracts ADR-9
 **Цель:** 7 контрактов расширения ядра, wiring, запуск сервиса.
 
-- [ ] `sdkAuth.RegisterTokenStore(store)` вызывается ДО Builder (в `main.go`)
+- [x] `sdkAuth.RegisterTokenStore(store)` вызывается ДО Builder (в `main.go`)
 - [ ] `internal/auth/selector` — `coreauth.Selector.Pick`: apply model_overrides, filter allow-list, round-robin/fill-first (заглушка R10 — без ProxyURL, в Ф5)
 - [ ] `internal/usage` — `usage.Plugin.HandleUsage`: чтение `record.APIKey` (user_id) + `record.Metadata[api_key_id]`, async bulk INSERT в usage_events, throttled update api_keys.last_used_at
 - [ ] `internal/usage` — `coreauth.Hook` (OnResult для доп. наблюдения)
@@ -119,7 +126,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [ ] R9.A.6 allow-list моделей + model-mapping (через model_overrides)
 - [ ] R9.A.7 export/import OAuth JSON (dedup provider+email)
 - [ ] `admin_audit_log` writing на все mutating admin-действия
-- [ ] Middleware: LDAP-cookie auth, role-guard (user/admin), CORS, request_id
+- [ ] Middleware: session-cookie auth через active identity source, role-guard (user/admin), CORS, request_id
 - [ ] Functional tests (HTTP end-to-end) для всех management-эндпоинтов
 
 **Acceptance:** все R9-функции работают через REST, OpenAPI спецификация валидируется, drift-check с кодом проходит, `admin_audit_log` покрывает 100% mutating actions.
@@ -151,6 +158,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [ ] `/openapi.json` (serve spec) + опц. `/docs` (Swagger UI / Redoc)
 - [ ] Dockerfile (multi-stage: build → scratch/distroless)
 - [ ] k8s manifests: Deployment (≥2 replicas, HPA), ConfigMap (config.yaml), Secret (env), Service, Ingress
+- [ ] Runbook dev/test: переключение `auth.mode` только через scale-to-zero /
+  recreate; production всегда `auth.mode=ldap`
 - [ ] Graceful shutdown: `Service.Shutdown(ctx)`, drain in-flight ≤ 30с
 - [ ] Liveness/readiness probes в k8s
 - [ ] Configuration: config.yaml.example, .env.example, deployment README
@@ -166,6 +175,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [ ] E2E тесты: login → API-key → inference → analytics → admin operations
 - [ ] Contract test suite: все 7 контрактов ADR-9 (mock ядра) — 100% покрытие
 - [ ] Integration tests: testcontainers PG + mock OAuth-провайдер
+- [ ] Regression: static identity не проходит в LDAP/prod режиме даже с
+  активными session/API-key
 - [ ] Coverage report + CI gate (≥ 70% для internal/*)
 - [ ] Security audit: grep секретов в логах/тестах, no plaintext credentials, no `fmt.Println` с секретами
 - [ ] Race detection: `go test -race` зелёный во всём
@@ -203,3 +214,5 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 ## История
 - 2026-07-12 — план зафиксирован; scope v1 = всё из R1–R11 (кроме явных «не делаем»).
   Старт с Ф0 Foundation.
+- 2026-07-14 — добавлен R1.5: static identity source для development/test,
+  миграция identity_source, source isolation и non-rolling переключение mode.

@@ -45,7 +45,8 @@
 - HTTP API для клиентов (OpenAI/Gemini/Claude/Codex/Grok-совместимые
   эндпоинты — R8), который авторизует запрос, считает аналитику, нормализует
   модель и делегирует вызов ядру (SDK).
-- Auth: LDAP-логин, выпуск session-токенов и API-keys, хранение в Postgres.
+- Auth: LDAP-логин в production или static identity в development/test, выпуск
+  session-токенов и API-keys, хранение в Postgres.
 - Management-поверхность (R9): пользовательские операции (свои API-keys,
   личная статистика) и администраторские (настройка провайдеров OAuth/API-key,
   управление пользователями, квоты подписок, тестирование аккаунтов, список
@@ -67,8 +68,8 @@
 
 ## Функциональные требования
 
-### R1. Аутентификация (LDAP) и выпуск токенов
-- R1.1 Аутентификация пользователя по LDAP (bind/search).
+### R1. Аутентификация и выпуск токенов
+- R1.1 В production пользователь аутентифицируется по LDAP (bind/search).
 - R1.2 После успешного входа сервис выпускает **opaque session-токен**
   (DB-stored, immediate revocation).
 - R1.3 Сессия имеет TTL, **без продления** (см. решение ниже).
@@ -80,6 +81,17 @@
   `users.id` через FK. Без LDAP-группы пользователь не может быть создан.
   Запись `users` имеет поле `status` (`active`/`blocked`) — логин
   блокированного пользователя отклоняется (см. R9.A.3).
+- R1.5 **Static identity source для development/test.** Конфигурация
+  `auth.mode` принимает `ldap` (default) или `static`; static разрешён только
+  при `server.environment=development|test`. `auth.mode=static` в production
+  делает конфигурацию невалидной и приложение не запускается. Static username,
+  password и role (`user`/`admin`) приходят только из env; static не является
+  fallback при ошибке LDAP. Для изоляции static user сохраняется в БД как
+  `username=static:<username>` с `identity_source=static`; LDAP provider
+  отклоняет LDAP-имя с префиксом `static:`. Session middleware и
+  `access.Provider` принимают credential только при совпадении
+  `users.identity_source` с активным `auth.mode`. Переключение mode выполняется
+  только после остановки всех dev/test реплик, rolling switch запрещён.
 - ✅ **Решено:** формат — opaque session-токен (не JWT), хранится в БД →
   мгновенный revocation, но каждый запрос требует lookup (кэшировать).
 - ✅ **Решено:** сессия передаётся в **cookie** (браузерный SSO-flow). Отдельный
@@ -134,11 +146,14 @@
 - ✅ **Решено:** два механизма — opaque session (люди/UI) + long-lived API-keys
   (программный доступ).
 - ✅ **Решено (ADR-9):** проверка API-key на каждый запрос — через реализацию
-  `access.Provider.Authenticate` (контракт ядра). LDAP-cookie (R1) — отдельный
-  middleware, не access.Provider.
+  `access.Provider.Authenticate` (контракт ядра). Session-cookie после login
+  через identity source (R1) — отдельный middleware, не access.Provider.
 - ✅ **Решено:** `access.Provider` дополнительно проверяет `users.status` —
   API-key заблокированного пользователя (`status=blocked`) отклоняется
   (с учётом eventual consistency R2.4).
+- ✅ **Решено:** `access.Provider` и session middleware дополнительно сверяют
+  `users.identity_source` с текущим `auth.mode`; static API-key/cookie не
+  действуют в LDAP/prod режиме.
 - ✅ **Решено:** бизнес-слой **полностью заменяет** встроенный `config-api-key`
   ядром inline-провайдер через `access.SetExclusiveProvider("db-apikey")` —
   inline `cfg.APIKeys` ядра **не используются** (все клиентские API-keys живут
@@ -212,8 +227,11 @@
   подключить KMS без правок потребителей.
   ⚠️ **Ротация ключа:** формат шифртекста должен включать **key-version**
   (префикс/тег), чтобы при ротации мастер-ключа старые шифртексты
-  расшифровывались предыдущим ключом. На первой версии один key-version=1;
-  схема хранения — набор key-version → ключ, активный key-version в конфиге.
+  расшифровывались предыдущим ключом. По умолчанию используется один
+  key-version=1; схема хранения — набор key-version → ключ, активный
+  key-version в конфиге. Активный ключ передаётся через
+  `CLIPROXY_ENCRYPTION_KEY`, предыдущие — через опциональную JSON-карту
+  `CLIPROXY_ENCRYPTION_PREVIOUS_KEYS` (`{"1":"<base64>"}`).
   Без этого ротация невозможна (старые секреты станут нечитаемы).
 
 ### R6. Надёжность, масштабирование, observability, k8s
@@ -246,10 +264,11 @@
   Слой кэша держим за интерфейсом (`internal/cache`), чтобы при росте
   подключить Redis без правок потребителей.
 - ✅ **Решено:** конфигурация — **config.yaml (k8s ConfigMap) + env для
-  секретов (k8s Secret)**. Секции: `ldap`, `proxy` (per-call-type),
-  `encryption`, `server`, `db`, `logging`. Поддержка env-override поверх
-  файла (12-factor). Секреты (`CLIPROXY_ENCRYPTION_KEY`, DB password, LDAP
-  bind password) — только через env, не в config.yaml.
+  секретов (k8s Secret)**. Секции: `server` (включая environment), `auth`,
+  `ldap`, `proxy` (per-call-type), `encryption`, `db`, `logging`. Поддержка
+  env-override поверх файла (12-factor). Секреты
+  (`CLIPROXY_ENCRYPTION_KEY`, DB password, LDAP bind password, static user
+  credentials для development/test) — только через env, не в config.yaml.
 
 ### R7. Scheduler / watcher (оркестрация refresh токенов и моделей)
 - R7.1 Координация периодического обновления upstream-токенов и списка моделей.
@@ -291,7 +310,8 @@
 через отдельную management-поверхность API (и, опционально, UI).
 
 ### R9.U — Функционал пользователя
-- **R9.U.1** Авторизация (LDAP-логин → cookie-сессия, см. R1).
+- **R9.U.1** Авторизация (login через выбранный identity source →
+  cookie-сессия, см. R1).
 - **R9.U.2** Выпуск собственных **API-keys** (CRUD: создать / список /
   отозвать). API-key привязан к пользователю (R2.2), хэшируется в БД.
   Открытое значение показывается один раз при создании.
@@ -634,3 +654,6 @@
   код генерируется из спецификации). Покрытие — все роуты (management с полными
   схемами; прокси `/v1/*` без body-схем; системные). Доступ: `/openapi.json` +
   опц. `/docs`. CI lint + drift-check.
+- 2026-07-14 — **R1.5:** добавлен static identity source для development/test:
+  явный `auth.mode`, secrets только из env, namespace `static:`, source-gating
+  session/API-key и запрет rolling-переключения с LDAP.
