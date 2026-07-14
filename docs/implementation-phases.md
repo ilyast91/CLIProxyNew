@@ -63,7 +63,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   4. usage_events (родитель + initial partition + usage_aggregates view)
   5. admin_audit_log
   6. oauth_sessions
-- [ ] Миграция `users.identity_source`: source/namespace CHECK, совместимый
+- [x] Миграция `users.identity_source`: source/namespace CHECK, совместимый
   default `ldap` и guarded down (R1.5)
 - [ ] sqlc config + сгенерированные запросы для всех таблиц
 - [ ] Partition management SQL-функция (create future + drop old) + cron-job stub
@@ -79,14 +79,14 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 ## Фаза 2 — Auth (R1, R2)
 **Цель:** login через identity source, session-cookie, API-keys, access.Provider.
 
-- [ ] `internal/auth/ldap` (R1) — bind (service-account из env), search user DN, user-bind, проверка групп (admin-group, user-group из config), логика роли (admin → admin; иначе user → user; иначе 403)
-- [ ] `internal/auth/identity` — `IdentityProvider` и static provider: только
+- [x] `internal/auth/ldap` (R1) — bind (service-account из env), search user DN, user-bind, проверка групп (admin-group, user-group из config), логика роли (admin → admin; иначе user → user; иначе 403)
+- [x] `internal/auth/identity` — `IdentityProvider` и static provider: только
   `auth.mode=static` + `server.environment=development|test`, credentials из
   env, namespace `static:<username>`; LDAP не является fallback
 - [ ] `internal/auth/ldap` — provisioning users при первом логине, проверка `users.status`
 - [ ] Session lifecycle: генерация opaque token, INSERT sessions (token_hash SHA-256, role, expires_at = TTL user=5м/admin=10ч), Set-Cookie (HttpOnly, Secure, SameSite)
-- [ ] `internal/access` (R2) — `access.Provider.Authenticate`: lookup api_keys по prefix → bcrypt verify → check users.status → `Result{Principal=user_id, Metadata={api_key_id}}`
-- [ ] `access.RegisterProvider("db-apikey", ...)` + `access.SetExclusiveProvider("db-apikey")`
+- [x] `internal/access` (R2) — `access.Provider.Authenticate`: lookup api_keys по prefix → bcrypt verify → check users.status → `Result{Principal=user_id, Metadata={api_key_id}}`
+- [x] `access.RegisterProvider("db-apikey", ...)` + `access.SetExclusiveProvider("db-apikey")`
 - [ ] `internal/cache` — in-process кэш за интерфейсом: session_lookup, api_key_lookup (TTL 5–15с)
 - [ ] Unit tests: ldap (mock LDAP), access (cache hit/miss, blocked user), session TTL
 - [ ] Unit/integration tests: запрет static в production, source isolation для
