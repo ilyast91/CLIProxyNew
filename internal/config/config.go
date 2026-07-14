@@ -6,6 +6,7 @@
 //   - CLIPROXY_ENCRYPTION_PREVIOUS_KEYS — предыдущие ключи для ротации (JSON)
 //   - DB_PASSWORD — пароль Postgres
 //   - LDAP_BIND_PASSWORD — пароль service-account LDAP
+//   - CLIPROXY_STATIC_USER_* — credentials static identity для development/test
 //
 // См. docs/requirements.md R6, docs/architecture-principles.md §6.
 package config
@@ -25,6 +26,7 @@ var ErrConfigNotFound = errors.New("config file not found")
 // Config — главный тип конфигурации сервиса (R6).
 type Config struct {
 	Server     ServerConfig     `yaml:"server"`
+	Auth       AuthConfig       `yaml:"auth"`
 	DB         DBConfig         `yaml:"db"`
 	LDAP       LDAPConfig       `yaml:"ldap"`
 	Proxy      ProxyConfig      `yaml:"proxy"`
@@ -34,7 +36,35 @@ type Config struct {
 
 // ServerConfig — параметры HTTP-сервера.
 type ServerConfig struct {
-	Addr string `yaml:"addr"`
+	Addr        string `yaml:"addr"`
+	Environment string `yaml:"environment"`
+}
+
+const (
+	// EnvironmentDevelopment разрешает локальные development-интеграции.
+	EnvironmentDevelopment = "development"
+	// EnvironmentTest разрешает тестовые интеграции.
+	EnvironmentTest = "test"
+	// EnvironmentProduction разрешает только production-настройки.
+	EnvironmentProduction = "production"
+
+	// AuthModeLDAP выбирает LDAP identity provider.
+	AuthModeLDAP = "ldap"
+	// AuthModeStatic выбирает env-only static identity provider.
+	AuthModeStatic = "static"
+
+	// RoleUser даёт обычные пользовательские права.
+	RoleUser = "user"
+	// RoleAdmin даёт административные права.
+	RoleAdmin = "admin"
+)
+
+// AuthConfig — выбор identity source. Static credentials не сериализуются в YAML.
+type AuthConfig struct {
+	Mode           string `yaml:"mode"`
+	StaticUsername string `yaml:"-"`
+	StaticPassword string `yaml:"-"`
+	StaticRole     string `yaml:"-"`
 }
 
 // DBConfig — подключение к Postgres. DSN берётся из конфига,
@@ -78,12 +108,48 @@ type EncryptionConfig struct {
 // Default возвращает конфигурацию с безопасными значениями по умолчанию.
 func Default() *Config {
 	return &Config{
-		Server: ServerConfig{Addr: ":8080"},
+		Server: ServerConfig{Addr: ":8080", Environment: EnvironmentProduction},
+		Auth:   AuthConfig{Mode: AuthModeLDAP},
 		Logging: LoggingConfig{
 			Level:  "info",
 			Format: "json",
 		},
 		Encryption: EncryptionConfig{KeyVersion: 1},
+	}
+}
+
+// Validate проверяет конфигурацию до создания внешних подключений.
+func (c *Config) Validate() error {
+	if c == nil {
+		return fmt.Errorf("config is nil")
+	}
+
+	c.Server.Environment = strings.TrimSpace(c.Server.Environment)
+	c.Auth.Mode = strings.TrimSpace(c.Auth.Mode)
+	switch c.Server.Environment {
+	case EnvironmentDevelopment, EnvironmentTest, EnvironmentProduction:
+	default:
+		return fmt.Errorf("unknown server.environment %q", c.Server.Environment)
+	}
+
+	switch c.Auth.Mode {
+	case AuthModeLDAP:
+		return nil
+	case AuthModeStatic:
+		if c.Server.Environment == EnvironmentProduction {
+			return errors.New("auth.mode=static is forbidden in production")
+		}
+		if strings.TrimSpace(c.Auth.StaticUsername) == "" || c.Auth.StaticPassword == "" {
+			return errors.New("static identity requires username and password from environment")
+		}
+		switch strings.TrimSpace(c.Auth.StaticRole) {
+		case RoleUser, RoleAdmin:
+			return nil
+		default:
+			return fmt.Errorf("unknown static user role %q", c.Auth.StaticRole)
+		}
+	default:
+		return fmt.Errorf("unknown auth.mode %q", c.Auth.Mode)
 	}
 }
 
@@ -126,4 +192,13 @@ func (c *Config) applyEnvOverrides() {
 	if v := strings.TrimSpace(os.Getenv("CLIPROXY_LOG_LEVEL")); v != "" {
 		c.Logging.Level = v
 	}
+	if v := strings.TrimSpace(os.Getenv("CLIPROXY_SERVER_ENVIRONMENT")); v != "" {
+		c.Server.Environment = v
+	}
+	if v := strings.TrimSpace(os.Getenv("CLIPROXY_AUTH_MODE")); v != "" {
+		c.Auth.Mode = v
+	}
+	c.Auth.StaticUsername = os.Getenv("CLIPROXY_STATIC_USER_USERNAME")
+	c.Auth.StaticPassword = os.Getenv("CLIPROXY_STATIC_USER_PASSWORD")
+	c.Auth.StaticRole = os.Getenv("CLIPROXY_STATIC_USER_ROLE")
 }

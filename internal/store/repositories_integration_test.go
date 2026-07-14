@@ -14,6 +14,11 @@ func TestIntegrationUserAPIKeyAndSessionRepositories(t *testing.T) {
 
 	pool := newTestPool(t)
 	ctx := context.Background()
+	t.Cleanup(func() {
+		if _, err := pool.Exec(ctx, "DELETE FROM users WHERE username = $1", "static:debug"); err != nil {
+			t.Errorf("удалить static test user: %v", err)
+		}
+	})
 
 	users := NewUserRepository(pool)
 	apiKeys := NewAPIKeyRepository(pool)
@@ -27,8 +32,51 @@ func TestIntegrationUserAPIKeyAndSessionRepositories(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertFromLDAP() error = %v", err)
 	}
-	if user.Username != "ivanov" || user.Status != "active" {
+	if user.Username != "ivanov" || user.Status != "active" || user.IdentitySource != "ldap" {
 		t.Fatalf("UpsertFromLDAP() user = %+v", user)
+	}
+	if _, err := users.UpsertFromLDAP(ctx, UpsertUserParams{Username: "static:debug", Role: "user"}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("UpsertFromLDAP(static namespace) error = %v, want ErrInvalidInput", err)
+	}
+
+	staticUser, err := users.UpsertStatic(ctx, UpsertUserParams{
+		Username: "static:debug",
+		Role:     "admin",
+	})
+	if err != nil {
+		t.Fatalf("UpsertStatic() error = %v", err)
+	}
+	if staticUser.IdentitySource != "static" || staticUser.Username != "static:debug" {
+		t.Fatalf("UpsertStatic() user = %+v", staticUser)
+	}
+	if _, err := users.UpsertStatic(ctx, UpsertUserParams{Username: "debug", Role: "user"}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("UpsertStatic(non-static namespace) error = %v, want ErrInvalidInput", err)
+	}
+	const staticKey = "cpn_test_static-key"
+	if _, err := apiKeys.Create(ctx, CreateAPIKeyParams{UserID: staticUser.ID, Plaintext: staticKey}); err != nil {
+		t.Fatalf("Create(static API key) error = %v", err)
+	}
+	if _, err := apiKeys.AuthenticateForSource(ctx, staticKey, "ldap"); !errors.Is(err, ErrInvalidCredential) {
+		t.Fatalf("AuthenticateForSource(static key, ldap) error = %v, want ErrInvalidCredential", err)
+	}
+	if _, err := apiKeys.AuthenticateForSource(ctx, staticKey, "static"); err != nil {
+		t.Fatalf("AuthenticateForSource(static key, static) error = %v", err)
+	}
+
+	const staticToken = "static-opaque-session-token"
+	if _, err := sessions.Create(ctx, CreateSessionParams{
+		UserID:    staticUser.ID,
+		Token:     staticToken,
+		Role:      "admin",
+		ExpiresAt: time.Now().Add(time.Hour),
+	}); err != nil {
+		t.Fatalf("Create(static session) error = %v", err)
+	}
+	if _, err := sessions.GetByTokenForSource(ctx, staticToken, "ldap"); !errors.Is(err, ErrInvalidCredential) {
+		t.Fatalf("GetByTokenForSource(static token, ldap) error = %v, want ErrInvalidCredential", err)
+	}
+	if _, err := sessions.GetByTokenForSource(ctx, staticToken, "static"); err != nil {
+		t.Fatalf("GetByTokenForSource(static token, static) error = %v", err)
 	}
 
 	const plaintextKey = "cpn_live_0123456789abcdef"

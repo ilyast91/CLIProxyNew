@@ -63,6 +63,27 @@ func (r *APIKeyRepository) Authenticate(ctx context.Context, plaintext string) (
 	return APIKeyPrincipal{}, ErrInvalidCredential
 }
 
+// AuthenticateForSource проверяет API-key только для активного identity source.
+func (r *APIKeyRepository) AuthenticateForSource(ctx context.Context, plaintext, identitySource string) (APIKeyPrincipal, error) {
+	if len(plaintext) < APIKeyPrefixLength || !validIdentitySource(identitySource) {
+		return APIKeyPrincipal{}, ErrInvalidCredential
+	}
+
+	candidates, err := r.queries.FindAPIKeyCandidatesForSource(ctx, dbgen.FindAPIKeyCandidatesForSourceParams{
+		KeyPrefix:      plaintext[:APIKeyPrefixLength],
+		IdentitySource: identitySource,
+	})
+	if err != nil {
+		return APIKeyPrincipal{}, fmt.Errorf("find API-key candidates for source: %w", err)
+	}
+	for _, candidate := range candidates {
+		if candidate.UserStatus == "active" && security.VerifySecret(candidate.KeyHash, plaintext) {
+			return APIKeyPrincipal{UserID: candidate.UserID, APIKeyID: candidate.ID}, nil
+		}
+	}
+	return APIKeyPrincipal{}, ErrInvalidCredential
+}
+
 // ListByUser возвращает безопасные метаданные ключей без bcrypt-хэшей.
 func (r *APIKeyRepository) ListByUser(ctx context.Context, userID int64) ([]APIKey, error) {
 	rows, err := r.queries.ListAPIKeysByUser(ctx, userID)

@@ -24,6 +24,22 @@ JOIN users ON users.id = sessions.user_id
 WHERE sessions.token_hash = $1
   AND sessions.expires_at > now();
 
+-- name: GetSessionByTokenHashForSource :one
+SELECT
+    sessions.id,
+    sessions.user_id,
+    sessions.token_hash,
+    sessions.role,
+    sessions.expires_at,
+    sessions.created_ip,
+    sessions.created_at,
+    users.status AS user_status
+FROM sessions
+JOIN users ON users.id = sessions.user_id
+WHERE sessions.token_hash = sqlc.arg(token_hash)
+  AND users.identity_source = sqlc.arg(identity_source)
+  AND sessions.expires_at > now();
+
 -- name: DeleteSessionsByUser :exec
 DELETE FROM sessions
 WHERE user_id = $1;
@@ -31,4 +47,3 @@ WHERE user_id = $1;
 -- name: DeleteExpiredSessions :execrows
 DELETE FROM sessions
 WHERE expires_at <= now();
-

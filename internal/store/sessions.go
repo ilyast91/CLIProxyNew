@@ -60,6 +60,28 @@ func (r *SessionRepository) GetByToken(ctx context.Context, token string) (Sessi
 	return sessionFromRow(row), nil
 }
 
+// GetByTokenForSource возвращает сессию только для активного identity source.
+func (r *SessionRepository) GetByTokenForSource(ctx context.Context, token, identitySource string) (Session, error) {
+	if token == "" || !validIdentitySource(identitySource) {
+		return Session{}, ErrInvalidCredential
+	}
+
+	row, err := r.queries.GetSessionByTokenHashForSource(ctx, dbgen.GetSessionByTokenHashForSourceParams{
+		TokenHash:      hashSessionToken(token),
+		IdentitySource: identitySource,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Session{}, ErrInvalidCredential
+	}
+	if err != nil {
+		return Session{}, fmt.Errorf("get session by token for source: %w", err)
+	}
+	if row.UserStatus != "active" {
+		return Session{}, ErrInvalidCredential
+	}
+	return sessionFromSourceRow(row), nil
+}
+
 // DeleteByUser инвалидирует все сессии пользователя.
 func (r *SessionRepository) DeleteByUser(ctx context.Context, userID int64) error {
 	if err := r.queries.DeleteSessionsByUser(ctx, userID); err != nil {
@@ -82,6 +104,10 @@ func hashSessionToken(token string) string {
 	return hex.EncodeToString(sum[:])
 }
 
+func validIdentitySource(source string) bool {
+	return source == "ldap" || source == "static"
+}
+
 func sessionFromDB(row dbgen.Session) Session {
 	return Session{
 		ID:        row.ID,
@@ -95,6 +121,18 @@ func sessionFromDB(row dbgen.Session) Session {
 }
 
 func sessionFromRow(row dbgen.GetSessionByTokenHashRow) Session {
+	return Session{
+		ID:        row.ID,
+		UserID:    row.UserID,
+		TokenHash: row.TokenHash,
+		Role:      row.Role,
+		ExpiresAt: row.ExpiresAt.Time,
+		CreatedIP: row.CreatedIp,
+		CreatedAt: row.CreatedAt.Time,
+	}
+}
+
+func sessionFromSourceRow(row dbgen.GetSessionByTokenHashForSourceRow) Session {
 	return Session{
 		ID:        row.ID,
 		UserID:    row.UserID,

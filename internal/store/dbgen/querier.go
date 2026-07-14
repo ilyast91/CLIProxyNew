@@ -16,15 +16,18 @@ type Querier interface {
 	DeleteSessionsByUser(ctx context.Context, userID int64) error
 	DeleteUpstreamAccount(ctx context.Context, id string) error
 	FindAPIKeyCandidates(ctx context.Context, keyPrefix string) ([]FindAPIKeyCandidatesRow, error)
+	FindAPIKeyCandidatesForSource(ctx context.Context, arg FindAPIKeyCandidatesForSourceParams) ([]FindAPIKeyCandidatesForSourceRow, error)
 	GetSessionByTokenHash(ctx context.Context, tokenHash string) (GetSessionByTokenHashRow, error)
-	GetUserByID(ctx context.Context, id int64) (User, error)
-	GetUserByUsername(ctx context.Context, username string) (User, error)
+	GetSessionByTokenHashForSource(ctx context.Context, arg GetSessionByTokenHashForSourceParams) (GetSessionByTokenHashForSourceRow, error)
+	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
+	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
 	ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error)
 	ListUpstreamAccounts(ctx context.Context) ([]UpstreamAccount, error)
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
 	SetUserStatus(ctx context.Context, arg SetUserStatusParams) (int64, error)
+	UpsertStaticUser(ctx context.Context, arg UpsertStaticUserParams) (UpsertStaticUserRow, error)
 	UpsertUpstreamAccount(ctx context.Context, arg UpsertUpstreamAccountParams) (string, error)
-	UpsertUserFromLDAP(ctx context.Context, arg UpsertUserFromLDAPParams) (User, error)
+	UpsertUserFromLDAP(ctx context.Context, arg UpsertUserFromLDAPParams) (UpsertUserFromLDAPRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

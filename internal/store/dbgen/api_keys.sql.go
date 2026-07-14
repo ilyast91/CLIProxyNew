@@ -120,6 +120,63 @@ func (q *Queries) FindAPIKeyCandidates(ctx context.Context, keyPrefix string) ([
 	return items, nil
 }
 
+const findAPIKeyCandidatesForSource = `-- name: FindAPIKeyCandidatesForSource :many
+SELECT
+    api_keys.id,
+    api_keys.user_id,
+    api_keys.key_hash,
+    api_keys.status,
+    api_keys.expires_at,
+    users.status AS user_status
+FROM api_keys
+JOIN users ON users.id = api_keys.user_id
+WHERE api_keys.key_prefix = $1
+  AND users.identity_source = $2
+  AND api_keys.status = 'active'
+  AND (api_keys.expires_at IS NULL OR api_keys.expires_at >= CURRENT_DATE)
+`
+
+type FindAPIKeyCandidatesForSourceParams struct {
+	KeyPrefix      string `json:"key_prefix"`
+	IdentitySource string `json:"identity_source"`
+}
+
+type FindAPIKeyCandidatesForSourceRow struct {
+	ID         int64       `json:"id"`
+	UserID     int64       `json:"user_id"`
+	KeyHash    string      `json:"key_hash"`
+	Status     string      `json:"status"`
+	ExpiresAt  pgtype.Date `json:"expires_at"`
+	UserStatus string      `json:"user_status"`
+}
+
+func (q *Queries) FindAPIKeyCandidatesForSource(ctx context.Context, arg FindAPIKeyCandidatesForSourceParams) ([]FindAPIKeyCandidatesForSourceRow, error) {
+	rows, err := q.db.Query(ctx, findAPIKeyCandidatesForSource, arg.KeyPrefix, arg.IdentitySource)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FindAPIKeyCandidatesForSourceRow{}
+	for rows.Next() {
+		var i FindAPIKeyCandidatesForSourceRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.KeyHash,
+			&i.Status,
+			&i.ExpiresAt,
+			&i.UserStatus,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAPIKeysByUser = `-- name: ListAPIKeysByUser :many
 SELECT id, user_id, key_prefix, name, status, expires_at, scope, last_used_at, created_at
 FROM api_keys

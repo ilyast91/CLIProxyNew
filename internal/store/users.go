@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/ilyast91/CLIProxyNew/internal/store/dbgen"
 	"github.com/jackc/pgx/v5"
@@ -22,7 +23,7 @@ func NewUserRepository(db dbgen.DBTX) *UserRepository {
 
 // UpsertFromLDAP создаёт пользователя либо обновляет LDAP snapshot.
 func (r *UserRepository) UpsertFromLDAP(ctx context.Context, params UpsertUserParams) (User, error) {
-	if params.Username == "" || (params.Role != "user" && params.Role != "admin") {
+	if !validUserParams(params) || strings.HasPrefix(params.Username, "static:") {
 		return User{}, ErrInvalidInput
 	}
 
@@ -34,7 +35,24 @@ func (r *UserRepository) UpsertFromLDAP(ctx context.Context, params UpsertUserPa
 	if err != nil {
 		return User{}, fmt.Errorf("upsert LDAP user: %w", err)
 	}
-	return userFromDB(row), nil
+	return userFromValues(row.ID, row.Username, row.Email, row.Role, row.Status, row.IdentitySource, row.CreatedAt, row.UpdatedAt), nil
+}
+
+// UpsertStatic создаёт или обновляет пользователя static identity source.
+func (r *UserRepository) UpsertStatic(ctx context.Context, params UpsertUserParams) (User, error) {
+	if !validUserParams(params) || !strings.HasPrefix(params.Username, "static:") {
+		return User{}, ErrInvalidInput
+	}
+
+	row, err := r.queries.UpsertStaticUser(ctx, dbgen.UpsertStaticUserParams{
+		Username: params.Username,
+		Email:    nullableText(params.Email),
+		Role:     params.Role,
+	})
+	if err != nil {
+		return User{}, fmt.Errorf("upsert static user: %w", err)
+	}
+	return userFromValues(row.ID, row.Username, row.Email, row.Role, row.Status, row.IdentitySource, row.CreatedAt, row.UpdatedAt), nil
 }
 
 // GetByID возвращает пользователя по идентификатору.
@@ -46,7 +64,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (User, error) {
 	if err != nil {
 		return User{}, fmt.Errorf("get user by id: %w", err)
 	}
-	return userFromDB(row), nil
+	return userFromValues(row.ID, row.Username, row.Email, row.Role, row.Status, row.IdentitySource, row.CreatedAt, row.UpdatedAt), nil
 }
 
 // SetStatus блокирует или разблокирует пользователя.
@@ -73,16 +91,27 @@ func (r *UserRepository) SetStatus(ctx context.Context, id int64, status string)
 	return nil
 }
 
-func userFromDB(row dbgen.User) User {
+func userFromValues(
+	id int64,
+	username string,
+	email pgtype.Text,
+	role, status, identitySource string,
+	createdAt, updatedAt pgtype.Timestamptz,
+) User {
 	return User{
-		ID:        row.ID,
-		Username:  row.Username,
-		Email:     row.Email.String,
-		Role:      row.Role,
-		Status:    row.Status,
-		CreatedAt: row.CreatedAt.Time,
-		UpdatedAt: row.UpdatedAt.Time,
+		ID:             id,
+		Username:       username,
+		Email:          email.String,
+		Role:           role,
+		Status:         status,
+		IdentitySource: identitySource,
+		CreatedAt:      createdAt.Time,
+		UpdatedAt:      updatedAt.Time,
 	}
+}
+
+func validUserParams(params UpsertUserParams) bool {
+	return params.Username != "" && (params.Role == "user" || params.Role == "admin")
 }
 
 func nullableText(value string) pgtype.Text {

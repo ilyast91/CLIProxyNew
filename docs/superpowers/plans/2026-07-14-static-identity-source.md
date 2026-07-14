@@ -56,7 +56,7 @@ Expected: exit code 0.
 - Modify: `internal/config/config.go`
 - Modify: `internal/config/config_test.go`
 
-- [ ] **Step 1: Написать падающие тесты конфигурации**
+- [x] **Step 1: Написать падающие тесты конфигурации**
 
 Покрыть default `production`/`ldap`, допустимый static только в
 development/test, обязательные static env credentials и роль `user|admin`.
@@ -72,19 +72,19 @@ func TestValidateRejectsStaticModeInProduction(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Запустить тесты до реализации**
+- [x] **Step 2: Запустить тесты до реализации**
 
 Run: `go test ./internal/config -run TestValidateRejectsStaticModeInProduction -count=1`
 
 Expected: FAIL because `AuthConfig` and validation do not exist.
 
-- [ ] **Step 3: Реализовать `Server.Environment`, `AuthConfig` и validation**
+- [x] **Step 3: Реализовать `Server.Environment`, `AuthConfig` и validation**
 
 Добавить YAML-поля `server.environment`, `auth.mode`; читать static credentials
 только из env. `Validate` должен вернуть ошибку до запуска HTTP-сервера, если
 static mode активен в production либо не задано обязательное значение.
 
-- [ ] **Step 4: Повторить тесты конфигурации**
+- [x] **Step 4: Повторить тесты конфигурации**
 
 Run: `go test ./internal/config -count=1`
 
@@ -104,7 +104,7 @@ Expected: PASS.
 - Modify: `internal/store/users.go`
 - Modify: `internal/store/repositories_integration_test.go`
 
-- [ ] **Step 1: Написать тест static provider**
+- [x] **Step 1: Написать тест static provider**
 
 Проверить правильный password, отказ при неверном password, роль и internal
 username `static:<username>`.
@@ -119,13 +119,13 @@ func TestStaticProviderAuthenticate(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Запустить unit-тест до реализации**
+- [x] **Step 2: Запустить unit-тест до реализации**
 
 Run: `go test ./internal/auth/identity -run TestStaticProviderAuthenticate -count=1`
 
 Expected: FAIL because package does not exist.
 
-- [ ] **Step 3: Реализовать provider и миграцию**
+- [x] **Step 3: Реализовать static provider и миграцию**
 
 Контракт `IdentityProvider` возвращает `Username`, `Email`, `Role`, `Source`.
 Миграция добавляет `identity_source text NOT NULL DEFAULT 'ldap'` с CHECK,
@@ -141,7 +141,7 @@ CHECK (
 Down должен отказать, если остаются static users; на пустой БД выполнить
 обычный rollback.
 
-- [ ] **Step 4: Сгенерировать sqlc и выполнить тесты persistence**
+- [x] **Step 4: Сгенерировать sqlc и выполнить тесты persistence**
 
 Run: `go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1 generate`
 
@@ -161,7 +161,7 @@ Expected: PASS.
 - Modify: `internal/store/sessions.go`
 - Modify: `internal/store/api_keys.go`
 
-- [ ] **Step 1: Написать тесты изоляции source**
+- [x] **Step 1: Написать тесты изоляции source в persistence**
 
 Проверить, что static session/API-key отвергаются в LDAP mode, даже когда
 `users.status = active`; LDAP credentials не могут быть provisioned с prefix

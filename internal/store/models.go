@@ -22,15 +22,16 @@ var (
 	ErrCorruptCredential = errors.New("повреждённые upstream credentials")
 )
 
-// User — пользователь, provisioned из LDAP.
+// User — пользователь, provisioned из выбранного identity source.
 type User struct {
-	ID        int64
-	Username  string
-	Email     string
-	Role      string
-	Status    string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID             int64
+	Username       string
+	Email          string
+	Role           string
+	Status         string
+	IdentitySource string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 // UpsertUserParams — LDAP snapshot для создания или обновления пользователя.

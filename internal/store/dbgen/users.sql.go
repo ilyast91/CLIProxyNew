@@ -33,20 +33,32 @@ func (q *Queries) BlockUserAndDeleteSessions(ctx context.Context, id int64) (int
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, email, role, status, created_at, updated_at
+SELECT id, username, email, role, status, identity_source, created_at, updated_at
 FROM users
 WHERE id = $1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+type GetUserByIDRow struct {
+	ID             int64              `json:"id"`
+	Username       string             `json:"username"`
+	Email          pgtype.Text        `json:"email"`
+	Role           string             `json:"role"`
+	Status         string             `json:"status"`
+	IdentitySource string             `json:"identity_source"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
-	var i User
+	var i GetUserByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
 		&i.Email,
 		&i.Role,
 		&i.Status,
+		&i.IdentitySource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -54,20 +66,32 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, role, status, created_at, updated_at
+SELECT id, username, email, role, status, identity_source, created_at, updated_at
 FROM users
 WHERE username = $1
 `
 
-func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
+type GetUserByUsernameRow struct {
+	ID             int64              `json:"id"`
+	Username       string             `json:"username"`
+	Email          pgtype.Text        `json:"email"`
+	Role           string             `json:"role"`
+	Status         string             `json:"status"`
+	IdentitySource string             `json:"identity_source"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error) {
 	row := q.db.QueryRow(ctx, getUserByUsername, username)
-	var i User
+	var i GetUserByUsernameRow
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
 		&i.Email,
 		&i.Role,
 		&i.Status,
+		&i.IdentitySource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -93,14 +117,57 @@ func (q *Queries) SetUserStatus(ctx context.Context, arg SetUserStatusParams) (i
 	return result.RowsAffected(), nil
 }
 
-const upsertUserFromLDAP = `-- name: UpsertUserFromLDAP :one
-INSERT INTO users (username, email, role)
-VALUES ($1, $2, $3)
+const upsertStaticUser = `-- name: UpsertStaticUser :one
+INSERT INTO users (username, email, role, identity_source)
+VALUES ($1, $2, $3, 'static')
 ON CONFLICT (username) DO UPDATE SET
     email = EXCLUDED.email,
     role = EXCLUDED.role,
     updated_at = now()
-RETURNING id, username, email, role, status, created_at, updated_at
+RETURNING id, username, email, role, status, identity_source, created_at, updated_at
+`
+
+type UpsertStaticUserParams struct {
+	Username string      `json:"username"`
+	Email    pgtype.Text `json:"email"`
+	Role     string      `json:"role"`
+}
+
+type UpsertStaticUserRow struct {
+	ID             int64              `json:"id"`
+	Username       string             `json:"username"`
+	Email          pgtype.Text        `json:"email"`
+	Role           string             `json:"role"`
+	Status         string             `json:"status"`
+	IdentitySource string             `json:"identity_source"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) UpsertStaticUser(ctx context.Context, arg UpsertStaticUserParams) (UpsertStaticUserRow, error) {
+	row := q.db.QueryRow(ctx, upsertStaticUser, arg.Username, arg.Email, arg.Role)
+	var i UpsertStaticUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.Role,
+		&i.Status,
+		&i.IdentitySource,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const upsertUserFromLDAP = `-- name: UpsertUserFromLDAP :one
+INSERT INTO users (username, email, role, identity_source)
+VALUES ($1, $2, $3, 'ldap')
+ON CONFLICT (username) DO UPDATE SET
+    email = EXCLUDED.email,
+    role = EXCLUDED.role,
+    updated_at = now()
+RETURNING id, username, email, role, status, identity_source, created_at, updated_at
 `
 
 type UpsertUserFromLDAPParams struct {
@@ -109,15 +176,27 @@ type UpsertUserFromLDAPParams struct {
 	Role     string      `json:"role"`
 }
 
-func (q *Queries) UpsertUserFromLDAP(ctx context.Context, arg UpsertUserFromLDAPParams) (User, error) {
+type UpsertUserFromLDAPRow struct {
+	ID             int64              `json:"id"`
+	Username       string             `json:"username"`
+	Email          pgtype.Text        `json:"email"`
+	Role           string             `json:"role"`
+	Status         string             `json:"status"`
+	IdentitySource string             `json:"identity_source"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) UpsertUserFromLDAP(ctx context.Context, arg UpsertUserFromLDAPParams) (UpsertUserFromLDAPRow, error) {
 	row := q.db.QueryRow(ctx, upsertUserFromLDAP, arg.Username, arg.Email, arg.Role)
-	var i User
+	var i UpsertUserFromLDAPRow
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
 		&i.Email,
 		&i.Role,
 		&i.Status,
+		&i.IdentitySource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

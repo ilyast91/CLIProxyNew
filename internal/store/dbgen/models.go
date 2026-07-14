@@ -135,11 +135,12 @@ type UsageEvents20260713 struct {
 }
 
 type User struct {
-	ID        int64              `json:"id"`
-	Username  string             `json:"username"`
-	Email     pgtype.Text        `json:"email"`
-	Role      string             `json:"role"`
-	Status    string             `json:"status"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID             int64              `json:"id"`
+	Username       string             `json:"username"`
+	Email          pgtype.Text        `json:"email"`
+	Role           string             `json:"role"`
+	Status         string             `json:"status"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	IdentitySource string             `json:"identity_source"`
 }

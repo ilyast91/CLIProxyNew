@@ -24,6 +24,21 @@ WHERE api_keys.key_prefix = $1
   AND api_keys.status = 'active'
   AND (api_keys.expires_at IS NULL OR api_keys.expires_at >= CURRENT_DATE);
 
+-- name: FindAPIKeyCandidatesForSource :many
+SELECT
+    api_keys.id,
+    api_keys.user_id,
+    api_keys.key_hash,
+    api_keys.status,
+    api_keys.expires_at,
+    users.status AS user_status
+FROM api_keys
+JOIN users ON users.id = api_keys.user_id
+WHERE api_keys.key_prefix = sqlc.arg(key_prefix)
+  AND users.identity_source = sqlc.arg(identity_source)
+  AND api_keys.status = 'active'
+  AND (api_keys.expires_at IS NULL OR api_keys.expires_at >= CURRENT_DATE);
+
 -- name: RevokeAPIKey :execrows
 UPDATE api_keys
 SET status = 'revoked'

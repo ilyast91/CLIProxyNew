@@ -1,19 +1,28 @@
 -- name: UpsertUserFromLDAP :one
-INSERT INTO users (username, email, role)
-VALUES (sqlc.arg(username), sqlc.arg(email), sqlc.arg(role))
+INSERT INTO users (username, email, role, identity_source)
+VALUES (sqlc.arg(username), sqlc.arg(email), sqlc.arg(role), 'ldap')
 ON CONFLICT (username) DO UPDATE SET
     email = EXCLUDED.email,
     role = EXCLUDED.role,
     updated_at = now()
-RETURNING id, username, email, role, status, created_at, updated_at;
+RETURNING id, username, email, role, status, identity_source, created_at, updated_at;
+
+-- name: UpsertStaticUser :one
+INSERT INTO users (username, email, role, identity_source)
+VALUES (sqlc.arg(username), sqlc.arg(email), sqlc.arg(role), 'static')
+ON CONFLICT (username) DO UPDATE SET
+    email = EXCLUDED.email,
+    role = EXCLUDED.role,
+    updated_at = now()
+RETURNING id, username, email, role, status, identity_source, created_at, updated_at;
 
 -- name: GetUserByID :one
-SELECT id, username, email, role, status, created_at, updated_at
+SELECT id, username, email, role, status, identity_source, created_at, updated_at
 FROM users
 WHERE id = $1;
 
 -- name: GetUserByUsername :one
-SELECT id, username, email, role, status, created_at, updated_at
+SELECT id, username, email, role, status, identity_source, created_at, updated_at
 FROM users
 WHERE username = $1;
 

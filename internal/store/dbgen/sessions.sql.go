@@ -118,3 +118,52 @@ func (q *Queries) GetSessionByTokenHash(ctx context.Context, tokenHash string) (
 	)
 	return i, err
 }
+
+const getSessionByTokenHashForSource = `-- name: GetSessionByTokenHashForSource :one
+SELECT
+    sessions.id,
+    sessions.user_id,
+    sessions.token_hash,
+    sessions.role,
+    sessions.expires_at,
+    sessions.created_ip,
+    sessions.created_at,
+    users.status AS user_status
+FROM sessions
+JOIN users ON users.id = sessions.user_id
+WHERE sessions.token_hash = $1
+  AND users.identity_source = $2
+  AND sessions.expires_at > now()
+`
+
+type GetSessionByTokenHashForSourceParams struct {
+	TokenHash      string `json:"token_hash"`
+	IdentitySource string `json:"identity_source"`
+}
+
+type GetSessionByTokenHashForSourceRow struct {
+	ID         int64              `json:"id"`
+	UserID     int64              `json:"user_id"`
+	TokenHash  string             `json:"token_hash"`
+	Role       string             `json:"role"`
+	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
+	CreatedIp  *netip.Addr        `json:"created_ip"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UserStatus string             `json:"user_status"`
+}
+
+func (q *Queries) GetSessionByTokenHashForSource(ctx context.Context, arg GetSessionByTokenHashForSourceParams) (GetSessionByTokenHashForSourceRow, error) {
+	row := q.db.QueryRow(ctx, getSessionByTokenHashForSource, arg.TokenHash, arg.IdentitySource)
+	var i GetSessionByTokenHashForSourceRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.Role,
+		&i.ExpiresAt,
+		&i.CreatedIp,
+		&i.CreatedAt,
+		&i.UserStatus,
+	)
+	return i, err
+}

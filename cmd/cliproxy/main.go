@@ -46,6 +46,9 @@ func run() error {
 		cfg = config.FromEnvironment()
 		slog.Warn("config not found, using defaults", "path", configPath)
 	}
+	if err := cfg.Validate(); err != nil {
+		return fmt.Errorf("validate config: %w", err)
+	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,

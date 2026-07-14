@@ -28,6 +28,9 @@ func TestInitialMigrationCoversDesignedSchema(t *testing.T) {
 	assertContains(t, up, "credentials_enc bytea not null")
 	assertContains(t, up, "enc_key_version integer not null")
 	assertContains(t, up, "on delete set null")
+	assertContains(t, up, "identity_source")
+	assertContains(t, up, "username like 'static:%'")
+	assertContains(t, down, "while static users exist")
 }
 
 func readMigrations(t *testing.T, suffix string) string {
