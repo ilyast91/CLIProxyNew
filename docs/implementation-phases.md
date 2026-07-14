@@ -132,7 +132,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [ ] `openapi.yaml` — все management-эндпоинты (R9.U, R9.A, oauth/sessions) + прокси-роуты (без body-схем) + системные (/healthz, /readyz, /metrics, /openapi.json)
 - [ ] Генерация типов/хендлеров из openapi.yaml (ogen/oapi-codegen)
 - [ ] `internal/httpapi` — management routes через `api.WithRouterConfigurator`:
-  - `/api/v1/login`, `/api/v1/logout` (R1)
+  - [x] `/api/v1/login`, `/api/v1/me` (R1, session-cookie middleware)
+  - `/api/v1/logout` (R1)
   - `/api/v1/me/keys` CRUD (R9.U.2), `/api/v1/me/usage` (R9.U.3)
   - `/api/v1/admin/users`, `/api/v1/admin/keys` (R9.A.3 — блокировка через status)
 - [ ] R9.A.1 OAuth flow: `internal/auth/oauth` (FlowManager) — callback-flow (Codex/Claude/Antigravity) + device-flow (Kimi/xAI), сессии в oauth_sessions, `Store.Save` после exchange

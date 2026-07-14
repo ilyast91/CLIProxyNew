@@ -114,6 +114,7 @@ func run() error {
 	users := store.NewUserRepository(dbPool)
 	sessions := store.NewSessionRepository(dbPool)
 	loginService := identity.NewLoginService(identityProvider, cfg.Auth.Mode, users, sessions)
+	sessionAuthenticator := identity.NewSessionAuthenticator(sessions, cfg.Auth.Mode)
 	sdkCfg, err := cfg.SDKConfig()
 	if err != nil {
 		return fmt.Errorf("build SDK config: %w", err)
@@ -124,7 +125,7 @@ func run() error {
 		WithConfigPath(configPath).
 		WithCoreAuthManager(coreManager).
 		WithWatcherFactory(watcher.NoopFactory).
-		WithServerOptions(sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction)))).
+		WithServerOptions(sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction), sessionAuthenticator))).
 		Build()
 	if err != nil {
 		return fmt.Errorf("build SDK service: %w", err)
