@@ -646,6 +646,44 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /api/v1/admin/oauth/sessions:
+    get:
+      tags: [Admin]
+      summary: Pending OAuth-сессии
+      operationId: listPendingOAuthSessions
+      security:
+        - SessionCookie: []
+      responses:
+        "200":
+          description: OAuth-сессии без PKCE/device секретов
+          content:
+            application/json:
+              schema:
+                type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/v1/admin/oauth/sessions/{state}:
+    delete:
+      tags: [Admin]
+      summary: Отменить OAuth-сессию
+      operationId: cancelOAuthSession
+      security:
+        - SessionCookie: []
+      parameters:
+        - name: state
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Flow отменён
+        "404":
+          description: Pending OAuth-сессия не найдена
+
   # ─────────────────────────────────────────────────────────────────────────
   # Management-API и Proxy-API добавляются в Ф4.
   # Заглушки-комментарии для планируемых разделов:
