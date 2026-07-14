@@ -56,7 +56,7 @@ func (p *Provider) Authenticate(ctx context.Context, request *http.Request) (*sd
 		if err == nil {
 			return &sdkaccess.Result{
 				Provider:  p.Identifier(),
-				Principal: strconv.FormatInt(principal.UserID, 10),
+				Principal: EncodePrincipal(principal.UserID, principal.APIKeyID),
 				Metadata:  map[string]string{metadataAPIKeyID: strconv.FormatInt(principal.APIKeyID, 10)},
 			}, nil
 		}

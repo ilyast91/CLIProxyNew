@@ -26,7 +26,7 @@ func TestProviderAuthenticatesBearerTokenForActiveSource(t *testing.T) {
 	if authErr != nil {
 		t.Fatalf("Authenticate() error = %v", authErr)
 	}
-	if result.Provider != ProviderIdentifier || result.Principal != "42" || result.Metadata["api_key_id"] != "17" {
+	if result.Provider != ProviderIdentifier || result.Principal != "cliproxy:v1:42:17" || result.Metadata["api_key_id"] != "17" {
 		t.Fatalf("Authenticate() result = %+v", result)
 	}
 }
