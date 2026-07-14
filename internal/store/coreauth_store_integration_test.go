@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ilyast91/CLIProxyNew/internal/security"
+	"github.com/jackc/pgx/v5"
 	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 )
 
@@ -30,6 +31,10 @@ func TestIntegrationCoreAuthStoreContract(t *testing.T) {
 	}
 	const defaultProxy = "socks5://default-proxy:1080"
 	authStore := NewCoreAuthStore(pool, keyringV1, defaultProxy)
+	var revision int64
+	if err := pool.QueryRow(ctx, "SELECT revision FROM runtime_revisions WHERE name = $1", UpstreamAccountsRevision).Scan(&revision); err != nil {
+		t.Fatalf("прочитать initial runtime revision: %v", err)
+	}
 
 	auth := &coreauth.Auth{
 		ID:        "auth-codex-user",
@@ -60,6 +65,7 @@ func TestIntegrationCoreAuthStoreContract(t *testing.T) {
 	if id != auth.ID {
 		t.Fatalf("Save() id = %q, want %q", id, auth.ID)
 	}
+	assertRuntimeRevision(t, ctx, pool, revision+1)
 
 	var (
 		ciphertext []byte
@@ -120,6 +126,7 @@ func TestIntegrationCoreAuthStoreContract(t *testing.T) {
 	if _, err := rotatedStore.Save(ctx, auth); err != nil {
 		t.Fatalf("Save(refresh) error = %v", err)
 	}
+	assertRuntimeRevision(t, ctx, pool, revision+2)
 
 	var rowCount int
 	if err := pool.QueryRow(ctx, "SELECT count(*), max(enc_key_version) FROM upstream_accounts WHERE id = $1", auth.ID).Scan(&rowCount, &keyVersion); err != nil {
@@ -140,9 +147,11 @@ func TestIntegrationCoreAuthStoreContract(t *testing.T) {
 	if err := rotatedStore.Delete(ctx, auth.ID); err != nil {
 		t.Fatalf("Delete() error = %v", err)
 	}
+	assertRuntimeRevision(t, ctx, pool, revision+3)
 	if err := rotatedStore.Delete(ctx, auth.ID); err != nil {
 		t.Fatalf("Delete(second) error = %v", err)
 	}
+	assertRuntimeRevision(t, ctx, pool, revision+4)
 	loaded, err = rotatedStore.List(ctx)
 	if err != nil {
 		t.Fatalf("List(after delete) error = %v", err)
@@ -165,6 +174,16 @@ func TestIntegrationCoreAuthStoreContract(t *testing.T) {
 	overflowStore := NewCoreAuthStore(pool, overflowKeyring, defaultProxy)
 	if _, err := overflowStore.Save(ctx, auth); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("Save(key version overflow) error = %v, want ErrInvalidInput", err)
+	}
+}
+
+func assertRuntimeRevision(t *testing.T, ctx context.Context, pool interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+}, want int64) {
+	t.Helper()
+	var got int64
+	if err := pool.QueryRow(ctx, "SELECT revision FROM runtime_revisions WHERE name = $1", UpstreamAccountsRevision).Scan(&got); err != nil || got != want {
+		t.Fatalf("runtime revision = %d, %v; want %d", got, err, want)
 	}
 }
 
