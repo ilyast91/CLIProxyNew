@@ -18,10 +18,12 @@ type Querier interface {
 	DeleteUpstreamAccount(ctx context.Context, id string) error
 	FindAPIKeyCandidates(ctx context.Context, keyPrefix string) ([]FindAPIKeyCandidatesRow, error)
 	FindAPIKeyCandidatesForSource(ctx context.Context, arg FindAPIKeyCandidatesForSourceParams) ([]FindAPIKeyCandidatesForSourceRow, error)
+	GetRuntimeRevision(ctx context.Context, name string) (int64, error)
 	GetSessionByTokenHash(ctx context.Context, tokenHash string) (GetSessionByTokenHashRow, error)
 	GetSessionByTokenHashForSource(ctx context.Context, arg GetSessionByTokenHashForSourceParams) (GetSessionByTokenHashForSourceRow, error)
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
+	IncrementRuntimeRevision(ctx context.Context, name string) (int64, error)
 	InsertUsageEvent(ctx context.Context, arg InsertUsageEventParams) error
 	ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error)
 	ListModelOverrides(ctx context.Context) ([]ModelOverride, error)

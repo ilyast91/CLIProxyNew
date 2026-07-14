@@ -58,6 +58,12 @@ type OauthSession struct {
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
+type RuntimeRevision struct {
+	Name      string             `json:"name"`
+	Revision  int64              `json:"revision"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Session struct {
 	ID        int64              `json:"id"`
 	UserID    int64              `json:"user_id"`
