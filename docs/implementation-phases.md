@@ -115,6 +115,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   при Store Save/Delete; management-изменения и k8s deployment wiring остаются
 - [ ] `internal/modelregistry` — `ModelRegistryHook`: подписка на изменения реестра → mirror snapshot в Postgres
 - [ ] `cmd/cliproxy/main.go` — полный wiring: config → db → security → store → RegisterTokenStore → coreManager → Builder.With* → RegisterUsagePlugin → Service.Run
+- [x] `internal/config` — минимальный SDK config bridge для listener; file-backed
+  auth/watcher намеренно не bridge'ится, источник credentials — Postgres Store
 - [ ] Contract tests для всех 7 контрактов (mock ядра через интерфейсы)
 
 **Acceptance:** сервис запускается и проксирует inference-запрос (с тестовым auth), auto-refresh работает (mock провайдера), usage_events записываются, leader election переключается при падении реплики (multi-instance тест).
