@@ -14,10 +14,9 @@ import (
 	"syscall"
 
 	"github.com/ilyast91/CLIProxyNew/internal/config"
+	"github.com/ilyast91/CLIProxyNew/internal/security"
 	"github.com/ilyast91/CLIProxyNew/internal/store"
-	// Импорт SDK ядра для валидации доступности на Ф0.
-	// Реальное использование — в Ф3 (wiring Builder + Service.Run).
-	_ "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy"
+	sdkauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
 )
 
 const (
@@ -69,6 +68,18 @@ func run() error {
 	}
 	defer dbPool.Close()
 	slog.Info("database connected")
+
+	keyring, err := security.NewKeyringFromBase64(
+		cfg.Encryption.KeyVersion,
+		os.Getenv("CLIPROXY_ENCRYPTION_KEY"),
+		os.Getenv("CLIPROXY_ENCRYPTION_PREVIOUS_KEYS"),
+	)
+	if err != nil {
+		return fmt.Errorf("create encryption keyring: %w", err)
+	}
+	authStore := store.NewCoreAuthStore(dbPool, keyring, cfg.Proxy.Inference)
+	sdkauth.RegisterTokenStore(authStore)
+	slog.Info("credential store registered", "key_version", cfg.Encryption.KeyVersion)
 
 	// Полный wiring SDK (Builder + Service.Run) — в Ф3.
 	slog.Info("persistence ready, SDK wiring pending (see implementation-phases.md Ф3)")

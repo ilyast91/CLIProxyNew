@@ -18,6 +18,8 @@ var (
 	ErrInvalidCredential = errors.New("неверные учётные данные")
 	// ErrInvalidInput означает некорректные параметры репозитория.
 	ErrInvalidInput = errors.New("некорректные параметры")
+	// ErrCorruptCredential означает несогласованные или повреждённые upstream credentials.
+	ErrCorruptCredential = errors.New("повреждённые upstream credentials")
 )
 
 // User — пользователь, provisioned из LDAP.

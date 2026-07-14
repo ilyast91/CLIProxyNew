@@ -6,8 +6,11 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
 )
 
@@ -65,6 +68,42 @@ func ParseBase64Key(encoded string) ([]byte, error) {
 		return nil, fmt.Errorf("%w: получено %d байт, требуется %d", ErrInvalidKey, len(key), AES256KeySize)
 	}
 	return key, nil
+}
+
+// NewKeyringFromBase64 собирает keyring из активного ключа и JSON-карты предыдущих версий.
+func NewKeyringFromBase64(activeVersion int, activeEncoded, previousJSON string) (*Keyring, error) {
+	if activeVersion <= 0 || activeVersion > math.MaxInt32 {
+		return nil, fmt.Errorf("%w: активная версия должна помещаться в PostgreSQL integer", ErrInvalidKey)
+	}
+	activeKey, err := ParseBase64Key(activeEncoded)
+	if err != nil {
+		return nil, err
+	}
+	keys := map[int][]byte{activeVersion: activeKey}
+
+	previousJSON = strings.TrimSpace(previousJSON)
+	if previousJSON != "" {
+		var encodedKeys map[string]string
+		if err := json.Unmarshal([]byte(previousJSON), &encodedKeys); err != nil {
+			return nil, fmt.Errorf("%w: previous keys JSON: %v", ErrInvalidKey, err)
+		}
+		for rawVersion, encoded := range encodedKeys {
+			version, err := strconv.Atoi(strings.TrimSpace(rawVersion))
+			if err != nil || version <= 0 || version > math.MaxInt32 {
+				return nil, fmt.Errorf("%w: некорректная предыдущая версия %q", ErrInvalidKey, rawVersion)
+			}
+			if _, exists := keys[version]; exists {
+				return nil, fmt.Errorf("%w: повторяющаяся версия %q", ErrInvalidKey, rawVersion)
+			}
+			key, err := ParseBase64Key(encoded)
+			if err != nil {
+				return nil, fmt.Errorf("previous key version %d: %w", version, err)
+			}
+			keys[version] = key
+		}
+	}
+
+	return NewKeyring(activeVersion, keys)
 }
 
 // Encrypt шифрует данные активным ключом AES-256-GCM.

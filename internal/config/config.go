@@ -3,6 +3,7 @@
 // Источник (R6): config.yaml (монтируется из k8s ConfigMap) + env-override
 // (12-factor). Секреты — только через env (k8s Secret), никогда в config.yaml:
 //   - CLIPROXY_ENCRYPTION_KEY — мастер-ключ AES-256-GCM (base64, 32 байта)
+//   - CLIPROXY_ENCRYPTION_PREVIOUS_KEYS — предыдущие ключи для ротации (JSON)
 //   - DB_PASSWORD — пароль Postgres
 //   - LDAP_BIND_PASSWORD — пароль service-account LDAP
 //
@@ -69,7 +70,7 @@ type LoggingConfig struct {
 }
 
 // EncryptionConfig — параметры шифрования at-rest (R5).
-// Сам мастер-ключ — из env CLIPROXY_ENCRYPTION_KEY.
+// Активный и предыдущие мастер-ключи приходят только из env.
 type EncryptionConfig struct {
 	KeyVersion int `yaml:"key_version"`
 }
