@@ -13,9 +13,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	businessaccess "github.com/ilyast91/CLIProxyNew/internal/access"
 	"github.com/ilyast91/CLIProxyNew/internal/config"
 	"github.com/ilyast91/CLIProxyNew/internal/security"
 	"github.com/ilyast91/CLIProxyNew/internal/store"
+	sdkaccess "github.com/router-for-me/CLIProxyAPI/v7/sdk/access"
 	sdkauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
 )
 
@@ -82,7 +84,11 @@ func run() error {
 	}
 	authStore := store.NewCoreAuthStore(dbPool, keyring, cfg.Proxy.Inference)
 	sdkauth.RegisterTokenStore(authStore)
+	apiKeyProvider := businessaccess.NewProvider(store.NewAPIKeyRepository(dbPool), cfg.Auth.Mode)
+	sdkaccess.RegisterProvider(businessaccess.ProviderIdentifier, apiKeyProvider)
+	sdkaccess.SetExclusiveProvider(businessaccess.ProviderIdentifier)
 	slog.Info("credential store registered", "key_version", cfg.Encryption.KeyVersion)
+	slog.Info("API key provider registered", "identity_source", cfg.Auth.Mode)
 
 	// Полный wiring SDK (Builder + Service.Run) — в Ф3.
 	slog.Info("persistence ready, SDK wiring pending (see implementation-phases.md Ф3)")
