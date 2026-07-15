@@ -44,6 +44,12 @@ type Handler interface {
 	//
 	// GET /api/v1/admin/oauth/accounts/{accountID}/export
 	ExportOAuthCredential(ctx context.Context, params ExportOAuthCredentialParams) (ExportOAuthCredentialRes, error)
+	// GetCurrentUser implements getCurrentUser operation.
+	//
+	// Текущий principal management-сессии.
+	//
+	// GET /api/v1/me
+	GetCurrentUser(ctx context.Context) (GetCurrentUserRes, error)
 	// GetMyUsage implements getMyUsage operation.
 	//
 	// Возвращает агрегаты только текущего пользователя.
@@ -124,6 +130,14 @@ type Handler interface {
 	//
 	// POST /api/v1/login
 	Login(ctx context.Context, req *LoginRequest) (LoginRes, error)
+	// Logout implements logout operation.
+	//
+	// Удаляет session-cookie, если она была передана, и всегда
+	// возвращает
+	// успешный ответ с инструкцией удалить cookie на клиенте.
+	//
+	// POST /api/v1/logout
+	Logout(ctx context.Context) (*LogoutNoContent, error)
 	// Metrics implements metrics operation.
 	//
 	// Метрики в Prometheus exposition format (R6.5).

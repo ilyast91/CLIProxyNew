@@ -143,6 +143,16 @@ components:
         expires_at:
           type: string
           format: date-time
+    CurrentUserResponse:
+      type: object
+      required: [user_id, role]
+      properties:
+        user_id:
+          type: integer
+          format: int64
+        role:
+          type: string
+          enum: [user, admin]
     APIKey:
       type: object
       required: [id, prefix, name, status, created_at]
@@ -662,6 +672,41 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalError"
+
+  /api/v1/logout:
+    post:
+      tags: [Auth]
+      summary: Завершение management-сессии
+      description: |
+        Удаляет session-cookie, если она была передана, и всегда возвращает
+        успешный ответ с инструкцией удалить cookie на клиенте.
+      operationId: logout
+      security: []
+      responses:
+        "204":
+          description: Сессия завершена, cookie удалена
+          headers:
+            Set-Cookie:
+              description: Инструкция удалить cookie `cliproxy_session`.
+              schema:
+                type: string
+
+  /api/v1/me:
+    get:
+      tags: [User]
+      summary: Текущий principal management-сессии
+      operationId: getCurrentUser
+      security:
+        - SessionCookie: []
+      responses:
+        "200":
+          description: Идентификатор и роль текущего пользователя
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /api/v1/me/keys:
     get:

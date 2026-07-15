@@ -64,6 +64,15 @@ func (UnimplementedHandler) ExportOAuthCredential(ctx context.Context, params Ex
 	return r, ht.ErrNotImplemented
 }
 
+// GetCurrentUser implements getCurrentUser operation.
+//
+// Текущий principal management-сессии.
+//
+// GET /api/v1/me
+func (UnimplementedHandler) GetCurrentUser(ctx context.Context) (r GetCurrentUserRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetMyUsage implements getMyUsage operation.
 //
 // Возвращает агрегаты только текущего пользователя.
@@ -174,6 +183,17 @@ func (UnimplementedHandler) ListUsers(ctx context.Context) (r ListUsersRes, _ er
 //
 // POST /api/v1/login
 func (UnimplementedHandler) Login(ctx context.Context, req *LoginRequest) (r LoginRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// Logout implements logout operation.
+//
+// Удаляет session-cookie, если она была передана, и всегда
+// возвращает
+// успешный ответ с инструкцией удалить cookie на клиенте.
+//
+// POST /api/v1/logout
+func (UnimplementedHandler) Logout(ctx context.Context) (r *LogoutNoContent, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -1283,6 +1283,75 @@ func (s *CreateProviderKeysRequest) SetAccounts(val []ProviderAPIKeyAccount) {
 	s.Accounts = val
 }
 
+// Ref: #/components/schemas/CurrentUserResponse
+type CurrentUserResponse struct {
+	Role   CurrentUserResponseRole `json:"role"`
+	UserID int64                   `json:"user_id"`
+}
+
+// GetRole returns the value of Role.
+func (s *CurrentUserResponse) GetRole() CurrentUserResponseRole {
+	return s.Role
+}
+
+// GetUserID returns the value of UserID.
+func (s *CurrentUserResponse) GetUserID() int64 {
+	return s.UserID
+}
+
+// SetRole sets the value of Role.
+func (s *CurrentUserResponse) SetRole(val CurrentUserResponseRole) {
+	s.Role = val
+}
+
+// SetUserID sets the value of UserID.
+func (s *CurrentUserResponse) SetUserID(val int64) {
+	s.UserID = val
+}
+
+func (*CurrentUserResponse) getCurrentUserRes() {}
+
+type CurrentUserResponseRole string
+
+const (
+	CurrentUserResponseRoleUser  CurrentUserResponseRole = "user"
+	CurrentUserResponseRoleAdmin CurrentUserResponseRole = "admin"
+)
+
+// AllValues returns all CurrentUserResponseRole values.
+func (CurrentUserResponseRole) AllValues() []CurrentUserResponseRole {
+	return []CurrentUserResponseRole{
+		CurrentUserResponseRoleUser,
+		CurrentUserResponseRoleAdmin,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CurrentUserResponseRole) MarshalText() ([]byte, error) {
+	switch s {
+	case CurrentUserResponseRoleUser:
+		return []byte(s), nil
+	case CurrentUserResponseRoleAdmin:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CurrentUserResponseRole) UnmarshalText(data []byte) error {
+	switch CurrentUserResponseRole(data) {
+	case CurrentUserResponseRoleUser:
+		*s = CurrentUserResponseRoleUser
+		return nil
+	case CurrentUserResponseRoleAdmin:
+		*s = CurrentUserResponseRoleAdmin
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // DeleteModelOverrideNoContent is response for DeleteModelOverride operation.
 type DeleteModelOverrideNoContent struct{}
 
@@ -1300,6 +1369,8 @@ func (s *Error) GetError() ErrorError {
 func (s *Error) SetError(val ErrorError) {
 	s.Error = val
 }
+
+func (*Error) getCurrentUserRes() {}
 
 type ErrorError struct {
 	Code    OptString `json:"code"`
@@ -1650,6 +1721,21 @@ func (s *LoginResponseRole) UnmarshalText(data []byte) error {
 type LoginUnauthorized Error
 
 func (*LoginUnauthorized) loginRes() {}
+
+// LogoutNoContent is response for Logout operation.
+type LogoutNoContent struct {
+	SetCookie OptString
+}
+
+// GetSetCookie returns the value of SetCookie.
+func (s *LogoutNoContent) GetSetCookie() OptString {
+	return s.SetCookie
+}
+
+// SetSetCookie sets the value of SetCookie.
+func (s *LogoutNoContent) SetSetCookie(val OptString) {
+	s.SetCookie = val
+}
 
 // Prometheus exposition format.
 type MetricsOK struct {

@@ -262,6 +262,20 @@ components:
             required:
                 - accounts
             type: object
+        CurrentUserResponse:
+            properties:
+                role:
+                    enum:
+                        - user
+                        - admin
+                    type: string
+                user_id:
+                    format: int64
+                    type: integer
+            required:
+                - user_id
+                - role
+            type: object
         Error:
             properties:
                 error:
@@ -1070,6 +1084,41 @@ paths:
             summary: Login через активный identity source
             tags:
                 - Auth
+    /api/v1/logout:
+        post:
+            description: |
+                Удаляет session-cookie, если она была передана, и всегда возвращает
+                успешный ответ с инструкцией удалить cookie на клиенте.
+            operationId: logout
+            responses:
+                "204":
+                    description: Сессия завершена, cookie удалена
+                    headers:
+                        Set-Cookie:
+                            description: Инструкция удалить cookie `cliproxy_session`.
+                            schema:
+                                type: string
+            security: []
+            summary: Завершение management-сессии
+            tags:
+                - Auth
+    /api/v1/me:
+        get:
+            operationId: getCurrentUser
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/CurrentUserResponse'
+                    description: Идентификатор и роль текущего пользователя
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+            security:
+                - SessionCookie: []
+            summary: Текущий principal management-сессии
+            tags:
+                - User
     /api/v1/me/keys:
         get:
             description: Возвращает только безопасные метаданные ключей текущего пользователя. Полный ключ и bcrypt-хэш не раскрываются.

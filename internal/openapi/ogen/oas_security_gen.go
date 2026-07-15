@@ -41,6 +41,7 @@ var operationRolesSessionCookie = map[string][]string{
 	CreateProviderAPIKeysOperation:    []string{},
 	DeleteModelOverrideOperation:      []string{},
 	ExportOAuthCredentialOperation:    []string{},
+	GetCurrentUserOperation:           []string{},
 	GetMyUsageOperation:               []string{},
 	GetOAuthSessionOperation:          []string{},
 	GetUpstreamAccountQuotaOperation:  []string{},

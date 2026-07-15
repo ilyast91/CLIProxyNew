@@ -147,7 +147,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 
 - [ ] `openapi.yaml` — все management-эндпоинты (R9.U, R9.A, oauth/sessions) + прокси-роуты (без body-схем) + системные (/healthz, /readyz, /metrics, /openapi.json)
 - [x] Генерация typed bindings из `openapi.yaml`: `ogen` v1.20.3 через
-  compatibility projection (ADR-11); adapter существующих handlers — отдельный шаг
+  compatibility projection (ADR-11); контракт покрывает lifecycle management-сессии
+  (`/api/v1/me`, `/api/v1/logout`); adapter существующих handlers — отдельный шаг
 - [ ] `internal/httpapi` — management routes через `api.WithRouterConfigurator`:
   - [x] `/api/v1/login`, `/api/v1/logout`, `/api/v1/me` (R1, session-cookie middleware)
   - [x] `/api/v1/me/keys` CRUD (R9.U.2; create/list/revoke)

@@ -386,6 +386,26 @@
         ],
         "type": "object"
       },
+      "CurrentUserResponse": {
+        "properties": {
+          "role": {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string"
+          },
+          "user_id": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "role"
+        ],
+        "type": "object"
+      },
       "Error": {
         "properties": {
           "error": {
@@ -1597,6 +1617,59 @@
         "summary": "Login через активный identity source",
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/api/v1/logout": {
+      "post": {
+        "description": "Удаляет session-cookie, если она была передана, и всегда возвращает\nуспешный ответ с инструкцией удалить cookie на клиенте.\n",
+        "operationId": "logout",
+        "responses": {
+          "204": {
+            "description": "Сессия завершена, cookie удалена",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Инструкция удалить cookie `cliproxy_session`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "summary": "Завершение management-сессии",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "operationId": "getCurrentUser",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            },
+            "description": "Идентификатор и роль текущего пользователя"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "summary": "Текущий principal management-сессии",
+        "tags": [
+          "User"
         ]
       }
     },

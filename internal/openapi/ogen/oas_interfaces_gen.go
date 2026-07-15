@@ -17,6 +17,10 @@ type ExportOAuthCredentialRes interface {
 	exportOAuthCredentialRes()
 }
 
+type GetCurrentUserRes interface {
+	getCurrentUserRes()
+}
+
 type GetMyUsageRes interface {
 	getMyUsageRes()
 }
