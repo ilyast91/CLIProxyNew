@@ -137,5 +137,5 @@ jobs:
 
       - name: Check embedded OpenAPI document
         run: |
-          go generate ./internal/openapi
-          git diff --exit-code -- internal/openapi/openapi.json
+          go generate ./internal/openapi/...
+          git diff --exit-code -- internal/openapi/openapi.json internal/openapi/ogen

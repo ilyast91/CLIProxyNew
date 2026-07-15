@@ -61,8 +61,10 @@ docs/            — требования (R1–R12), ADR-9/ADR-10, дизайн
 - В `cmd/` только wiring. Логику — в `internal/`.
 - Слойность: `httpapi` → сервисы → `store`. Не вызывайте HTTP-слой из store.
 - Генерируемый sqlc-код не правится руками — правьте `*.sql` и `sqlc generate`.
-- `internal/openapi/openapi.json` генерируется из `openapi.yaml`; не правьте
-  его вручную, используйте `go generate ./internal/openapi`.
+- `internal/openapi/openapi.json`,
+  `internal/openapi/ogen/openapi.compat.yaml` и `internal/openapi/ogen/oas_*_gen.go`
+  генерируются из `openapi.yaml`; не правьте их вручную, используйте
+  `go generate ./internal/openapi/...`.
 
 ## Технологические решения (зафиксированы, 10 ADR)
 
@@ -113,7 +115,7 @@ go vet ./...            # статический анализ (всегда пе
 go run ./cmd/cliproxy   # запуск
 go test ./...           # тесты
 # sqlc:     sqlc generate        (после правки *.sql)
-# OpenAPI:  go generate ./internal/openapi  (после правки openapi.yaml)
+# OpenAPI:  go generate ./internal/openapi/...  (после правки openapi.yaml)
 # миграции: migrate -path db/migrations -database "$DSN" up
 ```
 

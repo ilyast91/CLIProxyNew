@@ -46,7 +46,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   Builder → `Service.Run` с public SDK contracts
 - [x] CI pipeline (GitHub Actions): `go vet`, `gofmt -l`, `go build`,
   `go test -short -race`, Spectral и SDK compatibility gate
-- [ ] Выбор и настройка OpenAPI-генератора (`ogen` или `oapi-codegen`) — Spike, решение зафиксировать
+- [x] OpenAPI generator spike: выбран `ogen` v1.20.3; OAS 3.1 compatibility
+  projection и typed bindings генерируются и проверяются на drift в CI (ADR-11)
 - [x] Базовый `openapi.yaml` (OpenAPI 3.1) + spectral lint в CI
 - [x] R12: SDK compatibility gate — `internal/sdkcontract` компилирует все
   публичные extension points ADR-9, CI запускает его отдельно; `go mod tidy`
@@ -145,7 +146,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 **Цель:** полный management-API, OpenAPI-first.
 
 - [ ] `openapi.yaml` — все management-эндпоинты (R9.U, R9.A, oauth/sessions) + прокси-роуты (без body-схем) + системные (/healthz, /readyz, /metrics, /openapi.json)
-- [ ] Генерация типов/хендлеров из openapi.yaml (ogen/oapi-codegen)
+- [x] Генерация typed bindings из `openapi.yaml`: `ogen` v1.20.3 через
+  compatibility projection (ADR-11); adapter существующих handlers — отдельный шаг
 - [ ] `internal/httpapi` — management routes через `api.WithRouterConfigurator`:
   - [x] `/api/v1/login`, `/api/v1/logout`, `/api/v1/me` (R1, session-cookie middleware)
   - [x] `/api/v1/me/keys` CRUD (R9.U.2; create/list/revoke)

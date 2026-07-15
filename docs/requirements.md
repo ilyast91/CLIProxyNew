@@ -493,8 +493,8 @@
   - все management-эндпоинты имеют response-схемы (no `Any` для управляемых
     роутов).
 - ✅ **Решено:** spec-first, OpenAPI 3.1, все роуты (прокси без body-схем).
-- ❓ **Открыто:** генератор (`ogen` vs `oapi-codegen`) — зафиксировать при
-  настройке CI/проекта.
+- ✅ **Решено:** генератор typed bindings — `ogen` v1.20.3; OpenAPI 3.1
+  compatibility projection описана в ADR-11.
 - ❓ **Открыто:** версия URL (`/api/v1` confirmed; нужен ли `/api/v2`
   механизм версионирования с самого начала).
 
