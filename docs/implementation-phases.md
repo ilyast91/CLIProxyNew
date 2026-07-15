@@ -113,7 +113,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   очередь (1024) пишет batch до 100 событий через `pgx.Batch` каждые 250мс и
   flush'ится при shutdown. После успешного batch обновляет уникальные
   `api_keys.last_used_at` не чаще раза в минуту.
-- [ ] `internal/usage` — `coreauth.Hook` (OnResult для доп. наблюдения)
+- [x] `internal/usage` — `coreauth.Hook` подключён к `coreauth.Manager` и
+  потокобезопасно считает lifecycle credentials и успешные/неуспешные
+  upstream-результаты без payload/credentials; Prometheus export — Ф6.
 - [x] `internal/watcher` — SDK file watcher заменён public no-op factory;
   DB revision poller делает controlled restart после transactionally increased
   revision в Store.Save/Delete. Advisory leader на отдельном Postgres connection

@@ -105,7 +105,10 @@ type Record struct {
 ```
 
 Реализация: `internal/usage` — `usage.Plugin` пишет сырые события в Postgres
-(R3). `coreauth.Hook.OnResult` — доп. точка для квот/алёртов.
+(R3), а `coreauth.Hook` в `coreauth.Manager` ведёт потокобезопасные счётчики
+регистраций/изменений credentials и успешных/неуспешных результатов. Hook не
+сохраняет payload или credentials; счётчики станут источником Prometheus-метрик
+в Ф6.
 
 ### Контракт 4 — Клиентский auth: `access.Provider`
 
@@ -199,7 +202,7 @@ admin/front-роутов.
 | Создать и запустить ядро | `cliproxy.Builder` → `Service.Run` | `cmd/cliproxy/main.go` |
 | Persists credentials | `coreauth.Store` | `internal/store` (pgx+sqlc) |
 | Выбор auth под запрос | `coreauth.Selector` | `internal/auth/selector` |
-| Аналитика запросов | `usage.Plugin` (`coreauth.Hook` pending) | `internal/usage` |
+| Аналитика запросов | `usage.Plugin` + `coreauth.Hook` | `internal/usage` |
 | Клиентский auth (API-key) | `access.Provider` | `internal/access` |
 | Auth-изменения (watcher) | `WatcherFactory` | `internal/watcher` |
 | Зеркало моделей | `ModelRegistryHook` | `internal/modelregistry` |

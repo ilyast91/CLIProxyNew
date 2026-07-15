@@ -128,7 +128,8 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("build SDK config: %w", err)
 	}
-	coreManager := coreauth.NewManager(authStore, selector.New(store.NewModelOverrideRepository(dbPool)), coreauth.NoopHook{})
+	resultHook := usage.NewHook()
+	coreManager := coreauth.NewManager(authStore, selector.New(store.NewModelOverrideRepository(dbPool)), resultHook)
 	service, err := cliproxy.NewBuilder().
 		WithConfig(sdkCfg).
 		WithConfigPath(configPath).
@@ -152,6 +153,7 @@ func run() error {
 	slog.Info("API key provider registered", "identity_source", cfg.Auth.Mode)
 	slog.Info("runtime revision poller started", "revision", store.UpstreamAccountsRevision)
 	slog.Info("session cleanup leader election started", "lock_id", watcher.SessionCleanupLock)
+	slog.Info("core auth result hook registered")
 
 	slog.Info("SDK service ready")
 	if err := service.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {

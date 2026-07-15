@@ -971,7 +971,7 @@ type RoutingConfig struct {
 |----------|-----------|-------|---------------|
 | Persist credentials | `coreauth.Store` | `sdk/cliproxy/auth` | `internal/store` |
 | Выбор auth | `coreauth.Selector` | `sdk/cliproxy/auth` | `internal/auth/selector` |
-| Аналитика | `usage.Plugin` (`coreauth.Hook` pending) | `sdk/cliproxy/usage` | `internal/usage` |
+| Аналитика | `usage.Plugin` + `coreauth.Hook` | `sdk/cliproxy/usage`, `sdk/cliproxy/auth` | `internal/usage` |
 | Клиентский auth | `access.Provider` | `sdk/access` | `internal/access` |
 | Auth-изменения | `cliproxy.WatcherFactory` | `sdk/cliproxy` | `internal/watcher` |
 | Зеркало моделей | `cliproxy.ModelRegistryHook` | `sdk/cliproxy` | `internal/modelregistry` |
