@@ -28,6 +28,7 @@ ldap:
   admin_group_dn: "CN=cliproxy-admins,OU=Groups,DC=corp,DC=example"
 
 proxy:                     # per-call-type egress-прокси (R10); пусто = direct
+  # Env override: CLIPROXY_PROXY_INFERENCE|AUTH|QUOTA|MODELS.
   inference: ""            # напр. "socks5://proxy-inf:1080"
   auth: ""                 # OAuth-login / auto-refresh (default аккаунта)
   quota: ""                # запросы квоты/лимитов подписки

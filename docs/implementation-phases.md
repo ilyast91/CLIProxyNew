@@ -166,7 +166,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 ## Фаза 5 — Per-call-type proxy (R10)
 **Цель:** динамический ProxyURL в Selector.
 
-- [ ] Config-секция `proxy: { inference, auth, quota, models }` (direct если пусто)
+- [x] Config-секция `proxy: { inference, auth, quota, models }`: direct если
+  пусто, URL валидируются при старте; env override `CLIPROXY_PROXY_*`
 - [ ] Механизм определения call-type в `Selector.Pick` (по `opts.SourceFormat`, metadata, роуту)
 - [ ] Выставление `auth.ProxyURL` = `proxyFor(callType, provider)` — temporary, идемпотентно
 - [ ] В `Store.Save` — восстановление default ProxyURL (не persist временного значения)
@@ -266,3 +267,5 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   allow-list origin, credential-cookie support и корректным preflight.
 - 2026-07-15 — progress: начато сквозное HTTP-покрытие management router:
   session-cookie и role guard проверены для anonymous, user и admin запросов.
+- 2026-07-15 — progress: завершена конфигурационная часть R10: валидируются
+  per-call-type proxy URL и поддержаны `CLIPROXY_PROXY_*` overrides.
