@@ -106,7 +106,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 
 - [x] `sdkAuth.RegisterTokenStore(store)` вызывается ДО Builder (в `main.go`)
 - [ ] `internal/auth/selector` — allow-list, provider filter и fill-first готовы;
-  alias → upstream model mapping и R10 ProxyURL остаются
+  alias → upstream model mapping остаются
 - [ ] `internal/usage` — Plugin декодирует versioned `record.APIKey` и пишет
   usage_events; остаются async bulk INSERT и throttled update api_keys.last_used_at
 - [ ] `internal/usage` — `coreauth.Hook` (OnResult для доп. наблюдения)
@@ -163,19 +163,18 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 
 ---
 
-## Фаза 5 — Per-call-type proxy (R10)
-**Цель:** динамический ProxyURL в Selector.
+## Фаза 5 — System proxy (R10)
+**Цель:** единая outbound proxy policy через стандартное окружение процесса.
 
-- [x] Config-секция `proxy: { inference, auth, quota, models }`: direct если
-  пусто, URL валидируются при старте; env override `CLIPROXY_PROXY_*`
-- [ ] Механизм определения call-type в `Selector.Pick` (по `opts.SourceFormat`, metadata, роуту)
-- [ ] Выставление `auth.ProxyURL` = `proxyFor(callType, provider)` — temporary, идемпотентно
-- [ ] В `Store.Save` — восстановление default ProxyURL (не persist временного значения)
-- [ ] Для управляемых вызовов (quota/models через R9.A) — выставление ProxyURL в точке вызова
-- [ ] Тест гонок: concurrent inference (proxy_inf) + refresh (default proxy) — ProxyURL не персистит временное значение
-- [ ] Документация: ограничение auto-refresh (default proxy, не call-type)
+- [x] Удалены `proxy.*` из `config.yaml` и `CLIPROXY_PROXY_*` overrides
+- [x] `CoreAuthStore` очищает legacy `Auth.ProxyURL` при Load/Save
+- [x] Inference, refresh, quota и models делегируют proxy policy публичному SDK
+  и `http.ProxyFromEnvironment` (`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`)
+- [x] Документация и example config переведены на system proxy; credentials
+  proxy не логируются и не сохраняются в БД
 
-**Acceptance:** inference идёт через inference-прокси, quota/models через свои, auto-refresh через default аккаунта, гонок нет (verified by race detector).
+**Acceptance:** все HTTP-клиенты используют одинаковую system proxy policy,
+`NO_PROXY` задает исключения, а credentials не содержат `Auth.ProxyURL`.
 
 ---
 
@@ -230,7 +229,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 | Ф2 Auth | 2 нед | Ф1 | LDAP + session + API-keys |
 | Ф3 Contracts ADR-9 | 2 нед | Ф1 | 7 контрактов + запуск |
 | Ф4 Management API | 3–4 нед | Ф2, Ф3 | R9 + OpenAPI |
-| Ф5 R10 proxy | 1 нед | Ф3 | Per-call-type прокси |
+| Ф5 R10 system proxy | 1 нед | Ф3 | Proxy policy через окружение процесса |
 | Ф6 Observability + k8s | 2 нед | Ф4, Ф5 | Prod deployment |
 | Ф7 Testing + Hardening | 2 нед | Ф6 | v1 ready |
 | **Итого** | **~16–19 нед** (1 dev) / **~8–10 нед** (2–3 dev) | | |
@@ -267,5 +266,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   allow-list origin, credential-cookie support и корректным preflight.
 - 2026-07-15 — progress: начато сквозное HTTP-покрытие management router:
   session-cookie и role guard проверены для anonymous, user и admin запросов.
-- 2026-07-15 — progress: завершена конфигурационная часть R10: валидируются
-  per-call-type proxy URL и поддержаны `CLIPROXY_PROXY_*` overrides.
+- 2026-07-15 — superseded: конфигурационная часть R10 с per-call-type proxy
+  URL заменена system proxy policy.
+- 2026-07-15 — change: R10 переделан на system proxy: удалены per-call-type
+  настройки, `Auth.ProxyURL` очищается, используются HTTP_PROXY/HTTPS_PROXY/NO_PROXY.

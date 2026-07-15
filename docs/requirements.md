@@ -29,7 +29,7 @@
 ### Глоссарий (разграничение терминов)
 
 В документе встречаются два разных смысла слова **«квота»** — не путать:
-- **Upstream-квота подписки** (R9.A.4, R10 call-type `quota`) — лимиты
+- **Upstream-квота подписки** (R9.A.4) — лимиты
   upstream-аккаунта провайдера (Codex/Claude/...: остаток запросов/токенов,
   срок подписки). **Просматривается** администратором, не ограничивает
   пользователей.
@@ -51,7 +51,7 @@
   личная статистика) и администраторские (настройка провайдеров OAuth/API-key,
   управление пользователями, квоты подписок, тестирование аккаунтов, список
   моделей, экспорт/импорт OAuth JSON).
-- Per-call-type egress-прокси (R10): inference/auth/quota/models.
+- System egress proxy (R10): `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`.
 - Аналитика использования (события → Postgres → агрегаты).
 - Scheduler/watcher-оркестрация: координация refresh-джоб (leader election),
   persistence кэша токенов/моделей от ядра.
@@ -265,7 +265,8 @@
   подключить Redis без правок потребителей.
 - ✅ **Решено:** конфигурация — **config.yaml (k8s ConfigMap) + env для
   секретов (k8s Secret)**. Секции: `server` (включая environment), `auth`,
-  `ldap`, `proxy` (per-call-type), `encryption`, `db`, `logging`. Поддержка
+  `ldap`, `encryption`, `db`, `logging`. System proxy задается переменными
+  `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`. Поддержка
   env-override поверх файла (12-factor). Секреты
   (`CLIPROXY_ENCRYPTION_KEY`, DB password, LDAP bind password, static user
   credentials для development/test) — только через env, не в config.yaml.
@@ -444,42 +445,21 @@
 - ❓ **Открыто:** форматы management-API (REST/JSON-схемы эндпоинтов) —
   зафиксировать в R9-дизайне.
 
-### R10. Per-call-type egress proxy routing
-- **R10.1** Для каждого **типа upstream-вызова** настраивается отдельный
-  egress-прокси:
-  - **inference** — вызовы completion/generation к провайдерам (основной
-    трафик, путь через `Selector.Pick`);
-  - **quota** — запросы квоты/лимитов подписки провайдера (управляется
-    business-слоем через R9.A.4);
-  - **models** — запросы списка/обновления моделей провайдеров (R9.A.6).
-  Каждый тип имеет свой прокси-адрес (HTTP/SOCKS) в конфигурации.
-  **Если прокси не указан — подключение напрямую (direct).**
-  ⚠️ **Уточнение по `auth`/`refresh`:** OAuth login (`sdkAuth.Manager.Login`)
-  и auto-refresh (`StartAutoRefresh`) — это **отдельные пути, не идущие через
-  `Selector.Pick`**. Прокси для них задаётся как **`Auth.ProxyURL` аккаунта по
-  умолчанию** (persisted в Store), а не как динамический per-call-type.
-  Т.е. «auth» — не call-type в смысле R10, а default-прокси аккаунта. См. ADR-10.
-- **R10.2** Назначение прокси — **глобально per call-type** (без per-provider
-  override прокси). Хранится в конфигурации сервиса.
+### R10. System egress proxy
+- **R10.1** Все исходящие HTTP-запросы к upstream используют системный proxy
+  процесса: `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` (стандартный
+  `http.ProxyFromEnvironment`). Единая policy применяется к inference, OAuth,
+  refresh, quota и model requests.
+- **R10.2** В `config.yaml` и в namespace `CLIPROXY_*` нет proxy URL. Значения
+  proxy передаются окружением deployment; они не логируются и не попадают в
+  audit log. `NO_PROXY` задает адреса direct-подключения.
 - **R10.3** **Per-provider `base_url`** (отдельное требование): каждый
   провайдер может иметь свой базовый URL upstream-эндпоинта (для кастомных
   OpenAI-compatible эндпоинтов, напр. OpenRouter). Реализуется через
   `coreauth.Auth.Attributes["base_url"]` (нативное поле ядра).
-- ✅ **Решено (ADR-10):** реализация per-call-type прокси — **подход A**
-  (динамический `ProxyURL` в `Selector.Pick` / точках вызова), т.к. подход C
-  (per-request Options) невозможен в рамках контрактов ядра v7, а подход B
-  (N регистраций) неприемлем из-за дублирования. См.
-  [docs/adr/ADR-10-per-call-type-proxy.md](adr/ADR-10-per-call-type-proxy.md).
-  ⚠️ **Известное ограничение (refresh):** ядро вызывает
-  `ProviderExecutor.Refresh` напрямую по `auth.ID` в рамках
-  `StartAutoRefresh`, **минуя `Selector.Pick`**. Поэтому для auto-refresh
-  бизнес-слой не может выставить `auth`-прокси через Selector в момент
-  вызова — используется `Auth.ProxyURL` аккаунта по умолчанию (persisted).
-  Per-call-type прокси точно применяется к inference (Selector.Pick) и к
-  управляемым бизнес-слоем вызовам (quota/models). Для login/auto-refresh —
-  default-прокси аккаунта. См. ADR-10.
-- ❓ **Открыто:** точный механизм определения call-type в `Selector.Pick` и
-  формат конфиг-секции прокси — при дизайне R10.
+- ✅ **Решено (ADR-10):** бизнес-слой очищает `Auth.ProxyURL`, не создает
+  per-call-type override и делегирует выбор proxy стандартному HTTP transport
+  процесса. См. [ADR-10](adr/ADR-10-per-call-type-proxy.md).
 
 ### R11. OpenAPI/Swagger-спецификация
 - **R11.1** Все HTTP-роуты сервиса описываются в **OpenAPI 3.1** спецификации.
@@ -546,7 +526,7 @@
 | ADR-7 | Leader election для scheduler: ✅ Postgres advisory lock | ✅ Решено |
 | ADR-8 | Redis: ✅ пока без Redis. Кэш/сессии — in-process; coordination (leader election) — Postgres advisory lock | ✅ Решено |
 | ADR-9 | Контракты интеграции с SDK ядра: ✅ бизнес-слой реализует 7 контрактов (coreauth.Store, Selector, Hook; usage.Plugin; access.Provider; WatcherFactory; ModelRegistryHook). См. [docs/adr/ADR-9-sdk-contracts.md](adr/ADR-9-sdk-contracts.md) | ✅ Решено |
-| ADR-10 | Per-call-type egress proxy: ✅ подход A (динамический ProxyURL в Selector/точках вызова), т.к. ядро v7 не поддерживает per-request override. Per-provider base_url через Auth.Attributes. См. [docs/adr/ADR-10-per-call-type-proxy.md](adr/ADR-10-per-call-type-proxy.md) | ✅ Решено |
+| ADR-10 | System egress proxy: ✅ `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`, без `Auth.ProxyURL` и `proxy.*`. Per-provider base_url через Auth.Attributes. См. [docs/adr/ADR-10-per-call-type-proxy.md](adr/ADR-10-per-call-type-proxy.md) | ✅ Решено |
 
 ## История изменений
 - 2026-07-11 — черновик по первому набору требований (6 пунктов).
@@ -590,10 +570,8 @@
   проверяется в access.Provider и при логине). R1.4 и R2 дополнены.
 - 2026-07-11 — R9.A.7: экспорт/импорт OAuth-credentials в JSON. Полные
   credentials, dedup по provider+email, аудит в admin_audit_log.
-- 2026-07-11 — R10 (per-call-type egress proxy) + ADR-10. Исследование ядра v7
-  подтвердило: per-request override невозможен → принят подход A (динамический
-  ProxyURL в Selector). Per-provider base_url через Auth.Attributes. Если прокси
-  не указан — direct.
+- 2026-07-11 — R10 per-call-type proxy + ADR-10 (историческое решение,
+  заменено system proxy policy 2026-07-15).
 - 2026-07-11 — **второе ревью требований:** исправлены противоречия и пробелы:
   - добавлен глоссарий (два смысла «квоты»: upstream-подписка vs
     пользовательский rate-limit);
@@ -603,9 +581,8 @@
     вне репо, задача эксплуатации); нумерация R6 исправлена;
   - R9.A.1: OAuth-flow зафиксирован как API-driven (GET → ссылка, POST →
     callback, redirect_uri=localhost, сервис не слушает inbound redirect);
-  - R10/ADR-10: зафиксировано ограничение — auto-refresh ядра идёт минуя
-    Selector, поэтому auth-прокси при auto-refresh = default аккаунта
-    (per-call-type точно применяется к inference/quota/models);
+  - R10/ADR-10: историческое ограничение auto-refresh для per-call-type proxy
+    заменено единым system proxy процесса;
   - статус документа переведён из DRAFT в «зафиксированы».
 - ❓ **Открыто (после второго ревью):** R9.A.5 — тестирование через `Execute`
   тратит upstream-квоту (ограничить минимальным запросом или принять стоимость);
@@ -629,8 +606,7 @@
   - R9.A.1: OAuth-flow переписан — PKCE-провайдеры (Codex/Claude) сами
     открывают callback-сервер на CallbackPort; device-flow (Codex/Kimi/xAI)
     не требует; вопрос exposed-port в k8s открыт;
-  - R10: call-type `auth` убран (это login-flow, не inference-путь);
-    auto-refresh/login = default ProxyURL аккаунта;
+  - R10: per-call-type proxy заменен system proxy процесса;
   - R2: SetExclusiveProvider("db-apikey") — inline cfg.APIKeys не нужны;
   - R6.1: SessionAffinity отключён (конфликтует с stateless multi-replica);
   - R9.A.5: отмечено как открытое (Execute тратит квоту);

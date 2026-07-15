@@ -99,7 +99,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("create encryption keyring: %w", err)
 	}
-	authStore := store.NewCoreAuthStore(dbPool, keyring, cfg.Proxy.Inference)
+	authStore := store.NewCoreAuthStore(dbPool, keyring)
 	sdkauth.RegisterTokenStore(authStore)
 	apiKeyProvider := businessaccess.NewProvider(store.NewAPIKeyRepository(dbPool), cfg.Auth.Mode)
 	sdkaccess.RegisterProvider(businessaccess.ProviderIdentifier, apiKeyProvider)

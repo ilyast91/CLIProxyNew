@@ -1,9 +1,6 @@
-// Package selector реализует контракт coreauth.Selector (ADR-9, контракт 2) и
-// per-call-type egress-прокси (R10).
+// Package selector реализует контракт coreauth.Selector (ADR-9, контракт 2).
 //
-// Pick: apply model_overrides (R9.A.6) → filter allow-list → round-robin/
-// fill-first → выставить auth.ProxyURL = proxyFor(callType, provider)
-// (временное, идемпотентное, не persist в Store).
+// Pick: apply model_overrides (R9.A.6) → filter allow-list → fill-first.
 //
 // Ограничение (ADR-10): auto-refresh ядра идёт минуя Selector →
 // auth-прокси при auto-refresh = default аккаунта.

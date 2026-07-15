@@ -23,7 +23,7 @@
 - ❌ **Не пишем здесь:** refresh-протоколы провайдеров, transport, стриминг,
   парсинг ответов, реестр моделей как источник истины — это в ядре (SDK).
 - ✅ **Пишем:** auth (LDAP + static source для development/test), аналитику,
-  management-API, per-call-type прокси,
+  management-API, system egress proxy,
   persistence (Postgres), observability, k8s-deployment.
 - Бизнес-слой реализует **7 контрактов расширения** ядра (ADR-9) и делегирует
   upstream-вызовы через `Service.Run`.
@@ -39,7 +39,7 @@ internal/        — бизнес-логика (неэкспортируемая
   access/          — access.Provider: проверка клиентских API-keys
                      (+ проверка users.status на каждый запрос)
   auth/            — identity providers (LDAP/static), session-cookie, coreauth.Selector
-                     (выбор upstream-аккаунта + per-call-type прокси R10)
+                     (выбор upstream-аккаунта)
   cache/           — in-process кэш (session/API-key lookup, модели)
                      за интерфейсом, задел под Redis
   config/          — конфигурация сервиса
@@ -78,9 +78,9 @@ docs/            — требования (R1–R12), ADR-9/ADR-10, дизайн
 - **Scheduler (R7):** auto-refresh делает ядро (`StartAutoRefresh`), бизнес-слой
   реализует `coreauth.Store` (ядро само зовёт Save) + leader election через
   Postgres advisory lock.
-- **Per-call-type прокси (R10):** подход A — динамический ProxyURL в
-  `Selector.Pick` (inference/quota/models) и точках вызова. ⚠️ auto-refresh
-  ядра идёт ММИМуя Selector → auth-прокси при auto-refresh = default аккаунта.
+- **System proxy (R10):** все outbound HTTP-клиенты используют
+  `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`; не добавляйте `proxy.*`,
+  `CLIPROXY_PROXY_*` или `Auth.ProxyURL` overrides.
 - **Management (R9):** только REST API (UI позже). Аудит-лог admin_audit_log.
   Блокировка пользователя — обратимая (users.status active/blocked).
 - **Логи:** `slog`. **Метрики:** Prometheus. **Трейсы:** OpenTelemetry.
@@ -119,12 +119,10 @@ go test ./...           # тесты
 - `.idea/` в `.gitignore` (GoLand/IntelliJ).
 - Конфиги/секреты (`config.yaml`, `.env`, `*.pem`, `*.key`) игнорируются —
   шаблоны кладите как `*.example.*`.
-- **Auto-refresh обходит Selector (R10):** per-call-type прокси НЕ применяется
-  к авто-refresh — используется default аккаунта. См. ADR-10.
+- **System proxy (R10):** `Auth.ProxyURL` должен оставаться пустым при
+  Load/Save; proxy policy задает окружение процесса, включая auto-refresh.
 - **Principal в стриминге (R3):** `HandleUsage` вызывается асинхронно в конце
   потока — principal/user_id копируйте в Record при старте, не из context.
-- **Гонки ProxyURL (R10):** `auth.ProxyURL` — разделяемое поле; при
-  динамическом выставлении не persist'ите временное значение в Store.
 - **Static identity (R1.5):** разрешён только при
   `server.environment=development|test`; никогда не используйте его как LDAP
   fallback и не переключайте `auth.mode` rolling-обновлением.
@@ -153,7 +151,7 @@ go test ./...           # тесты
   API SDK ядра (типы, интерфейсы, сигнатуры). **Читать перед:** любым вызовом
   SDK ядра или реализацией контрактов ADR-9.
 - [`docs/adr/ADR-10-per-call-type-proxy.md`](docs/adr/ADR-10-per-call-type-proxy.md)
-  — per-call-type прокси. **Читать перед:** правками `Selector`/прокси.
+  — system proxy. **Читать перед:** правками HTTP transport/credentials.
 - [`docs/implementation-phases.md`](docs/implementation-phases.md) — план
   имплементации по фазам (Ф0–Ф7). **Читать перед:** началом работы над фазой.
 
@@ -175,3 +173,5 @@ go test ./...           # тесты
   development/test, namespace `static:` и запрет rolling-переключения mode.
 - 2026-07-14 — добавлен R12: обновляемость внешнего SDK через публичные
   контракты, compatibility gate и ADR для major-версий.
+- 2026-07-15 — R10 переделан на system proxy через HTTP_PROXY/HTTPS_PROXY/
+  NO_PROXY; `proxy.*` и per-account ProxyURL overrides удалены.

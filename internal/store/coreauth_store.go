@@ -27,18 +27,16 @@ var persistedAttributeAllowlist = map[string]struct{}{
 
 // CoreAuthStore реализует SDK-контракт coreauth.Store поверх PostgreSQL.
 type CoreAuthStore struct {
-	db              dbgen.DBTX
-	queries         *dbgen.Queries
-	keyring         *security.Keyring
-	defaultProxyURL string
+	db      dbgen.DBTX
+	queries *dbgen.Queries
+	keyring *security.Keyring
 }
 
-// NewCoreAuthStore создаёт encrypted credential store.
-func NewCoreAuthStore(db dbgen.DBTX, keyring *security.Keyring, defaultProxyURL string) *CoreAuthStore {
+// NewCoreAuthStore создаёт encrypted credential store с system-proxy режимом.
+func NewCoreAuthStore(db dbgen.DBTX, keyring *security.Keyring) *CoreAuthStore {
 	store := &CoreAuthStore{
-		db:              db,
-		keyring:         keyring,
-		defaultProxyURL: strings.TrimSpace(defaultProxyURL),
+		db:      db,
+		keyring: keyring,
 	}
 	if !nilDBTX(db) {
 		store.queries = dbgen.New(db)
@@ -75,7 +73,8 @@ func (s *CoreAuthStore) List(ctx context.Context) ([]*coreauth.Auth, error) {
 			return nil, fmt.Errorf("validate upstream account %q: %w", row.ID, ErrCorruptCredential)
 		}
 
-		auth.ProxyURL = s.defaultProxyURL
+		// Per-account proxy из legacy credentials не должен обходить proxy процесса.
+		auth.ProxyURL = ""
 		ensurePostgresSource(&auth)
 		auths = append(auths, &auth)
 	}
@@ -97,7 +96,8 @@ func (s *CoreAuthStore) Save(ctx context.Context, auth *coreauth.Auth) (string, 
 	persisted := auth.Clone()
 	persisted.ID = id
 	persisted.Provider = provider
-	persisted.ProxyURL = s.defaultProxyURL
+	// Все HTTP-клиенты используют HTTP_PROXY/HTTPS_PROXY/NO_PROXY процесса.
+	persisted.ProxyURL = ""
 	ensurePostgresSource(persisted)
 	metadata, err := persistedCredentialMetadata(persisted)
 	if err != nil {

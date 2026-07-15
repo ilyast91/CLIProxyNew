@@ -7,7 +7,8 @@
 - `Save` принимает ID ядра, валидирует provider/auth kind, шифрует serializable `coreauth.Auth` через активный AES-GCM key и делает upsert.
 - `List` расшифровывает строки всеми доступными версиями keyring и возвращает `[]*coreauth.Auth`.
 - `Delete` идемпотентно удаляет запись; FK `usage_events` сохраняет аналитику через `ON DELETE SET NULL`.
-- Временный per-call `ProxyURL` не сохраняется: перед шифрованием используется default proxy store.
+- `Auth.ProxyURL` не сохраняется: перед шифрованием он очищается, чтобы
+  outbound HTTP использовал system proxy процесса.
 - Открытая колонка `attributes` содержит только безопасные routing-поля; credentials остаются только в `credentials_enc`.
 - `Auth.Storage` не сериализуется самим SDK, поэтому `Save` преобразует его
   credential payload в зашифрованный `Metadata`-снимок; runtime-поля не

@@ -30,7 +30,6 @@ type Config struct {
 	Auth       AuthConfig       `yaml:"auth"`
 	DB         DBConfig         `yaml:"db"`
 	LDAP       LDAPConfig       `yaml:"ldap"`
-	Proxy      ProxyConfig      `yaml:"proxy"`
 	Logging    LoggingConfig    `yaml:"logging"`
 	Encryption EncryptionConfig `yaml:"encryption"`
 }
@@ -86,15 +85,6 @@ type LDAPConfig struct {
 	AdminGroupDN string `yaml:"admin_group_dn"`
 }
 
-// ProxyConfig — per-call-type egress-прокси (R10).
-// Пустая строка = direct (без прокси).
-type ProxyConfig struct {
-	Inference string `yaml:"inference"`
-	Auth      string `yaml:"auth"`
-	Quota     string `yaml:"quota"`
-	Models    string `yaml:"models"`
-}
-
 // LoggingConfig — параметры логирования.
 type LoggingConfig struct {
 	Level  string `yaml:"level"`
@@ -136,10 +126,6 @@ func (c *Config) Validate() error {
 	if err := validateCORSOrigins(c.Server.CORSAllowedOrigins); err != nil {
 		return err
 	}
-	if err := validateProxyConfig(&c.Proxy); err != nil {
-		return err
-	}
-
 	switch c.Auth.Mode {
 	case AuthModeLDAP:
 		return nil
@@ -209,10 +195,6 @@ func (c *Config) applyEnvOverrides() {
 	if value, ok := os.LookupEnv("CLIPROXY_CORS_ALLOWED_ORIGINS"); ok {
 		c.Server.CORSAllowedOrigins = splitCSV(value)
 	}
-	overrideEnv(&c.Proxy.Inference, "CLIPROXY_PROXY_INFERENCE")
-	overrideEnv(&c.Proxy.Auth, "CLIPROXY_PROXY_AUTH")
-	overrideEnv(&c.Proxy.Quota, "CLIPROXY_PROXY_QUOTA")
-	overrideEnv(&c.Proxy.Models, "CLIPROXY_PROXY_MODELS")
 	c.Auth.StaticUsername = os.Getenv("CLIPROXY_STATIC_USER_USERNAME")
 	c.Auth.StaticPassword = os.Getenv("CLIPROXY_STATIC_USER_PASSWORD")
 	c.Auth.StaticRole = os.Getenv("CLIPROXY_STATIC_USER_ROLE")
@@ -240,32 +222,4 @@ func splitCSV(value string) []string {
 		}
 	}
 	return origins
-}
-
-func validateProxyConfig(proxy *ProxyConfig) error {
-	if proxy == nil {
-		return nil
-	}
-	for _, value := range []*string{&proxy.Inference, &proxy.Auth, &proxy.Quota, &proxy.Models} {
-		*value = strings.TrimSpace(*value)
-		if *value == "" {
-			continue
-		}
-		parsed, err := url.ParseRequestURI(*value)
-		if err != nil || parsed.Host == "" || parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
-			return fmt.Errorf("invalid proxy URL %q", *value)
-		}
-		switch parsed.Scheme {
-		case "http", "https", "socks5", "socks5h":
-		default:
-			return fmt.Errorf("unsupported proxy URL scheme %q", parsed.Scheme)
-		}
-	}
-	return nil
-}
-
-func overrideEnv(target *string, name string) {
-	if value, ok := os.LookupEnv(name); ok {
-		*target = value
-	}
 }

@@ -9,7 +9,7 @@
 `github.com/router-for-me/CLIProxyAPI/v7` (далее «ядро»). Бизнес-слой
 реализует **7 контрактов расширения** ядра (ADR-9) и добавляет: identity auth
 (LDAP в production, static в development/test), аналитику, management-API,
-per-call-type прокси, observability, multi-replica в k8s.
+system egress proxy, observability, multi-replica в k8s.
 
 ```mermaid
 graph TB
@@ -125,7 +125,7 @@ sequenceDiagram
 2. **DB pool** — `pgxpool.New`.
 3. **Security** — AES-ключ из env, bcrypt-cost (константа).
 4. **Store** — `internal/store` реализует `coreauth.Store` с transparent-шифрованием credentials (AES-GCM). Глобальная регистрация через `sdkAuth.RegisterTokenStore` **до** Builder'а.
-5. **Selector** — `internal/auth/selector`: выбор аккаунта + выставление per-call-type `ProxyURL` (R10).
+5. **Selector** — `internal/auth/selector`: выбор аккаунта по allow-list моделей (R10 не меняет выбранный auth).
 6. **Hook** — `internal/usage`: `OnResult` + `usage.Plugin.HandleUsage`.
 7. **access.Provider** — `internal/access`: проверка API-key + `users.status`.
 8. **WatcherFactory** — `internal/watcher`: poll БД + leader election (advisory lock).
@@ -157,10 +157,9 @@ sequenceDiagram
     Note over Gin: Record.APIKey из Principal, Metadata из opts
     Gin->>Sel: Pick provider model opts auths
     Sel->>DB: load model_overrides cache
-    Sel->>Sel: выставить auth.ProxyURL = proxyFor inference
     Sel-->>Gin: выбранный Auth
     Gin->>Exec: Execute ctx auth req opts
-    Exec->>Up: HTTP/SOCKS прокси через auth.ProxyURL
+    Exec->>Up: HTTP через HTTP_PROXY/HTTPS_PROXY/NO_PROXY процесса
     Up-->>Exec: response или stream chunks
     Exec-->>Gin: Response StreamResult
     Gin-->>App: response stream
@@ -171,7 +170,7 @@ sequenceDiagram
 **Ключевые точки:**
 - **access.Provider** (R2) — единственная проверка API-key; результат в ctx.
 - **Principal копируется в Record** в начале (R3), т.к. `HandleUsage` может вызваться после отмены context (стриминг).
-- **Selector выставляет ProxyURL** (R10, подход A) — временно, не persist.
+- **System proxy** (R10) задается окружением процесса; бизнес-слой не меняет `Auth.ProxyURL`.
 - **usage.Plugin** пишет асинхронно в `usage_events`.
 
 ## 4. Поток: login через identity source (R1)
@@ -232,17 +231,17 @@ sequenceDiagram
 
     Note over Core: StartAutoRefresh 15m min-heap по NextRefreshAfter до 16 воркеров
     Core->>Core: pop auth с истекшим NextRefreshAfter
-    Note over Core: ВАЖНО минуя Selector.Pick R10 прокси НЕ применяется
     Core->>Exec: Refresh ctx auth
-    Exec->>Up: OAuth refresh через auth.ProxyURL default аккаунта
+    Exec->>Up: OAuth refresh через system proxy процесса
     Up-->>Exec: new tokens
     Exec-->>Core: обновлённый Auth
     Core->>Store: Save auth
-    Store->>Store: восстановить default ProxyURL не persist временное R10
+    Store->>Store: очистить legacy Auth.ProxyURL
     Store->>DB: UPDATE upstream_accounts credentials_enc last_refreshed_at
 ```
 
-**Важно (ADR-10):** auto-refresh идёт **минуя Selector**, поэтому `auth`-прокси (R10 call-type) не применяется — используется `default ProxyURL` аккаунта. Store должен восстанавливать default при Save (не сохранять временное значение, выставленное Selector).
+**Важно (ADR-10):** auto-refresh использует тот же system proxy процесса, что
+и все остальные HTTP-вызовы; `Auth.ProxyURL` при Load/Save очищается.
 
 ## 6. Поток: management — настройка OAuth (R9.A.1)
 
@@ -302,14 +301,13 @@ sequenceDiagram
   `api_keys.last_used_at`. Т.к. `usage.Record.APIKey` ядро заполняет из
   `Principal`, дополнительно связываем через metadata-ключ (см. R3 ниже).
 
-### `internal/auth/selector` — coreauth.Selector (ADR-9, R10)
+### `internal/auth/selector` — coreauth.Selector (ADR-9)
 Реализует `coreauth.Selector`:
 - `Pick(ctx, provider, model, opts, auths) (*Auth, error)`:
   1. применить `model_overrides` (cache): если alias → upstream_model;
   2. отфильтровать `auths` по allow-list моделей (R9.A.6);
   3. round-robin / fill-first выбор;
-  4. **выставить `auth.ProxyURL`** = `proxyFor(callType=inference, provider)` (R10) — временно, идемпотентно;
-  5. вернуть `*Auth` (возможно shallow-copy для изоляции ProxyURL).
+  4. вернуть выбранный `*Auth`.
 
 ### `internal/auth/identity` (R1)
 Внутренний `IdentityProvider` изолирует проверку username/password от HTTP и
@@ -372,8 +370,8 @@ sequenceDiagram
 
 ### `internal/store` — coreauth.Store + репозитории (R5, ADR-9)
 Реализует `coreauth.Store` (List/Save/Delete) поверх `upstream_accounts`:
-- **Save:** проверяет, что `auth.ProxyURL` = default (не временное R10); шифрует credentials AES-GCM; UPDATE/INSERT.
-- **Load/List:** расшифровывает blob → восстанавливает `*coreauth.Auth`.
+- **Save:** очищает legacy `auth.ProxyURL`, шифрует credentials AES-GCM; UPDATE/INSERT.
+- **Load/List:** расшифровывает blob → восстанавливает `*coreauth.Auth` с пустым `ProxyURL`.
 Также: репозитории для `users`, `api_keys`, `sessions`, `usage_events`, `admin_audit_log`, `model_overrides` (sqlc-генерация).
 
 ### `internal/security` (R5)
@@ -413,9 +411,12 @@ In-process кэш за интерфейсом:
 Задел под Redis (ADR-8).
 
 ### `internal/config` (R6)
-Парсинг `config.yaml` (структурированный: ldap, proxy, server, db, logging) + env-override (12-factor). Секреты — только env.
+Парсинг `config.yaml` (структурированный: ldap, server, db, logging) + env-override (12-factor). System proxy задается `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`; секреты — только env.
 
 ## 8. Deployment (k8s)
+
+`HTTP_PROXY`, `HTTPS_PROXY` и `NO_PROXY` передаются как env контейнера; они
+не входят в `config.yaml` и не логируются приложением.
 
 ```mermaid
 graph LR
@@ -484,11 +485,6 @@ ldap:
   user_filter: "(sAMAccountName={username})"
   user_group_dn: "CN=cliproxy-users,OU=Groups,..."
   admin_group_dn: "CN=cliproxy-admins,OU=Groups,..."
-proxy:
-  inference: "socks5://proxy-inf:1080"  # direct если пусто
-  auth: ""                                # direct
-  quota: ""
-  models: ""
 db:
   dsn: "postgres://cliproxy@pg:5432/cliproxy"  # password из env DB_PASSWORD
 logging:
@@ -514,4 +510,3 @@ encryption:
 - TTL ретенции `usage_events` (R3) — в дизайне retention-job.
 - Cookie атрибуты (SameSite по домену) — финализировать по deployment-домену.
 - Партиционирование `admin_audit_log` — при росте.
-- Механизм определения call-type в `Selector.Pick` (по `opts.SourceFormat` / metadata) — при имплементации R10.

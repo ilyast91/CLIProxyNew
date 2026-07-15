@@ -23,7 +23,7 @@
 | **SDK compatibility** | Ядро обновляется через публичный `sdk/*` API, pinned версию и compatibility gate; новый major требует ADR. | R12 |
 | **Stateless-first** | Всё состояние в Postgres. In-memory кэш — только за интерфейсом (`internal/cache`), с заделом под Redis. | R6.1, ADR-8 |
 | **Interface segregation** | Кэш, шифрование, репозитории — за интерфейсами. Реализация заменяема (Postgres ↔ ClickHouse, in-process ↔ Redis). | ADR-5, ADR-8 |
-| **Configuration over code** | Режим identity source, группы LDAP, прокси per-call-type, allow-list моделей — в конфиге, не в коде. | R1, R9.A.6, R10 |
+| **Configuration over code** | Режим identity source, группы LDAP и allow-list моделей — в конфиге; system proxy задается стандартным окружением процесса. | R1, R9.A.6, R10 |
 | **YAGNI** | Не реализуем квоты/rate-limit, UI, плагины на первой версии. Каждое новое требование проходит через «нужно ли это сейчас». | Роль репо |
 | **Idempotency** | Mutating-операции (OAuth Complete, Store.Save, audit log) безопасны при retry/duplicate. | R9.A.1 |
 
@@ -41,7 +41,7 @@ SLA на накладные расходы бизнес-слоя (без upstrea
 | Inference-запрос, overhead бизнес-слоя | **≤ 5 мс (p95)**: auth + selector + analytics | trace span на inference |
 | `access.Provider.Authenticate` (cache hit) | **≤ 2 мс (p95)**: lookup + bcrypt | trace span |
 | `access.Provider.Authenticate` (cache miss) | **≤ 15 мс (p95)**: DB lookup + bcrypt | trace span |
-| `Selector.Pick` | **≤ 3 мс (p95)**: model_overrides + выбор + ProxyURL | trace span |
+| `Selector.Pick` | **≤ 3 мс (p95)**: model_overrides + выбор | trace span |
 | `Store.Save` (после refresh) | **≤ 10 мс (p95)**: AES-GCM + UPSERT | metric histogram |
 | `usage.Plugin.HandleUsage` | **async, не блокирует ответ**; bulk INSERT batched | metric queue depth |
 | In-process cache hit ratio (session/API-key) | **≥ 95%** в steady state | metric counter |

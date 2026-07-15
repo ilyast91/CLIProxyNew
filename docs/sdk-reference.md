@@ -175,7 +175,7 @@ type Auth struct {
     StatusMessage    string                 `json:"status_message,omitempty"`
     Disabled         bool                   `json:"disabled"`
     Unavailable      bool                   `json:"unavailable"`
-    ProxyURL         string                 `json:"proxy_url,omitempty"` // ← R10: per-account прокси
+    ProxyURL         string                 `json:"proxy_url,omitempty"` // per-account explicit SDK override
     Attributes       map[string]string      `json:"attributes,omitempty"` // immutable: base_url, api_key, ...
     Metadata         map[string]any         `json:"metadata,omitempty"`   // mutable: токены, email, expired
     Quota            QuotaState             `json:"quota"`
@@ -302,8 +302,9 @@ func (m *Manager) RefreshSchedulerEntry(authID string)
 func (m *Manager) RefreshSchedulerAll()
 ```
 
-⚠️ `StartAutoRefresh` вызывает `ProviderExecutor.Refresh` **минуя `Selector.Pick`** →
-per-call-type прокси (R10) не применяется при auto-refresh. См. [ADR-10](adr/ADR-10-per-call-type-proxy.md).
+⚠️ `StartAutoRefresh` вызывает `ProviderExecutor.Refresh` **минуя `Selector.Pick`**.
+В проекте R10 это не меняет proxy policy: пустой `Auth.ProxyURL` оставляет
+system proxy процесса для refresh и inference. См. [ADR-10](adr/ADR-10-per-call-type-proxy.md).
 
 #### HTTP / RoundTripper
 
@@ -353,7 +354,7 @@ type ProviderExecutor interface {
 }
 
 type RoundTripperProvider interface {
-    RoundTripperFor(auth *Auth) http.RoundTripper   // ⚠️ без call-type — не различает типы вызовов
+    RoundTripperFor(auth *Auth) http.RoundTripper   // выбирает transport по auth
 }
 
 type RefreshEvaluator interface {
@@ -944,7 +945,7 @@ type TLSConfig    = internalconfig.TLSConfig
 | `Host` | string | `host` | сетевой интерфейс |
 | `Port` | int | `port` | порт сервера |
 | `AuthDir` | string | `auth-dir` | каталог токенов (default `~/.cli-proxy-api`) |
-| `ProxyURL` | string | `proxy-url` | глобальный прокси (fallback если auth.ProxyURL пуст) |
+| `ProxyURL` | string | `proxy-url` | глобальный explicit proxy override SDK |
 | `APIKeys` | []string | `api-keys` | inline клиентские API-keys |
 | `RequestRetry` | int | `request-retry` | число ретраев |
 | `MaxRetryCredentials` | int | `max-retry-credentials` | лимит кред на ретрай |
@@ -979,10 +980,10 @@ type RoutingConfig struct {
 
 ## Замечания
 
-- **Per-request прокси невозможен** (ADR-10): ни `executor.Options`, ни интерсепторы,
-  ни `RoundTripperProvider.RoundTripperFor(auth)` не различают call-type.
-  Единственная точка — `Auth.ProxyURL` (per-account), применяется через `Selector.Pick`
-  (кроме auto-refresh, который идёт минуя Selector).
+- **R10 проекта:** `Auth.ProxyURL` и `Config.ProxyURL` намеренно остаются
+  пустыми. Пустой transport SDK использует `http.DefaultTransport` и system
+  proxy через `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`; это проверяется при
+  compatibility gate обновления SDK.
 - **`sdk/config`** — полностью type-aliases над `internal/config`; методы `Config`
   (`CloneForRuntime`, и др.) наследуются через alias.
 - **`usage.NewManager(buffer)`** — аргумент `buffer` фактически не используется;

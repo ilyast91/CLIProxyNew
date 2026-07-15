@@ -30,8 +30,7 @@ func TestIntegrationCoreAuthStoreContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewKeyring(v1) error = %v", err)
 	}
-	const defaultProxy = "socks5://default-proxy:1080"
-	authStore := NewCoreAuthStore(pool, keyringV1, defaultProxy)
+	authStore := NewCoreAuthStore(pool, keyringV1)
 	var revision int64
 	if err := pool.QueryRow(ctx, "SELECT revision FROM runtime_revisions WHERE name = $1", UpstreamAccountsRevision).Scan(&revision); err != nil {
 		t.Fatalf("прочитать initial runtime revision: %v", err)
@@ -99,6 +98,17 @@ func TestIntegrationCoreAuthStoreContract(t *testing.T) {
 	if !bytes.Contains(attributes, []byte("base_url")) {
 		t.Fatalf("attributes не содержит routing metadata: %s", attributes)
 	}
+	persistedJSON, err := keyringV1.Decrypt(security.EncryptedValue{KeyVersion: keyVersion, Ciphertext: ciphertext})
+	if err != nil {
+		t.Fatalf("decrypt persisted credential: %v", err)
+	}
+	var persistedAuth coreauth.Auth
+	if err := json.Unmarshal(persistedJSON, &persistedAuth); err != nil {
+		t.Fatalf("decode persisted credential: %v", err)
+	}
+	if persistedAuth.ProxyURL != "" {
+		t.Fatalf("persisted ProxyURL = %q, want empty system-proxy mode", persistedAuth.ProxyURL)
+	}
 	loaded, err := authStore.List(ctx)
 	if err != nil {
 		t.Fatalf("List() error = %v", err)
@@ -106,8 +116,8 @@ func TestIntegrationCoreAuthStoreContract(t *testing.T) {
 	if len(loaded) != 1 {
 		t.Fatalf("List() count = %d, want 1", len(loaded))
 	}
-	if loaded[0].ProxyURL != defaultProxy {
-		t.Fatalf("List() ProxyURL = %q, want default %q", loaded[0].ProxyURL, defaultProxy)
+	if loaded[0].ProxyURL != "" {
+		t.Fatalf("List() ProxyURL = %q, want empty system-proxy mode", loaded[0].ProxyURL)
 	}
 	if loaded[0].Metadata["refresh_token"] != "refresh-token-v1" {
 		t.Fatalf("List() metadata = %+v", loaded[0].Metadata)
@@ -117,7 +127,7 @@ func TestIntegrationCoreAuthStoreContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewKeyring(v2) error = %v", err)
 	}
-	rotatedStore := NewCoreAuthStore(pool, keyringV2, defaultProxy)
+	rotatedStore := NewCoreAuthStore(pool, keyringV2)
 	if _, err := rotatedStore.List(ctx); err != nil {
 		t.Fatalf("List(v1 through rotated keyring) error = %v", err)
 	}
@@ -172,7 +182,7 @@ func TestIntegrationCoreAuthStoreContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewKeyring(overflow) error = %v", err)
 	}
-	overflowStore := NewCoreAuthStore(pool, overflowKeyring, defaultProxy)
+	overflowStore := NewCoreAuthStore(pool, overflowKeyring)
 	if _, err := overflowStore.Save(ctx, auth); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("Save(key version overflow) error = %v, want ErrInvalidInput", err)
 	}
@@ -196,7 +206,7 @@ func TestCoreAuthStoreRejectsNilDB(t *testing.T) {
 		t.Fatalf("NewKeyring() error = %v", err)
 	}
 
-	authStore := NewCoreAuthStore(nil, keyring, "")
+	authStore := NewCoreAuthStore(nil, keyring)
 	if _, err := authStore.List(context.Background()); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("List(nil DB) error = %v, want ErrInvalidInput", err)
 	}
@@ -217,7 +227,7 @@ func TestIntegrationCoreAuthStoreSaveWritesUpstreamAccountAudit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewKeyring: %v", err)
 	}
-	authStore := NewCoreAuthStore(pool, keyring, "")
+	authStore := NewCoreAuthStore(pool, keyring)
 	details := []byte(`{"provider":"openai-compatibility","label":"primary","base_url":"https://example.com/v1"}`)
 	auditCtx := WithUpstreamAccountAudit(ctx, AdminAuditLogEntry{
 		ActorUserID: admin.ID,
