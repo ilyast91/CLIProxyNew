@@ -155,7 +155,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [x] Middleware: session-cookie auth, role-guard, request ID и CORS готовы;
   CORS ограничен явным allow-list `server.cors_allowed_origins` и применяется
   только к management-маршрутам `/api/v1`.
-- [ ] Functional tests (HTTP end-to-end) для всех management-эндпоинтов
+- [ ] Functional tests (HTTP end-to-end) для всех management-эндпоинтов:
+  начато покрытие сквозной цепочки router → session-cookie → role guard;
+  endpoint-specific сценарии остаются
 
 **Acceptance:** все R9-функции работают через REST, OpenAPI спецификация валидируется, drift-check с кодом проходит, `admin_audit_log` покрывает 100% mutating actions.
 
@@ -262,3 +264,5 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   HTTP-маршрутов через публичный `sdkapi.WithMiddleware`.
 - 2026-07-15 — progress: добавлен CORS для browser management API с явным
   allow-list origin, credential-cookie support и корректным preflight.
+- 2026-07-15 — progress: начато сквозное HTTP-покрытие management router:
+  session-cookie и role guard проверены для anonymous, user и admin запросов.
