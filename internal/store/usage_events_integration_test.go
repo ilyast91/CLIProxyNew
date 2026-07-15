@@ -41,6 +41,36 @@ func TestIntegrationUsageEventRepositoryInsertBatch(t *testing.T) {
 	}
 }
 
+func TestIntegrationUsageEventRepositoryTouchAPIKeysLastUsed(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration test требует Docker")
+	}
+
+	ctx := context.Background()
+	pool := newTestPool(t)
+	users := NewUserRepository(pool)
+	keys := NewAPIKeyRepository(pool)
+	repository := NewUsageEventRepository(pool)
+	user, err := users.UpsertFromLDAP(ctx, UpsertUserParams{Username: "usage-last-used", Role: "user"})
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	key, err := keys.Create(ctx, CreateAPIKeyParams{UserID: user.ID, Plaintext: "cpn_usage_last_used_key"})
+	if err != nil {
+		t.Fatalf("create API key: %v", err)
+	}
+	if err := repository.TouchAPIKeysLastUsed(ctx, []int64{key.ID}); err != nil {
+		t.Fatalf("TouchAPIKeysLastUsed() error = %v", err)
+	}
+	listed, err := keys.ListByUser(ctx, user.ID)
+	if err != nil {
+		t.Fatalf("ListByUser() error = %v", err)
+	}
+	if len(listed) != 1 || listed[0].LastUsedAt == nil {
+		t.Fatalf("API keys after touch = %+v", listed)
+	}
+}
+
 func TestIntegrationUsageEventRepositoryGetSummaryByUser(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration test требует Docker")

@@ -46,6 +46,7 @@ type Querier interface {
 	ListUsers(ctx context.Context) ([]ListUsersRow, error)
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
 	SetUserStatus(ctx context.Context, arg SetUserStatusParams) (int64, error)
+	TouchAPIKeysLastUsed(ctx context.Context, ids []int64) error
 	UpsertModelOverride(ctx context.Context, arg UpsertModelOverrideParams) (ModelOverride, error)
 	UpsertModelRegistrySnapshot(ctx context.Context, arg UpsertModelRegistrySnapshotParams) error
 	UpsertStaticUser(ctx context.Context, arg UpsertStaticUserParams) (UpsertStaticUserRow, error)

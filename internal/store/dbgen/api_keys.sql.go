@@ -311,3 +311,15 @@ func (q *Queries) RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int
 	}
 	return result.RowsAffected(), nil
 }
+
+const touchAPIKeysLastUsed = `-- name: TouchAPIKeysLastUsed :exec
+UPDATE api_keys
+SET last_used_at = now()
+WHERE id = ANY($1::bigint[])
+  AND (last_used_at IS NULL OR last_used_at < now() - interval '1 minute')
+`
+
+func (q *Queries) TouchAPIKeysLastUsed(ctx context.Context, ids []int64) error {
+	_, err := q.db.Exec(ctx, touchAPIKeysLastUsed, ids)
+	return err
+}

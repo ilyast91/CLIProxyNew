@@ -3,6 +3,7 @@ package usage
 import (
 	"context"
 	"log/slog"
+	"sort"
 	"sync"
 	"time"
 
@@ -21,6 +22,11 @@ const (
 // BatchEventWriter сохраняет группу usage events одной операцией persistence-слоя.
 type BatchEventWriter interface {
 	InsertBatch(ctx context.Context, events []store.UsageEvent) error
+}
+
+// APIKeyLastUsedUpdater throttled-обновляет время последнего использования API-ключей.
+type APIKeyLastUsedUpdater interface {
+	TouchAPIKeysLastUsed(ctx context.Context, ids []int64) error
 }
 
 // BufferedPlugin асинхронно буферизует usage events перед пакетной записью.
@@ -105,10 +111,14 @@ func (p *BufferedPlugin) run() {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), usageFlushTimeout)
 		err := p.writer.InsertBatch(ctx, batch)
-		cancel()
 		if err != nil {
 			slog.Error("insert usage event batch", "count", len(batch), "error", err)
+		} else if updater, ok := p.writer.(APIKeyLastUsedUpdater); ok {
+			if err := updater.TouchAPIKeysLastUsed(ctx, apiKeyIDs(batch)); err != nil {
+				slog.Error("touch API keys last used", "count", len(batch), "error", err)
+			}
 		}
+		cancel()
 		batch = batch[:0]
 	}
 
@@ -127,6 +137,21 @@ func (p *BufferedPlugin) run() {
 			flush()
 		}
 	}
+}
+
+func apiKeyIDs(events []store.UsageEvent) []int64 {
+	unique := make(map[int64]struct{})
+	for _, event := range events {
+		if event.APIKeyID != nil && *event.APIKeyID > 0 {
+			unique[*event.APIKeyID] = struct{}{}
+		}
+	}
+	ids := make([]int64, 0, len(unique))
+	for id := range unique {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	return ids
 }
 
 func usageEventFromRecord(record sdkusage.Record) (store.UsageEvent, error) {

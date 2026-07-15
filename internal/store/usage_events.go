@@ -63,6 +63,20 @@ func (r *UsageEventRepository) InsertBatch(ctx context.Context, events []UsageEv
 	return nil
 }
 
+// TouchAPIKeysLastUsed обновляет last_used_at не чаще одного раза в минуту.
+func (r *UsageEventRepository) TouchAPIKeysLastUsed(ctx context.Context, ids []int64) error {
+	if r == nil || r.queries == nil {
+		return ErrInvalidInput
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	if err := r.queries.TouchAPIKeysLastUsed(ctx, ids); err != nil {
+		return fmt.Errorf("touch API keys last used: %w", err)
+	}
+	return nil
+}
+
 // GetSummaryByUser возвращает личную статистику за полуоткрытый интервал [from, to).
 func (r *UsageEventRepository) GetSummaryByUser(ctx context.Context, userID int64, from, to time.Time) (UsageSummary, error) {
 	if r == nil || r.queries == nil || userID <= 0 || !from.Before(to) {

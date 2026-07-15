@@ -11,7 +11,7 @@ import (
 )
 
 func TestBufferedPluginFlushesPendingEventsOnClose(t *testing.T) {
-	writer := &batchWriter{batches: make(chan []store.UsageEvent, 1)}
+	writer := &batchWriter{batches: make(chan []store.UsageEvent, 1), touched: make(chan []int64, 1)}
 	plugin := NewBufferedPlugin(writer)
 	plugin.HandleUsage(context.Background(), sdkusage.Record{
 		APIKey: access.EncodePrincipal(42, 17), Provider: "openai", Model: "gpt-5", AuthID: "auth-1",
@@ -31,12 +31,28 @@ func TestBufferedPluginFlushesPendingEventsOnClose(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("pending event was not flushed")
 	}
+	select {
+	case ids := <-writer.touched:
+		if len(ids) != 1 || ids[0] != 17 {
+			t.Fatalf("touched API key IDs = %v, want [17]", ids)
+		}
+	case <-ctx.Done():
+		t.Fatal("API key last_used_at was not touched")
+	}
 }
 
-type batchWriter struct{ batches chan []store.UsageEvent }
+type batchWriter struct {
+	batches chan []store.UsageEvent
+	touched chan []int64
+}
 
 func (w *batchWriter) InsertBatch(_ context.Context, events []store.UsageEvent) error {
 	copyOfEvents := append([]store.UsageEvent(nil), events...)
 	w.batches <- copyOfEvents
+	return nil
+}
+
+func (w *batchWriter) TouchAPIKeysLastUsed(_ context.Context, ids []int64) error {
+	w.touched <- append([]int64(nil), ids...)
 	return nil
 }

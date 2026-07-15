@@ -67,3 +67,9 @@ SELECT
 FROM api_keys
 JOIN users ON users.id = api_keys.user_id
 ORDER BY api_keys.id DESC;
+
+-- name: TouchAPIKeysLastUsed :exec
+UPDATE api_keys
+SET last_used_at = now()
+WHERE id = ANY(sqlc.arg(ids)::bigint[])
+  AND (last_used_at IS NULL OR last_used_at < now() - interval '1 minute');

@@ -172,7 +172,7 @@ namespace `static:` и разрешён только в development/test.
 | `status` | text, not null, default `active` | `active` \| `revoked` |
 | `expires_at` | date, nullable | опц. срок (R2.3) |
 | `scope` | jsonb, nullable | опц. ограничения (R2.3) |
-| `last_used_at` | timestamptz, nullable | обновляется при auth (best-effort, не на каждый запрос — batch) |
+| `last_used_at` | timestamptz, nullable | обновляется после успешного usage batch не чаще раза в минуту |
 
 **Уникальность:** по `(user_id, key_prefix)` нет; поиск при auth — по `key_prefix` затем bcrypt-verify. Индекс на `key_prefix`.
 
