@@ -152,7 +152,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   лимитом тела, проверкой OAuth/email, dedup `provider+email`, SDK-managed ID
   и транзакционным audit при Store.Save
 - [ ] `admin_audit_log` writing на все mutating admin-действия
-- [ ] Middleware: session-cookie auth через active identity source, role-guard (user/admin), CORS, request_id
+- [ ] Middleware: session-cookie auth и role-guard готовы; request ID подключен
+  ко всем HTTP-маршрутам через `sdkapi.WithMiddleware`; остается CORS.
 - [ ] Functional tests (HTTP end-to-end) для всех management-эндпоинтов
 
 **Acceptance:** все R9-функции работают через REST, OpenAPI спецификация валидируется, drift-check с кодом проходит, `admin_audit_log` покрывает 100% mutating actions.
@@ -256,3 +257,5 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   аккаунта, включая public Antigravity credits hint и явный unknown-state.
 - 2026-07-15 — progress: добавлены экспорт и импорт OAuth credential JSON с
   dedup provider/email, аудированием и назначением ID public SDK Manager.
+- 2026-07-15 — progress: добавлен безопасный request ID middleware для всех
+  HTTP-маршрутов через публичный `sdkapi.WithMiddleware`.
