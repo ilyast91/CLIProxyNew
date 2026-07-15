@@ -8,7 +8,7 @@ import (
 )
 
 // RouterConfigurator возвращает конфигуратор management-маршрутов для SDK ядра.
-func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthenticator, logout gin.HandlerFunc, keys *APIKeyHandler, usage *UsageHandler, adminUsers *AdminUserHandler, adminKeys *AdminAPIKeyHandler, oauthSessions *AdminOAuthSessionHandler, providerKeys *AdminProviderKeyHandler, accountTest *AdminAccountTestHandler, models *AdminModelHandler) func(*gin.Engine, *handlers.BaseAPIHandler, *config.Config) {
+func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthenticator, logout gin.HandlerFunc, keys *APIKeyHandler, usage *UsageHandler, adminUsers *AdminUserHandler, adminKeys *AdminAPIKeyHandler, oauthSessions *AdminOAuthSessionHandler, providerKeys *AdminProviderKeyHandler, accountTest *AdminAccountTestHandler, quota *AdminQuotaHandler, models *AdminModelHandler) func(*gin.Engine, *handlers.BaseAPIHandler, *config.Config) {
 	return func(router *gin.Engine, _ *handlers.BaseAPIHandler, _ *config.Config) {
 		if login != nil {
 			router.POST("/api/v1/login", login.Handle)
@@ -27,7 +27,7 @@ func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthentic
 			if usage != nil {
 				management.GET("/me/usage", usage.Get)
 			}
-			if adminUsers != nil || adminKeys != nil || oauthSessions != nil || providerKeys != nil || accountTest != nil || models != nil {
+			if adminUsers != nil || adminKeys != nil || oauthSessions != nil || providerKeys != nil || accountTest != nil || quota != nil || models != nil {
 				admin := management.Group("/admin", RequireRole(identity.RoleAdmin))
 				if adminUsers != nil {
 					admin.GET("/users", adminUsers.List)
@@ -46,6 +46,9 @@ func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthentic
 				}
 				if accountTest != nil {
 					admin.POST("/accounts/:accountID/test", accountTest.Test)
+				}
+				if quota != nil {
+					admin.GET("/accounts/:accountID/quota", quota.Get)
 				}
 				if models != nil {
 					admin.PUT("/models/:modelAlias", models.Upsert)

@@ -144,7 +144,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [x] R9.A.2 batch API-keys провайдеров: `POST /api/v1/admin/providers/keys`
   регистрирует до 100 credentials через public `coreauth.Manager.Register`,
   шифрует их в Store и пишет audit в той же транзакции; ответ не содержит ключей
-- [ ] R9.A.4 просмотр квоты (из Auth.Quota / AntigravityCreditsHint)
+- [x] R9.A.4 просмотр квоты: `GET /api/v1/admin/accounts/{accountID}/quota`
+  возвращает `Auth.Quota`, expiry и `AntigravityCreditsHint`; `unknown=true`
+  явно обозначает отсутствие реактивных runtime-данных, без inference-вызова
 - [x] R9.A.6 allow-list моделей + model-mapping (через model_overrides; admin read/upsert/delete с audit, OpenAPI и HTTP tests)
 - [ ] R9.A.7 export/import OAuth JSON (dedup provider+email)
 - [ ] `admin_audit_log` writing на все mutating admin-действия
@@ -248,3 +250,5 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   public SDK Manager с encrypted Store, транзакционным admin audit и OpenAPI.
 - 2026-07-15 — progress: добавлена проверка upstream-аккаунтов без inference:
   OAuth refresh и API-key metadata probes через публичный ProviderExecutor.
+- 2026-07-15 — progress: добавлен read-only просмотр runtime-квоты upstream
+  аккаунта, включая public Antigravity credits hint и явный unknown-state.

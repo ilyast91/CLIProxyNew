@@ -440,9 +440,44 @@ components:
         next_recover_at:
           type: string
           format: date-time
+        backoff_level:
+          type: integer
+          minimum: 0
         unknown:
           type: boolean
           description: Квота ещё не наблюдалась в inference-вызовах.
+    AntigravityCredits:
+      type: object
+      required: [known, available]
+      properties:
+        known:
+          type: boolean
+        available:
+          type: boolean
+        credit_amount:
+          type: number
+        min_credit_amount:
+          type: number
+        paid_tier_id:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+    AccountQuotaResponse:
+      type: object
+      required: [account_id, provider, quota]
+      properties:
+        account_id:
+          type: string
+        provider:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        quota:
+          $ref: "#/components/schemas/UpstreamQuota"
+        antigravity_credits:
+          $ref: "#/components/schemas/AntigravityCredits"
     AccountTestResponse:
       type: object
       required: [valid, method, quota]
@@ -876,6 +911,40 @@ paths:
                 $ref: "#/components/schemas/AccountTestResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Upstream account не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/admin/accounts/{accountID}/quota:
+    get:
+      tags: [Admin]
+      summary: Просмотреть runtime-квоту upstream аккаунта
+      description: Возвращает реактивный quota snapshot ядра и, для Antigravity, последний public credits hint. `unknown=true` означает отсутствие наблюдавшихся inference quota-данных, а не доступность квоты.
+      operationId: getUpstreamAccountQuota
+      security:
+        - SessionCookie: []
+      parameters:
+        - name: accountID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime-квота upstream аккаунта
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountQuotaResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
