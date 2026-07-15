@@ -35,7 +35,7 @@ type adminModelResponse struct {
 	Config        json.RawMessage `json:"config"`
 }
 
-// Upsert сохраняет allow-list/model mapping и audit log.
+// Upsert сохраняет allow-list/desired model mapping и audit log.
 func (h *AdminModelHandler) Upsert(c *gin.Context) {
 	actor, ok := currentUserID(c)
 	if !ok {
@@ -84,7 +84,7 @@ func (h *AdminModelHandler) Delete(c *gin.Context) {
 // NewAdminModelHandler создаёт handler model overrides.
 func NewAdminModelHandler(s adminModelStore) *AdminModelHandler { return &AdminModelHandler{store: s} }
 
-// List возвращает allow-list и mapping моделей без обращения к SDK реестру.
+// List возвращает allow-list и desired mapping моделей без обращения к SDK реестру.
 func (h *AdminModelHandler) List(c *gin.Context) {
 	if h == nil || h.store == nil {
 		writeError(c, http.StatusInternalServerError, "model override service is unavailable")

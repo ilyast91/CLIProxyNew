@@ -105,8 +105,10 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 **Цель:** 7 контрактов расширения ядра, wiring, запуск сервиса.
 
 - [x] `sdkAuth.RegisterTokenStore(store)` вызывается ДО Builder (в `main.go`)
-- [ ] `internal/auth/selector` — allow-list, provider filter и fill-first готовы;
-  alias → upstream model mapping остаются
+- [x] `internal/auth/selector` — fail-closed TTL-кэш (5с) allow-list, provider
+  filter и fill-first готовы. `upstream_model` хранится как desired mapping;
+  runtime rewrite заблокирован до публичного SDK hook (R12 запрещает обход через
+  `internal/*`).
 - [ ] `internal/usage` — Plugin декодирует versioned `record.APIKey` и пишет
   usage_events; остаются async bulk INSERT и throttled update api_keys.last_used_at
 - [ ] `internal/usage` — `coreauth.Hook` (OnResult для доп. наблюдения)
@@ -150,7 +152,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [x] R9.A.4 просмотр квоты: `GET /api/v1/admin/accounts/{accountID}/quota`
   возвращает `Auth.Quota`, expiry и `AntigravityCreditsHint`; `unknown=true`
   явно обозначает отсутствие реактивных runtime-данных, без inference-вызова
-- [x] R9.A.6 allow-list моделей + model-mapping (через model_overrides; admin read/upsert/delete с audit, OpenAPI и HTTP tests)
+- [x] R9.A.6 allow-list моделей + provider selection (через model_overrides;
+  admin read/upsert/delete с audit, OpenAPI и HTTP tests). `upstream_model`
+  хранится как desired mapping до публичного SDK hook для downstream rewrite.
 - [x] R9.A.7 export/import OAuth JSON: export attachment с audit; import с
   лимитом тела, проверкой OAuth/email, dedup `provider+email`, SDK-managed ID
   и транзакционным audit при Store.Save

@@ -220,18 +220,22 @@ namespace `static:` и разрешён только в development/test.
 `upstream_accounts(id)` — тоже `text`.
 
 ### `model_overrides` (R9.A.6)
-Allow-list + model-mapping, хранимые админом.
+Allow-list, provider selection и desired model-mapping, хранимые админом.
 
 | Поле | Тип | Назначение |
 |------|-----|-----------|
 | `id` | bigint identity PK | |
 | `provider` | text, not null | |
 | `model_alias` | text, not null, unique | как клиент видит (напр. "gpt-4") |
-| `upstream_model` | text, not null | реальный upstream-model |
+| `upstream_model` | text, not null | желаемый upstream-model; runtime rewrite ожидает публичный SDK hook |
 | `enabled` | boolean, not null, default true | |
 | `config` | jsonb, nullable | доп. настройки |
 
-**Применение:** в `Selector.Pick` и в access к реестру моделей. Если `model_overrides` пуст → все модели ядра разрешены.
+**Применение:** `Selector.Pick` через TTL-кэш применяет allow-list и provider
+enabled override; затем ядро делает fill-first выбор. Если `model_overrides`
+пуст → все модели ядра разрешены. `upstream_model` уже хранится для
+административного desired mapping, но не меняет downstream request до
+публичного SDK hook (R12 запрещает обход через `internal/*`).
 
 ### `model_registry_snapshots` (ADR-9, контракт 6)
 Зеркало полного списка моделей, зарегистрированного одним upstream-клиентом в

@@ -1085,7 +1085,7 @@ paths:
     get:
       tags: [Admin]
       summary: Список model overrides
-      description: Возвращает allow-list и mapping моделей, применяемые selector'ом.
+      description: Возвращает allow-list и provider selection metadata моделей. Поле upstream_model хранит desired mapping до появления публичного SDK hook для rewrite downstream model.
       operationId: listModelOverrides
       security: [{SessionCookie: []}]
       responses:

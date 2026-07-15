@@ -71,8 +71,14 @@ type Selector interface {
 }
 ```
 
-Реализация: `internal/auth/selector`. Внутри — фильтр по user-группам/квотам,
-model-mapping (round-robin/fill-first/stick), rate-limit проверка.
+Реализация: `internal/auth/selector`. На первой версии — TTL-кэш (5с)
+allow-list, provider filter и `FillFirstSelector` ядра. При ошибке обновления
+просроченного кэша запрос отклоняется. `Selector.Pick` не может переписать
+downstream model: публичный контракт получает model значением и возвращает
+только `*Auth`. Поэтому `upstream_model` сохраняется как desired mapping, а
+runtime rewrite ожидает отдельного публичного SDK hook; обход через
+`internal/*` запрещён R12. User-группы, user rate-limit и альтернативные
+стратегии выбора не входят в scope v1.
 
 ### Контракт 3 — Аналитика: `coreauth.Hook` + `usage.Plugin`
 

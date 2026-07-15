@@ -7,7 +7,7 @@ import (
 	"github.com/ilyast91/CLIProxyNew/internal/store/dbgen"
 )
 
-// ModelOverrideRepository хранит allow-list и mapping клиентских моделей.
+// ModelOverrideRepository хранит allow-list и desired mapping клиентских моделей.
 type ModelOverrideRepository struct {
 	queries *dbgen.Queries
 }

@@ -304,10 +304,15 @@ sequenceDiagram
 ### `internal/auth/selector` — coreauth.Selector (ADR-9)
 Реализует `coreauth.Selector`:
 - `Pick(ctx, provider, model, opts, auths) (*Auth, error)`:
-  1. применить `model_overrides` (cache): если alias → upstream_model;
-  2. отфильтровать `auths` по allow-list моделей (R9.A.6);
-  3. round-robin / fill-first выбор;
+  1. загрузить `model_overrides` через fail-closed TTL-кэш (5с);
+  2. применить allow-list и provider из enabled override;
+  3. отфильтровать `auths` по provider и делегировать fill-first выбор ядру;
   4. вернуть выбранный `*Auth`.
+
+`Selector.Pick` получает model только значением и не имеет публичного механизма
+переписать downstream request. Поэтому `upstream_model` сохраняется как desired
+mapping, но runtime rewrite блокирован до появления публичного SDK hook; обход
+через `internal/*` запрещён R12.
 
 ### `internal/auth/identity` (R1)
 Внутренний `IdentityProvider` изолирует проверку username/password от HTTP и

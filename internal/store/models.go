@@ -98,7 +98,7 @@ type CreateSessionParams struct {
 	CreatedIP *netip.Addr
 }
 
-// ModelOverride задаёт разрешённую модель и её upstream mapping.
+// ModelOverride задаёт разрешённую модель и желаемый upstream mapping.
 type ModelOverride struct {
 	ID            int64
 	Provider      string
