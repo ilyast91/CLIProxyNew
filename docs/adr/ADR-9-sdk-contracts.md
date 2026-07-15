@@ -131,17 +131,16 @@ func RegisterProvider(typ string, provider Provider)
 type WatcherFactory func(configPath, authDir string, reload func(*config.Config)) (*WatcherWrapper, error)
 ```
 
-Реализация: `internal/watcher` — **poll БД** (не файловая система). Пушит
-`watcher.AuthUpdate`-обновления в очередь ядра через `SetAuthUpdateQueue`.
-Структура `watcher.AuthUpdate` (из `internal/watcher/watcher.go`):
-```go
-type AuthUpdate struct {
-    Action AuthUpdateAction   // "add" | "modify" | "delete"
-    ID     string
-    Auth   *coreauth.Auth
-}
-```
-В multi-replica poller работает только на лидере (advisory lock, ADR-7).
+Реализация: `internal/watcher.NoopFactory` отключает file-backed watcher SDK,
+так как source credentials — Postgres. `CoreAuthStore.Save/Delete` в одной
+транзакции увеличивает `runtime_revisions`, а `RevisionPoller` инициирует
+controlled restart остальных реплик, чтобы они загрузили auth заново.
+
+`WatcherWrapper` публично показывает методы очереди, но принимает
+`watcher.AuthUpdate` из upstream `internal/watcher`; бизнес-слой не импортирует
+этот тип по R12 и не может безопасно сделать DB-push. Отдельно
+`LeaderRunner` удерживает session-level Postgres advisory lock для scheduled
+jobs; в v1 лидер очищает истёкшие sessions.
 
 ### Контракт 5б (опциональный) — CooldownStateStore
 
@@ -209,11 +208,10 @@ admin/front-роутов.
 ## Следствия для других требований
 
 - **R7 (scheduler/watcher):** ядро само делает `StartAutoRefresh(15m)` с
-  min-heap и до 16 воркеров. Бизнес-слой не пишет refresh-логику — он только
-  (а) реализует `Store` (persist результата), (б) через advisory lock
-  гарантирует, что watcher-poller БД работает на одной реплике. Открытые
-  вопросы R7 (интервалы, retry/backoff) → уточняются у ядерных настроек
-  `StartAutoRefresh` и `RefreshEvaluator`.
+  min-heap и до 16 воркеров. Бизнес-слой не пишет refresh-логику: он
+  реализует Store (persist результата), controlled restart по DB revision и
+  advisory leader для собственных scheduled jobs. Инкрементальный DB-push auth
+  в ядро ждёт публичный SDK тип вместо `internal/watcher.AuthUpdate`.
   **R10:** `StartAutoRefresh` вызывает `ProviderExecutor.Refresh` напрямую по
   `auth.ID`, но использует тот же system proxy процесса, что и остальные
   HTTP-вызовы; `Auth.ProxyURL` очищается business-слоем. См. ADR-10.

@@ -114,10 +114,11 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   flush'ится при shutdown. После успешного batch обновляет уникальные
   `api_keys.last_used_at` не чаще раза в минуту.
 - [ ] `internal/usage` — `coreauth.Hook` (OnResult для доп. наблюдения)
-- [ ] `internal/watcher` — вместо недоступного публичного WatcherWrapper готов
-  DB revision poller + controlled restart; transactionally increment revision
-  при Store Save/Delete; SDK file watcher заменён public no-op factory;
-  management-изменения и k8s deployment wiring остаются
+- [x] `internal/watcher` — SDK file watcher заменён public no-op factory;
+  DB revision poller делает controlled restart после transactionally increased
+  revision в Store.Save/Delete. Advisory leader на отдельном Postgres connection
+  запускает cleanup истёкших sessions; integration test проверяет lock handoff.
+  Прямой DB-push `AuthUpdate` ждёт публичный SDK тип (R12).
 - [x] `internal/modelregistry` — `ModelRegistryHook`: через публичный
   `cliproxy.SetGlobalModelRegistryHook` зеркалирует полный JSON snapshot в
   Postgres по `(provider, client_id)`; регистрация заменяет snapshot, снятие

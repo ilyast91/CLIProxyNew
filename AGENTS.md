@@ -51,7 +51,7 @@ internal/        — бизнес-логика (неэкспортируемая
   store/           — репозитории (pgx + sqlc): users, api_keys, auths,
                      analytics, admin_audit_log, model_overrides
   usage/           — usage.Plugin: аналитика запросов (→ Postgres)
-  watcher/         — WatcherFactory: poll БД + leader election (advisory lock)
+  watcher/         — WatcherFactory no-op + DB revision restart + advisory leader jobs
 db/migrations/   — SQL-миграции (golang-migrate)
 docs/            — требования (R1–R12), ADR-9/ADR-10, дизайн
 ```

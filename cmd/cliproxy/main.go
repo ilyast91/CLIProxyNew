@@ -116,6 +116,12 @@ func run() error {
 	go revisionPoller.Run(ctx)
 	users := store.NewUserRepository(dbPool)
 	sessions := store.NewSessionRepository(dbPool)
+	sessionCleanup := watcher.NewSessionCleanup(sessions, time.Minute)
+	sessionLeader := watcher.NewLeaderRunner(
+		watcher.NewPostgresAdvisoryLocker(dbPool, watcher.SessionCleanupLock),
+		3*time.Second,
+	)
+	go sessionLeader.Run(ctx, sessionCleanup.Run)
 	loginService := identity.NewLoginService(identityProvider, cfg.Auth.Mode, users, sessions)
 	sessionAuthenticator := identity.NewSessionAuthenticator(sessions, cfg.Auth.Mode)
 	sdkCfg, err := cfg.SDKConfig()
@@ -145,6 +151,7 @@ func run() error {
 	slog.Info("credential store registered", "key_version", cfg.Encryption.KeyVersion)
 	slog.Info("API key provider registered", "identity_source", cfg.Auth.Mode)
 	slog.Info("runtime revision poller started", "revision", store.UpstreamAccountsRevision)
+	slog.Info("session cleanup leader election started", "lock_id", watcher.SessionCleanupLock)
 
 	slog.Info("SDK service ready")
 	if err := service.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {

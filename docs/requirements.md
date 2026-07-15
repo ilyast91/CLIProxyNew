@@ -287,8 +287,10 @@
     — в ядре);
   - бизнес-слой НЕ пишет refresh-логику — он реализует `coreauth.Store`, и ядро
     само зовёт `Store.Save` после refresh;
-  - `WatcherFactory` бизнес-слоя пушит `coreauth.Auth`-обновления в очередь ядра;
-    в multi-replica poller БД работает только на лидере (advisory lock).
+  - `WatcherFactory` отключает file-backed source: изменения credentials
+    синхронизируются через Postgres revision и controlled restart. Прямой
+    DB-push в SDK-очередь ждёт публичный тип AuthUpdate, поскольку текущий
+    находится в upstream `internal/*` (R12).
 - ❓ **Открыто:** точные настройки `StartAutoRefresh` (интервал по умолчанию 15
   мин, max-concurrency=16, `RefreshEvaluator`) — зафиксировать при
   имплементации watcher'а; retry/backoff — на стороне ядра.

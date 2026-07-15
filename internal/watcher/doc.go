@@ -1,8 +1,7 @@
 // Package watcher реализует контракт WatcherFactory (ADR-9, контракт 5) —
-// poll БД (вместо файловой системы) + leader election (advisory lock, R7).
+// отключает file-backed watcher SDK и синхронизирует auth через DB revision
+// с controlled restart.
 //
-// Пушит watcher.AuthUpdate-обновления в очередь ядра. В multi-replica
-// poller работает только на лидере.
-//
-// Имплементация: Фаза 3 (Contracts ADR-9).
+// Для scheduled jobs реализован advisory leader election; первый job очищает
+// истёкшие sessions. Upstream AuthUpdate недоступен без импорта internal/*.
 package watcher
