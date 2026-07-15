@@ -81,7 +81,7 @@ SLA на накладные расходы бизнес-слоя (без upstrea
 
 | Требование | Реализация |
 |------------|-----------|
-| Структурные логи | `slog` JSON; поля `request_id`, `user_id`, `provider`, `model`, `auth_id` |
+| Структурные логи | `slog` JSON с recursive redaction password/secret/token/credential/API-key attrs; поля `request_id`, `user_id`, `provider`, `model`, `auth_id` |
 | Метрики | Prometheus `/metrics`: HTTP request_count/latency, upstream results, db_pool_stats, usage_queue_depth; cache/refresh hooks добавляются по мере реализации |
 | Трейсы | OpenTelemetry; span на inference + access.Provider + Selector + Execute; trace-context прокидывается |
 | Health | `/healthz` (liveness = процесс жив), `/readyz` (readiness = DB ping) |

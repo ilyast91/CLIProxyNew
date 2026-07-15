@@ -203,7 +203,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [ ] Prometheus: cache hit/miss и специализированные refresh success/failure
   после появления соответствующих business hooks
 - [ ] OpenTelemetry traces: span на inference + access.Provider + Selector + Execute; trace-context propagation
-- [ ] `slog` structured JSON + redaction (никогда не логировать credentials/tokens/passwords)
+- [x] `slog` structured JSON + redaction: глобальный handler скрывает attrs с
+  password/secret/token/credential/authorization/API-key, включая группы и
+  `WithAttrs`; ошибки и request logging расширяются отдельными инкрементами
 - [x] `/healthz` (liveness) и `/readyz` (readiness = PostgreSQL `Ping` с
   timeout); системный configurator не пропускает probes через management auth
   и не раскрывает ошибку БД в ответе

@@ -23,6 +23,7 @@ import (
 	"github.com/ilyast91/CLIProxyNew/internal/httpapi"
 	"github.com/ilyast91/CLIProxyNew/internal/metrics"
 	"github.com/ilyast91/CLIProxyNew/internal/modelregistry"
+	"github.com/ilyast91/CLIProxyNew/internal/observability"
 	openapidoc "github.com/ilyast91/CLIProxyNew/internal/openapi"
 	"github.com/ilyast91/CLIProxyNew/internal/security"
 	"github.com/ilyast91/CLIProxyNew/internal/store"
@@ -70,9 +71,9 @@ func run() error {
 		return fmt.Errorf("create identity provider: %w", err)
 	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	logger := slog.New(observability.NewRedactingHandler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
-	}))
+	})))
 	slog.SetDefault(logger)
 
 	slog.Info("starting",
