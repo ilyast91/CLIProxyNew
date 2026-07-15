@@ -47,6 +47,26 @@ func TestSystemRouterConfiguratorReportsReadinessFromDatabasePing(t *testing.T) 
 	}
 }
 
+func TestOpenAPIRouterConfiguratorServesEmbeddedDocument(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	document := []byte(`{"openapi":"3.1.0"}`)
+	OpenAPIRouterConfigurator(document)(router, nil, nil)
+
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/openapi.json", nil))
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("openapi status=%d body=%q", response.Code, response.Body.String())
+	}
+	if contentType := response.Header().Get("Content-Type"); contentType != "application/json; charset=utf-8" {
+		t.Fatalf("content type=%q", contentType)
+	}
+	if got := response.Body.String(); got != string(document) {
+		t.Fatalf("document=%q, want %q", got, document)
+	}
+}
+
 type successfulPinger struct{}
 
 func (successfulPinger) Ping(context.Context) error { return nil }

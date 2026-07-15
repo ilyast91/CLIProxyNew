@@ -204,7 +204,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [x] `/healthz` (liveness) и `/readyz` (readiness = PostgreSQL `Ping` с
   timeout); системный configurator не пропускает probes через management auth
   и не раскрывает ошибку БД в ответе
-- [ ] `/openapi.json` (serve spec) + опц. `/docs` (Swagger UI / Redoc)
+- [x] `/openapi.json`: встроенный JSON генерируется из `openapi.yaml` через
+  `go generate ./internal/openapi`; CI пересоздаёт документ и проверяет drift
+- [ ] `/docs` (опц. Swagger UI / Redoc)
 - [ ] Dockerfile (multi-stage: build → scratch/distroless)
 - [ ] k8s manifests: Deployment (≥2 replicas, HPA), ConfigMap (config.yaml), Secret (env), Service, Ingress
 - [ ] Runbook dev/test: переключение `auth.mode` только через scale-to-zero /

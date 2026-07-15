@@ -118,6 +118,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -128,3 +134,8 @@ jobs:
 
       - name: Lint OpenAPI спецификацию
         run: spectral lint -r .spectral.yaml openapi.yaml
+
+      - name: Check embedded OpenAPI document
+        run: |
+          go generate ./internal/openapi
+          git diff --exit-code -- internal/openapi/openapi.json
