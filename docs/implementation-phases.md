@@ -137,7 +137,10 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   - [x] `/api/v1/me/usage` (R9.U.3; totals, модели и API-ключи за период)
   - [x] `/api/v1/admin/users`, `/api/v1/admin/keys` (R9.A.3; users list/status + all-keys)
 - [ ] R9.A.1 OAuth flow: `internal/auth/oauth` (FlowManager) — callback-flow (Codex/Claude/Antigravity) + device-flow (Kimi/xAI), сессии в oauth_sessions, `Store.Save` после exchange (Postgres lifecycle, typed admin list/get/cancel и tests готовы; provider adapters pending)
-- [ ] R9.A.5 testing: `internal/auth/testing` (Checker) — Refresh для OAuth, HttpRequest для API-key
+- [x] R9.A.5 testing: `internal/auth/testing` (Checker) — OAuth через
+  `Refresh` с persistence обновлённого Auth, API-key через `HttpRequest` к
+  provider metadata endpoint; `POST /api/v1/admin/accounts/{accountID}/test`
+  не вызывает inference/CountTokens
 - [x] R9.A.2 batch API-keys провайдеров: `POST /api/v1/admin/providers/keys`
   регистрирует до 100 credentials через public `coreauth.Manager.Register`,
   шифрует их в Store и пишет audit в той же транзакции; ответ не содержит ключей
@@ -243,3 +246,5 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   revisions, controlled restart и versioned principal adapter для analytics.
 - 2026-07-15 — progress: добавлена batch-регистрация upstream API-keys через
   public SDK Manager с encrypted Store, транзакционным admin audit и OpenAPI.
+- 2026-07-15 — progress: добавлена проверка upstream-аккаунтов без inference:
+  OAuth refresh и API-key metadata probes через публичный ProviderExecutor.

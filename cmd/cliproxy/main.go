@@ -18,6 +18,7 @@ import (
 	"github.com/ilyast91/CLIProxyNew/internal/auth/identity"
 	ldapidentity "github.com/ilyast91/CLIProxyNew/internal/auth/ldap"
 	"github.com/ilyast91/CLIProxyNew/internal/auth/selector"
+	authtesting "github.com/ilyast91/CLIProxyNew/internal/auth/testing"
 	"github.com/ilyast91/CLIProxyNew/internal/config"
 	"github.com/ilyast91/CLIProxyNew/internal/httpapi"
 	"github.com/ilyast91/CLIProxyNew/internal/security"
@@ -125,7 +126,7 @@ func run() error {
 		WithConfigPath(configPath).
 		WithCoreAuthManager(coreManager).
 		WithWatcherFactory(watcher.NoopFactory).
-		WithServerOptions(sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction), sessionAuthenticator, httpapi.LogoutHandler(sessions, cfg.Auth.Mode), httpapi.NewAPIKeyHandler(store.NewAPIKeyRepository(dbPool)), httpapi.NewUsageHandler(store.NewUsageEventRepository(dbPool)), httpapi.NewAdminUserHandler(store.NewAdminUserRepository(dbPool)), httpapi.NewAdminAPIKeyHandler(store.NewAPIKeyRepository(dbPool)), httpapi.NewAdminOAuthSessionHandler(store.NewOAuthSessionRepository(dbPool)), httpapi.NewAdminProviderKeyHandler(coreManager), httpapi.NewAdminModelHandler(store.NewAdminModelRepository(dbPool))))).
+		WithServerOptions(sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction), sessionAuthenticator, httpapi.LogoutHandler(sessions, cfg.Auth.Mode), httpapi.NewAPIKeyHandler(store.NewAPIKeyRepository(dbPool)), httpapi.NewUsageHandler(store.NewUsageEventRepository(dbPool)), httpapi.NewAdminUserHandler(store.NewAdminUserRepository(dbPool)), httpapi.NewAdminAPIKeyHandler(store.NewAPIKeyRepository(dbPool)), httpapi.NewAdminOAuthSessionHandler(store.NewOAuthSessionRepository(dbPool)), httpapi.NewAdminProviderKeyHandler(coreManager), httpapi.NewAdminAccountTestHandler(authtesting.NewChecker(coreManager)), httpapi.NewAdminModelHandler(store.NewAdminModelRepository(dbPool))))).
 		Build()
 	if err != nil {
 		return fmt.Errorf("build SDK service: %w", err)

@@ -429,6 +429,44 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ProviderAPIKey"
+    UpstreamQuota:
+      type: object
+      required: [exceeded, unknown]
+      properties:
+        exceeded:
+          type: boolean
+        reason:
+          type: string
+        next_recover_at:
+          type: string
+          format: date-time
+        unknown:
+          type: boolean
+          description: Квота ещё не наблюдалась в inference-вызовах.
+    AccountTestResponse:
+      type: object
+      required: [valid, method, quota]
+      properties:
+        valid:
+          type: boolean
+        method:
+          type: string
+          enum: [refresh, http_probe]
+        status_code:
+          type: integer
+          minimum: 100
+          maximum: 599
+        expires_at:
+          type: string
+          format: date-time
+        last_refreshed_at:
+          type: string
+          format: date-time
+        quota:
+          $ref: "#/components/schemas/UpstreamQuota"
+        error:
+          type: string
+          description: Безопасное описание невалидной credential без upstream response body.
 
 # ───────────────────────────────────────────────────────────────────────────
 # Системные роуты (Ф0/Ф6).
@@ -812,6 +850,42 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/admin/accounts/{accountID}/test:
+    post:
+      tags: [Admin]
+      summary: Проверить upstream credential
+      description: Проверяет OAuth через refresh-token либо API-key через metadata endpoint провайдера. Inference и CountTokens не вызываются; невалидная credential возвращает `200` с `valid=false`.
+      operationId: testUpstreamAccount
+      security:
+        - SessionCookie: []
+      parameters:
+        - name: accountID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Результат проверки
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountTestResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Upstream account не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           $ref: "#/components/responses/InternalError"
 
