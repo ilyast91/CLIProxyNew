@@ -154,6 +154,7 @@ type fakeAPIKeyStore struct {
 	keys []store.APIKey
 	err  error
 
+	listUserID   int64
 	params       store.CreateAPIKeyParams
 	created      store.APIKey
 	createErr    error
@@ -163,7 +164,8 @@ type fakeAPIKeyStore struct {
 	revokeErr    error
 }
 
-func (s *fakeAPIKeyStore) ListByUser(context.Context, int64) ([]store.APIKey, error) {
+func (s *fakeAPIKeyStore) ListByUser(_ context.Context, userID int64) ([]store.APIKey, error) {
+	s.listUserID = userID
 	return s.keys, s.err
 }
 

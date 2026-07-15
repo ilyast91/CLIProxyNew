@@ -60,6 +60,34 @@ func TestRouterConfiguratorEnforcesManagementSessionAndRole(t *testing.T) {
 	}
 }
 
+func TestRouterConfiguratorPassesSessionPrincipalToMutatingManagementHandlers(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	sessions := identity.NewSessionAuthenticator(routerSessionLookup{sessions: map[string]store.Session{
+		"user-token":  {UserID: 7, Role: identity.RoleUser},
+		"admin-token": {UserID: 42, Role: identity.RoleAdmin},
+	}}, identity.SourceLDAP)
+	keys := &fakeAPIKeyStore{keys: []store.APIKey{{ID: 10, UserID: 7, Prefix: "cpn_live", Status: "active"}}}
+	adminUsers := &fakeAdminUserStore{}
+	RouterConfigurator(nil, sessions, nil, NewAPIKeyHandler(keys), nil, NewAdminUserHandler(adminUsers), nil, nil, nil, nil, nil, nil, nil)(router, nil, nil)
+
+	if response := managementRequest(router, http.MethodGet, "/api/v1/me/keys", "user-token"); response.Code != http.StatusOK || keys.listUserID != 7 {
+		t.Fatalf("user keys status=%d list user=%d", response.Code, keys.listUserID)
+	}
+	if response := managementRequest(router, http.MethodDelete, "/api/v1/me/keys/10", "user-token"); response.Code != http.StatusNoContent || keys.revokeUserID != 7 || keys.revokeKeyID != 10 {
+		t.Fatalf("revoke status=%d user=%d key=%d", response.Code, keys.revokeUserID, keys.revokeKeyID)
+	}
+
+	request := httptest.NewRequest(http.MethodPatch, "/api/v1/admin/users/7", strings.NewReader(`{"status":"blocked"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.AddCookie(&http.Cookie{Name: identity.SessionCookieName, Value: "admin-token"})
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusNoContent || adminUsers.actorUserID != 42 || adminUsers.targetUserID != 7 || adminUsers.status != "blocked" {
+		t.Fatalf("admin status=%d actor=%d target=%d state=%q", response.Code, adminUsers.actorUserID, adminUsers.targetUserID, adminUsers.status)
+	}
+}
+
 func managementRequest(router http.Handler, method, path, token string) *httptest.ResponseRecorder {
 	request := httptest.NewRequest(method, path, nil)
 	if token != "" {

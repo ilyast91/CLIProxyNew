@@ -156,8 +156,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   CORS ограничен явным allow-list `server.cors_allowed_origins` и применяется
   только к management-маршрутам `/api/v1`.
 - [ ] Functional tests (HTTP end-to-end) для всех management-эндпоинтов:
-  начато покрытие сквозной цепочки router → session-cookie → role guard;
-  endpoint-specific сценарии остаются
+  покрыты router → session-cookie → role guard, user API-key read/revoke и
+  admin status mutation; endpoint-specific сценарии остальных маршрутов остаются
 
 **Acceptance:** все R9-функции работают через REST, OpenAPI спецификация валидируется, drift-check с кодом проходит, `admin_audit_log` покрывает 100% mutating actions.
 
@@ -270,3 +270,5 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   URL заменена system proxy policy.
 - 2026-07-15 — change: R10 переделан на system proxy: удалены per-call-type
   настройки, `Auth.ProxyURL` очищается, используются HTTP_PROXY/HTTPS_PROXY/NO_PROXY.
+- 2026-07-15 — progress: сквозное HTTP-покрытие management расширено на
+  user API-key read/revoke и admin user-status mutation через session-cookie.
