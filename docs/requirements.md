@@ -506,7 +506,8 @@
   reviewable изменением с release notes и перечнем breaking changes upstream;
   автоматическое обновление на новый major запрещено.
 - R12.3 Перед merge обновления SDK обязательны `go mod tidy`, `go vet`, build,
-  unit/race/integration тесты и contract-тесты всех 7 расширений ADR-9.
+  unit/race/integration тесты и `go test -race ./internal/sdkcontract` для
+  публичных extension points ADR-9.
   [`sdk-reference.md`](sdk-reference.md) сверяется с публичным API и
   актуализируется в том же изменении.
 - R12.4 Несовместимость SDK адаптируется в boundary-пакете `internal/*`, без

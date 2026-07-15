@@ -132,7 +132,7 @@ graph TB
 |---------|---------------|-------------|---------|
 | **Unit** | бизнес-логика `internal/*` (auth/identity, auth/ldap, selector, security, usage, oauth, testing) | `testing`, `testify` | coverage ≥ 70% |
 | **Contract** | 7 контрактов ADR-9 (Store, Selector, Hook, usage.Plugin, access.Provider, WatcherFactory, ModelRegistryHook) — mock ядра через интерфейсы | `testify/mock`, `gomock` | 100% контрактов покрыты |
-| **SDK compatibility** | Обновление `CLIProxyAPI/v7`: публичные `sdk/*` вызовы, contract-тесты и wiring | `go test`, `go vet`, `go build` | merge запрещён при incompatibility |
+| **SDK compatibility** | Обновление `CLIProxyAPI/v7`: публичные `sdk/*` вызовы, `internal/sdkcontract` и wiring | `go test -race ./internal/sdkcontract`, `go vet`, `go build` | merge запрещён при incompatibility |
 | **Integration** | store ↔ реальная PG (testcontainers), static/LDAP source isolation, OAuth-flow ↔ mock провайдера, миграции `up`/`down` | `testcontainers-go`, `dockertest` | миграции идемпотентны |
 | **Functional / E2E** | HTTP API энд-ту-энд (login → API-key → inference → analytics), load-тесты по SLA §2.1 | `httptest`, `vegeta`/`k6` | SLA-метрики не regress'иты |
 

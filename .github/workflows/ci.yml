@@ -1,8 +1,8 @@
 # CI pipeline для CLIProxyNew (architecture-principles.md §4 — тест-пирамида).
 #
 # Запускается на PR и push в main. Порядок: static checks → build → test.
-# По мере роста фаз добавятся: integration tests (testcontainers),
-# coverage gate (≥ 70%), OpenAPI lint (spectral), contract tests.
+# По мере роста фаз добавятся: integration tests (testcontainers) и
+# coverage gate (≥ 70%). OpenAPI lint и SDK contract gate уже включены.
 #
 # Ключевой принцип: build/package происходит ТОЛЬКО если все проверки прошли.
 
@@ -92,6 +92,10 @@ jobs:
 
       - name: Download dependencies
         run: go mod download
+
+      - name: SDK public contract gate
+        # Проверяет все публичные extension points ADR-9 без импортов upstream internal/*.
+        run: go test -race ./internal/sdkcontract
 
       - name: Run tests (short, race detector)
         # -short: пропускает integration-тесты (testcontainers) — они в отдельной job.

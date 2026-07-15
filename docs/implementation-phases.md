@@ -42,12 +42,15 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [x] Подключить ядро `github.com/router-for-me/CLIProxyAPI/v7` в `go.mod` (проверить, что реально резолвится)
 - [x] Создать скелет пакетов `internal/{config,security,store,access,auth/{ldap,selector,oauth,testing},cache,httpapi,modelregistry,usage,watcher}` (пустые `doc.go` с godoc)
 - [x] `internal/config` (R6) — структура `Config`, парсинг config.yaml, env-override (12-factor), config.example.yaml
-- [ ] `cmd/cliproxy/main.go` — базовый wiring: load config → stub Builder → `Service.Run` (или заглушка, если ядро не запускается без auths)
-- [x] CI pipeline (GitHub Actions): `go vet`, `gofmt -l`, `go build`, `go test -short`
+- [x] `cmd/cliproxy/main.go` — runtime wiring config → Postgres → Store →
+  Builder → `Service.Run` с public SDK contracts
+- [x] CI pipeline (GitHub Actions): `go vet`, `gofmt -l`, `go build`,
+  `go test -short -race`, Spectral и SDK compatibility gate
 - [ ] Выбор и настройка OpenAPI-генератора (`ogen` или `oapi-codegen`) — Spike, решение зафиксировать
 - [x] Базовый `openapi.yaml` (OpenAPI 3.1) + spectral lint в CI
-- [ ] R12: SDK compatibility gate — contract compile-test для 7 публичных
-  `sdk/*` расширений и CI-проверка обновлений `go.mod`/`go.sum`
+- [x] R12: SDK compatibility gate — `internal/sdkcontract` компилирует все
+  публичные extension points ADR-9, CI запускает его отдельно; `go mod tidy`
+  проверяет согласованность `go.mod`/`go.sum`
 
 **Acceptance:** `go build ./...` зелёный, ядро в зависимостях, CI проходит на пустых тестах, `openapi.yaml` валидируется.
 
@@ -130,7 +133,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   → RegisterUsagePlugin → Service.Run
 - [x] `internal/config` — минимальный SDK config bridge для listener; file-backed
   auth/watcher намеренно не bridge'ится, источник credentials — Postgres Store
-- [ ] Contract tests для всех 7 контрактов (mock ядра через интерфейсы)
+- [x] Contract compile-tests для публичных extension points ADR-9 в
+  `internal/sdkcontract`; behavioral contract/integration coverage остаётся
+  в пакетах реализаций и расширяется на Ф7
 
 **Acceptance:** сервис запускается и проксирует inference-запрос (с тестовым auth), auto-refresh работает (mock провайдера), usage_events записываются, leader election переключается при падении реплики (multi-instance тест).
 

@@ -128,7 +128,8 @@ go test ./...           # тесты
   fallback и не переключайте `auth.mode` rolling-обновлением.
 - **SDK boundary (R12):** не импортируйте `internal/*` upstream SDK и не
   используйте reflect-обходы. SDK обновляется отдельным reviewable изменением;
-  patch/minor после compatibility gate, major — после ADR и миграционного плана.
+  patch/minor после `go test -race ./internal/sdkcontract` и compatibility
+  gate, major — после ADR и миграционного плана.
 
 ## Документация (читать перед sensitive правками)
 
