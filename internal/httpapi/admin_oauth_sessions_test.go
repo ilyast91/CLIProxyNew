@@ -53,6 +53,16 @@ type fakeAdminOAuthSessions struct {
 	state     string
 }
 
+func (s *fakeAdminOAuthSessions) Get(context.Context, string) (store.OAuthSession, error) {
+	if s.cancelErr != nil {
+		return store.OAuthSession{}, s.cancelErr
+	}
+	if len(s.sessions) == 0 {
+		return store.OAuthSession{}, store.ErrNotFound
+	}
+	return s.sessions[0], nil
+}
+
 func (s *fakeAdminOAuthSessions) ListPending(context.Context) ([]store.OAuthSession, error) {
 	return s.sessions, s.err
 }

@@ -694,6 +694,16 @@ paths:
           $ref: "#/components/responses/Forbidden"
 
   /api/v1/admin/oauth/sessions/{state}:
+    get:
+      tags: [Admin]
+      summary: Статус OAuth-сессии
+      description: Возвращает статус OAuth-flow без PKCE verifier и device code.
+      operationId: getOAuthSession
+      security: [{SessionCookie: []}]
+      parameters: [{name: state, in: path, required: true, schema: {type: string}}]
+      responses:
+        "200": {description: Статус OAuth-сессии, content: {application/json: {schema: {type: object}}}}
+        "404": {description: OAuth-сессия не найдена}
     delete:
       tags: [Admin]
       summary: Отменить OAuth-сессию

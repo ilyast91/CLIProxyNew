@@ -38,6 +38,7 @@ func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthentic
 				}
 				if oauthSessions != nil {
 					admin.GET("/oauth/sessions", oauthSessions.ListPending)
+					admin.GET("/oauth/sessions/:state", oauthSessions.Get)
 					admin.DELETE("/oauth/sessions/:state", oauthSessions.Cancel)
 				}
 				if models != nil {

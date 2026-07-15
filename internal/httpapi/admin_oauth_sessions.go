@@ -11,6 +11,7 @@ import (
 )
 
 type adminOAuthSessionStore interface {
+	Get(context.Context, string) (store.OAuthSession, error)
 	ListPending(context.Context) ([]store.OAuthSession, error)
 	CancelWithAudit(context.Context, int64, string, *netip.Addr) error
 }
@@ -50,6 +51,24 @@ func (h *AdminOAuthSessionHandler) ListPending(c *gin.Context) {
 		out = append(out, oauthSessionResponse{State: s.State, Provider: s.Provider, FlowType: s.FlowType, Status: s.Status, AuthID: s.AuthID, ErrorMessage: s.ErrorMessage, ExpiresAt: s.ExpiresAt, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt})
 	}
 	c.JSON(200, gin.H{"data": out})
+}
+
+// Get возвращает статус конкретной OAuth-сессии без секретных полей.
+func (h *AdminOAuthSessionHandler) Get(c *gin.Context) {
+	if h == nil || h.store == nil {
+		writeError(c, http.StatusInternalServerError, "OAuth session service is unavailable")
+		return
+	}
+	session, err := h.store.Get(c.Request.Context(), c.Param("state"))
+	if errors.Is(err, store.ErrNotFound) {
+		writeError(c, http.StatusNotFound, "OAuth session not found")
+		return
+	}
+	if err != nil {
+		writeError(c, http.StatusInternalServerError, "get OAuth session failed")
+		return
+	}
+	c.JSON(http.StatusOK, oauthSessionResponse{State: session.State, Provider: session.Provider, FlowType: session.FlowType, Status: session.Status, AuthID: session.AuthID, ErrorMessage: session.ErrorMessage, ExpiresAt: session.ExpiresAt, CreatedAt: session.CreatedAt, UpdatedAt: session.UpdatedAt})
 }
 
 // Cancel отменяет pending OAuth-сессию и пишет audit log.
