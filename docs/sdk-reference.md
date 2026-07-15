@@ -591,11 +591,10 @@ func ServiceTierFromContext(ctx context.Context) string
 ⚠️ **R3 стриминг:** `HandleUsage` может вызываться асинхронно после отмены context.
 Principal/user_id копируется ядром в `Record.APIKey` при старте запроса, не из context в момент `HandleUsage`.
 
-**Compatibility gap (SDK v7.2.71):** `executor.Options.Metadata` содержит
-`api_key_id`, но публичный `usage.Record` не содержит metadata или отдельного
-поля API-key ID. Бизнес-слой не читает upstream `internal/*` и не применяет
-reflect-обходы (R12); для заполнения `usage_events.api_key_id` требуется
-публичное дополнение SDK, переносящее этот идентификатор в `Record`.
+**Совместимость (SDK v7.2.71):** публичный `usage.Record` не содержит отдельного
+поля API-key ID, но переносит `Record.APIKey` из access principal. Бизнес-слой
+кодирует в нём versioned пару `user_id/api_key_id` и декодирует её в
+`usage.Plugin`; это не требует upstream `internal/*` или reflect-обходов (R12).
 
 ---
 
@@ -972,7 +971,7 @@ type RoutingConfig struct {
 |----------|-----------|-------|---------------|
 | Persist credentials | `coreauth.Store` | `sdk/cliproxy/auth` | `internal/store` |
 | Выбор auth | `coreauth.Selector` | `sdk/cliproxy/auth` | `internal/auth/selector` |
-| Аналитика | `coreauth.Hook` + `usage.Plugin` | `sdk/cliproxy/auth` + `/usage` | `internal/usage` |
+| Аналитика | `usage.Plugin` (`coreauth.Hook` pending) | `sdk/cliproxy/usage` | `internal/usage` |
 | Клиентский auth | `access.Provider` | `sdk/access` | `internal/access` |
 | Auth-изменения | `cliproxy.WatcherFactory` | `sdk/cliproxy` | `internal/watcher` |
 | Зеркало моделей | `cliproxy.ModelRegistryHook` | `sdk/cliproxy` | `internal/modelregistry` |

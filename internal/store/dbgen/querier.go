@@ -34,6 +34,7 @@ type Querier interface {
 	IncrementRuntimeRevision(ctx context.Context, name string) (int64, error)
 	InsertAdminAuditLog(ctx context.Context, arg InsertAdminAuditLogParams) error
 	InsertUsageEvent(ctx context.Context, arg InsertUsageEventParams) error
+	InsertUsageEvents(ctx context.Context, arg []InsertUsageEventsParams) *InsertUsageEventsBatchResults
 	ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error)
 	ListAllAPIKeys(ctx context.Context) ([]ListAllAPIKeysRow, error)
 	ListModelOverrides(ctx context.Context) ([]ModelOverride, error)

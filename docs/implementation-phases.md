@@ -109,8 +109,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   filter и fill-first готовы. `upstream_model` хранится как desired mapping;
   runtime rewrite заблокирован до публичного SDK hook (R12 запрещает обход через
   `internal/*`).
-- [ ] `internal/usage` — Plugin декодирует versioned `record.APIKey` и пишет
-  usage_events; остаются async bulk INSERT и throttled update api_keys.last_used_at
+- [ ] `internal/usage` — Plugin декодирует versioned `record.APIKey`; bounded
+  очередь (1024) пишет batch до 100 событий через `pgx.Batch` каждые 250мс и
+  flush'ится при shutdown. Остаётся throttled update `api_keys.last_used_at`.
 - [ ] `internal/usage` — `coreauth.Hook` (OnResult для доп. наблюдения)
 - [ ] `internal/watcher` — вместо недоступного публичного WatcherWrapper готов
   DB revision poller + controlled restart; transactionally increment revision

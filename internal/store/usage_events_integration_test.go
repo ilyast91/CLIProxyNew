@@ -24,6 +24,23 @@ func TestIntegrationUsageEventRepository(t *testing.T) {
 	}
 }
 
+func TestIntegrationUsageEventRepositoryInsertBatch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration test требует Docker")
+	}
+
+	repository := NewUsageEventRepository(newTestPool(t))
+	if err := repository.InsertBatch(context.Background(), []UsageEvent{
+		{Provider: "openai", Model: "gpt-5", TotalTokens: 19, StatusCode: 200, LatencyMS: 50},
+		{Provider: "anthropic", Model: "claude", TotalTokens: 9, StatusCode: 502, LatencyMS: 40, Failed: true},
+	}); err != nil {
+		t.Fatalf("InsertBatch() error = %v", err)
+	}
+	if err := repository.InsertBatch(context.Background(), []UsageEvent{{StatusCode: -1}}); err != ErrInvalidInput {
+		t.Fatalf("InsertBatch(invalid) error = %v, want ErrInvalidInput", err)
+	}
+}
+
 func TestIntegrationUsageEventRepositoryGetSummaryByUser(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration test требует Docker")

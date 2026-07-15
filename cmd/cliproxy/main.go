@@ -133,7 +133,15 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("build SDK service: %w", err)
 	}
-	service.RegisterUsagePlugin(usage.NewPlugin(store.NewUsageEventRepository(dbPool)))
+	usagePlugin := usage.NewBufferedPlugin(store.NewUsageEventRepository(dbPool))
+	defer func() {
+		flushCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := usagePlugin.Close(flushCtx); err != nil {
+			slog.Error("flush usage events", "error", err)
+		}
+	}()
+	service.RegisterUsagePlugin(usagePlugin)
 	slog.Info("credential store registered", "key_version", cfg.Encryption.KeyVersion)
 	slog.Info("API key provider registered", "identity_source", cfg.Auth.Mode)
 	slog.Info("runtime revision poller started", "revision", store.UpstreamAccountsRevision)

@@ -95,7 +95,7 @@ docs/            — требования (R1–R12), ADR-9/ADR-10, дизайн
 |------|---------------|-----|
 | Persist credentials | `coreauth.Store` (List/Save/Delete) | `internal/store` |
 | Выбор аккаунта | `coreauth.Selector.Pick` | `internal/auth` |
-| Аналитика | `coreauth.Hook.OnResult` + `usage.Plugin.HandleUsage` | `internal/usage` |
+| Аналитика | `usage.Plugin.HandleUsage` (`coreauth.Hook.OnResult` pending) | `internal/usage` |
 | Клиентский auth | `access.Provider.Authenticate` | `internal/access` |
 | Auth-изменения | `cliproxy.WatcherFactory` | `internal/watcher` |
 | Зеркало моделей | `cliproxy.SetGlobalModelRegistryHook` | `internal/modelregistry` |

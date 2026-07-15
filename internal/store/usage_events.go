@@ -32,6 +32,37 @@ func (r *UsageEventRepository) Insert(ctx context.Context, event UsageEvent) err
 	return nil
 }
 
+// InsertBatch сохраняет группу usage events через один pgx batch.
+func (r *UsageEventRepository) InsertBatch(ctx context.Context, events []UsageEvent) error {
+	if r == nil || r.queries == nil {
+		return ErrInvalidInput
+	}
+	if len(events) == 0 {
+		return nil
+	}
+
+	params := make([]dbgen.InsertUsageEventsParams, 0, len(events))
+	for _, event := range events {
+		param, err := usageEventParams(event)
+		if err != nil {
+			return err
+		}
+		params = append(params, dbgen.InsertUsageEventsParams(param))
+	}
+
+	results := r.queries.InsertUsageEvents(ctx, params)
+	var firstErr error
+	results.Exec(func(_ int, err error) {
+		if err != nil && firstErr == nil {
+			firstErr = err
+		}
+	})
+	if firstErr != nil {
+		return fmt.Errorf("insert usage event batch: %w", firstErr)
+	}
+	return nil
+}
+
 // GetSummaryByUser возвращает личную статистику за полуоткрытый интервал [from, to).
 func (r *UsageEventRepository) GetSummaryByUser(ctx context.Context, userID int64, from, to time.Time) (UsageSummary, error) {
 	if r == nil || r.queries == nil || userID <= 0 || !from.Before(to) {

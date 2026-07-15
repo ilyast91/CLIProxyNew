@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/ilyast91/CLIProxyNew/internal/access"
 	"github.com/ilyast91/CLIProxyNew/internal/store"
 	sdkusage "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/usage"
 )
@@ -29,27 +28,12 @@ func (p *Plugin) HandleUsage(_ context.Context, record sdkusage.Record) {
 	if p == nil || p.writer == nil {
 		return
 	}
-	principal, err := access.DecodePrincipal(record.APIKey)
+	event, err := usageEventFromRecord(record)
 	if err != nil {
 		slog.Warn("skip usage event with invalid principal", "error", err)
 		return
 	}
-	statusCode := record.Fail.StatusCode
-	if statusCode == 0 && !record.Failed {
-		statusCode = 200
-	}
-	model := record.Model
-	if record.Alias != "" {
-		model = record.Alias
-	}
-	if err := p.writer.Insert(context.Background(), store.UsageEvent{
-		UserID: principalPointer(principal.UserID), APIKeyID: principal.APIKeyID,
-		UpstreamAccountID: record.AuthID, Provider: record.Provider, Model: model,
-		InputTokens: record.Detail.InputTokens, OutputTokens: record.Detail.OutputTokens,
-		ReasoningTokens: record.Detail.ReasoningTokens, CachedTokens: record.Detail.CachedTokens,
-		TotalTokens: record.Detail.TotalTokens, StatusCode: statusCode, Error: record.Fail.Body,
-		LatencyMS: record.Latency.Milliseconds(), TTFTMS: record.TTFT.Milliseconds(), Failed: record.Failed,
-	}); err != nil {
+	if err := p.writer.Insert(context.Background(), event); err != nil {
 		slog.Error("insert usage event", "error", err)
 	}
 }

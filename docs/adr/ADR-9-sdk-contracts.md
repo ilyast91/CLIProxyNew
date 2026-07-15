@@ -200,7 +200,7 @@ admin/front-роутов.
 | Создать и запустить ядро | `cliproxy.Builder` → `Service.Run` | `cmd/cliproxy/main.go` |
 | Persists credentials | `coreauth.Store` | `internal/store` (pgx+sqlc) |
 | Выбор auth под запрос | `coreauth.Selector` | `internal/auth/selector` |
-| Аналитика запросов | `coreauth.Hook` + `usage.Plugin` | `internal/usage` |
+| Аналитика запросов | `usage.Plugin` (`coreauth.Hook` pending) | `internal/usage` |
 | Клиентский auth (API-key) | `access.Provider` | `internal/access` |
 | Auth-изменения (watcher) | `WatcherFactory` | `internal/watcher` |
 | Зеркало моделей | `ModelRegistryHook` | `internal/modelregistry` |
