@@ -160,9 +160,12 @@ func SetGlobalModelRegistryHook(hook ModelRegistryHook)
 ```
 
 Реализация: `internal/modelregistry` — подписывается на изменения in-memory
-реестра ядра, кэширует snapshot в Postgres (для UI/model-mapping). **Источник
-истины — ядро**, бизнес-слой только зеркалирует. Эндпоинт `/v1/models` ядро
-отдаёт само.
+реестра ядра и сохраняет в `model_registry_snapshots` JSON-массив полного
+snapshot по `(provider, client_id)`. `OnModelsRegistered` заменяет snapshot,
+`OnModelsUnregistered` удаляет его. Локальная схема не повторяет поля
+`ModelInfo`, поэтому добавление публичных полей SDK не требует миграции.
+**Источник истины — ядро**, бизнес-слой только зеркалирует. Эндпоинт
+`/v1/models` ядро отдаёт само.
 
 ### Контракт 7 — HTTP middleware / свои роуты
 

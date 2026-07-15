@@ -17,6 +17,7 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	DeleteExpiredSessions(ctx context.Context) (int64, error)
 	DeleteModelOverride(ctx context.Context, modelAlias string) (int64, error)
+	DeleteModelRegistrySnapshot(ctx context.Context, arg DeleteModelRegistrySnapshotParams) (int64, error)
 	DeleteSessionByTokenHashForSource(ctx context.Context, arg DeleteSessionByTokenHashForSourceParams) (int64, error)
 	DeleteSessionsByUser(ctx context.Context, userID int64) error
 	DeleteUpstreamAccount(ctx context.Context, id string) error
@@ -36,6 +37,7 @@ type Querier interface {
 	ListAPIKeysByUser(ctx context.Context, userID int64) ([]ListAPIKeysByUserRow, error)
 	ListAllAPIKeys(ctx context.Context) ([]ListAllAPIKeysRow, error)
 	ListModelOverrides(ctx context.Context) ([]ModelOverride, error)
+	ListModelRegistrySnapshots(ctx context.Context) ([]ModelRegistrySnapshot, error)
 	ListPendingOAuthSessions(ctx context.Context) ([]OauthSession, error)
 	ListUpstreamAccounts(ctx context.Context) ([]UpstreamAccount, error)
 	ListUsageByAPIKeyForUser(ctx context.Context, arg ListUsageByAPIKeyForUserParams) ([]ListUsageByAPIKeyForUserRow, error)
@@ -44,6 +46,7 @@ type Querier interface {
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
 	SetUserStatus(ctx context.Context, arg SetUserStatusParams) (int64, error)
 	UpsertModelOverride(ctx context.Context, arg UpsertModelOverrideParams) (ModelOverride, error)
+	UpsertModelRegistrySnapshot(ctx context.Context, arg UpsertModelRegistrySnapshotParams) error
 	UpsertStaticUser(ctx context.Context, arg UpsertStaticUserParams) (UpsertStaticUserRow, error)
 	UpsertUpstreamAccount(ctx context.Context, arg UpsertUpstreamAccountParams) (string, error)
 	UpsertUserFromLDAP(ctx context.Context, arg UpsertUserFromLDAPParams) (UpsertUserFromLDAPRow, error)

@@ -117,6 +117,14 @@ type UpsertModelOverrideParams struct {
 	Config        []byte
 }
 
+// ModelRegistrySnapshot — сохранённый полный список моделей одного upstream-клиента.
+type ModelRegistrySnapshot struct {
+	Provider  string
+	ClientID  string
+	Models    []byte
+	UpdatedAt time.Time
+}
+
 // UsageEvent — аналитика одного upstream-вызова без исходного request payload.
 type UsageEvent struct {
 	UserID            *int64

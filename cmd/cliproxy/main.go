@@ -21,6 +21,7 @@ import (
 	authtesting "github.com/ilyast91/CLIProxyNew/internal/auth/testing"
 	"github.com/ilyast91/CLIProxyNew/internal/config"
 	"github.com/ilyast91/CLIProxyNew/internal/httpapi"
+	"github.com/ilyast91/CLIProxyNew/internal/modelregistry"
 	"github.com/ilyast91/CLIProxyNew/internal/security"
 	"github.com/ilyast91/CLIProxyNew/internal/store"
 	"github.com/ilyast91/CLIProxyNew/internal/usage"
@@ -101,6 +102,7 @@ func run() error {
 	}
 	authStore := store.NewCoreAuthStore(dbPool, keyring)
 	sdkauth.RegisterTokenStore(authStore)
+	cliproxy.SetGlobalModelRegistryHook(modelregistry.New(store.NewModelRegistrySnapshotRepository(dbPool)))
 	apiKeyProvider := businessaccess.NewProvider(store.NewAPIKeyRepository(dbPool), cfg.Auth.Mode)
 	sdkaccess.RegisterProvider(businessaccess.ProviderIdentifier, apiKeyProvider)
 	sdkaccess.SetExclusiveProvider(businessaccess.ProviderIdentifier)

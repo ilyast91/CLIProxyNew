@@ -91,6 +91,13 @@ erDiagram
         timestamptz updated_at
     }
 
+    model_registry_snapshots {
+        text provider PK
+        text client_id PK
+        jsonb models
+        timestamptz updated_at
+    }
+
     usage_events {
         bigint id PK
         bigint user_id FK
@@ -225,6 +232,23 @@ Allow-list + model-mapping, хранимые админом.
 | `config` | jsonb, nullable | доп. настройки |
 
 **Применение:** в `Selector.Pick` и в access к реестру моделей. Если `model_overrides` пуст → все модели ядра разрешены.
+
+### `model_registry_snapshots` (ADR-9, контракт 6)
+Зеркало полного списка моделей, зарегистрированного одним upstream-клиентом в
+in-memory реестре SDK. Это не источник истины и не замена endpoint'у ядра
+`/v1/models`; snapshot нужен бизнес-слою для будущих UI и model-mapping.
+
+| Поле | Тип | Назначение |
+|------|-----|-----------|
+| `provider` | text, PK | provider, переданный публичным `ModelRegistryHook` SDK |
+| `client_id` | text, PK | идентификатор upstream-клиента/аккаунта |
+| `models` | jsonb, not null | JSON-массив полного публичного `cliproxy.ModelInfo` snapshot |
+| `updated_at` | timestamptz, not null | время последней регистрации snapshot |
+
+**Обновление:** `OnModelsRegistered` атомарно заменяет массив по
+`(provider, client_id)`; `OnModelsUnregistered` удаляет строку. JSON хранится
+без локальной схемы полей, поэтому новые публичные поля SDK сохраняются после
+обновления зависимости без миграции бизнес-слоя.
 
 ### `usage_events` (R3) — партиционированная
 Высоконагруженная: одна строка на upstream-запрос.

@@ -114,7 +114,10 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   DB revision poller + controlled restart; transactionally increment revision
   при Store Save/Delete; SDK file watcher заменён public no-op factory;
   management-изменения и k8s deployment wiring остаются
-- [ ] `internal/modelregistry` — `ModelRegistryHook`: подписка на изменения реестра → mirror snapshot в Postgres
+- [x] `internal/modelregistry` — `ModelRegistryHook`: через публичный
+  `cliproxy.SetGlobalModelRegistryHook` зеркалирует полный JSON snapshot в
+  Postgres по `(provider, client_id)`; регистрация заменяет snapshot, снятие
+  регистрации удаляет его. Локальная схема не зависит от полей `ModelInfo`.
 - [x] `cmd/cliproxy/main.go` — доступный runtime wiring: config bridge → db →
   security → Store → RegisterTokenStore → coreManager → Builder → login router
   → RegisterUsagePlugin → Service.Run

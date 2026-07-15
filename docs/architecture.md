@@ -387,7 +387,10 @@ sequenceDiagram
 
 ### `internal/modelregistry` — ModelRegistryHook (ADR-9)
 Реализует `cliproxy.ModelRegistryHook`:
-- подписка на изменения in-memory реестра ядра → mirror snapshot в Postgres (для UI/model-mapping).
+- подписка на изменения in-memory реестра ядра → атомарный JSON snapshot в
+  `model_registry_snapshots` по `(provider, client_id)` для UI/model-mapping.
+  Поля модели не дублируются в локальной схеме, чтобы обновление публичного SDK
+  не требовало миграции бизнес-слоя; источник истины остаётся в ядре.
 
 ### `internal/httpapi` (R8, R9, R11)
 - **Прокси-эндпоинты** (`/v1/*`) — роутит ядро (Gin); бизнес-слой не пишет хендлеры.

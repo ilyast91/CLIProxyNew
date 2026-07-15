@@ -43,6 +43,13 @@ type ModelOverride struct {
 	Config        []byte `json:"config"`
 }
 
+type ModelRegistrySnapshot struct {
+	Provider  string             `json:"provider"`
+	ClientID  string             `json:"client_id"`
+	Models    []byte             `json:"models"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type OauthSession struct {
 	State        string             `json:"state"`
 	Provider     string             `json:"provider"`
