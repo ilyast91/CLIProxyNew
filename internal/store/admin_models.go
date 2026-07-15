@@ -49,3 +49,29 @@ func (r *AdminModelRepository) UpsertWithAudit(ctx context.Context, actor int64,
 	}
 	return v, nil
 }
+
+// DeleteWithAudit удаляет override и audit-запись в одной транзакции.
+func (r *AdminModelRepository) DeleteWithAudit(ctx context.Context, actor int64, alias string, ip *netip.Addr) error {
+	if r == nil || actor <= 0 || alias == "" {
+		return ErrInvalidInput
+	}
+	b, ok := r.db.(transactionBeginner)
+	if !ok {
+		return fmt.Errorf("admin model repository requires transactional database")
+	}
+	tx, err := b.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if err := NewModelOverrideRepository(tx).Delete(ctx, alias); err != nil {
+		return err
+	}
+	if err := NewAdminAuditLogRepository(tx).Insert(ctx, AdminAuditLogEntry{ActorUserID: actor, Action: "model_override.deleted", TargetType: "model_override", TargetID: alias, ActorIP: ip}); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	return nil
+}

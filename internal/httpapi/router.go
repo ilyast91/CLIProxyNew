@@ -42,6 +42,7 @@ func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthentic
 				}
 				if models != nil {
 					admin.PUT("/models/:modelAlias", models.Upsert)
+					admin.DELETE("/models/:modelAlias", models.Delete)
 					admin.GET("/models", models.List)
 				}
 			}

@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/netip"
 
@@ -13,6 +14,7 @@ import (
 type adminModelStore interface {
 	List(context.Context) ([]store.ModelOverride, error)
 	UpsertWithAudit(context.Context, int64, store.UpsertModelOverrideParams, *netip.Addr) (store.ModelOverride, error)
+	DeleteWithAudit(context.Context, int64, string, *netip.Addr) error
 }
 
 type upsertModelRequest struct {
@@ -55,6 +57,28 @@ func (h *AdminModelHandler) Upsert(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, adminModelResponse{ID: v.ID, Provider: v.Provider, ModelAlias: v.ModelAlias, UpstreamModel: v.UpstreamModel, Enabled: v.Enabled, Config: v.Config})
+}
+
+// Delete удаляет model override и пишет audit log.
+func (h *AdminModelHandler) Delete(c *gin.Context) {
+	actor, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+	if h == nil || h.store == nil {
+		writeError(c, 500, "model override service is unavailable")
+		return
+	}
+	err := h.store.DeleteWithAudit(c.Request.Context(), actor, c.Param("modelAlias"), requestActorIP(c))
+	if errors.Is(err, store.ErrNotFound) {
+		writeError(c, 404, "model override not found")
+		return
+	}
+	if err != nil {
+		writeError(c, 400, "invalid model override")
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 // NewAdminModelHandler создаёт handler model overrides.
