@@ -67,6 +67,22 @@ func TestOpenAPIRouterConfiguratorServesEmbeddedDocument(t *testing.T) {
 	}
 }
 
+func TestMetricsRouterConfiguratorServesPrometheusHandler(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	MetricsRouterConfigurator(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+		response.Header().Set("Content-Type", "text/plain; version=0.0.4")
+		_, _ = response.Write([]byte("metric 1\n"))
+	}))(router, nil, nil)
+
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+
+	if response.Code != http.StatusOK || response.Body.String() != "metric 1\n" {
+		t.Fatalf("metrics status=%d body=%q", response.Code, response.Body.String())
+	}
+}
+
 type successfulPinger struct{}
 
 func (successfulPinger) Ping(context.Context) error { return nil }

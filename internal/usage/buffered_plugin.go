@@ -99,6 +99,14 @@ func (p *BufferedPlugin) Close(ctx context.Context) error {
 	}
 }
 
+// QueueDepth возвращает текущее число ожидающих записи usage events.
+func (p *BufferedPlugin) QueueDepth() int {
+	if p == nil {
+		return 0
+	}
+	return len(p.queue)
+}
+
 func (p *BufferedPlugin) run() {
 	defer close(p.done)
 

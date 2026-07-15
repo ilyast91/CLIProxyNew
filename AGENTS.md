@@ -47,6 +47,7 @@ internal/        — бизнес-логика (неэкспортируемая
                      (R9: user/admin операции) + middleware (session-cookie);
                      типы/хендлеры генерируются из openapi.yaml (R11)
   modelregistry/   — ModelRegistryHook: зеркало реестра моделей в Postgres
+  metrics/         — изолированный Prometheus registry: HTTP, usage, upstream, pgx pool
   security/        — bcrypt (API-keys) + AES-256-GCM (upstream credentials)
   store/           — репозитории (pgx + sqlc): users, api_keys, auths,
                      analytics, admin_audit_log, model_overrides

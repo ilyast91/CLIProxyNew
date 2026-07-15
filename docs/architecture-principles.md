@@ -82,7 +82,7 @@ SLA на накладные расходы бизнес-слоя (без upstrea
 | Требование | Реализация |
 |------------|-----------|
 | Структурные логи | `slog` JSON; поля `request_id`, `user_id`, `provider`, `model`, `auth_id` |
-| Метрики | Prometheus `/metrics`: request_count/latency histogram, refresh_success/failure, cache_hit/miss, db_pool_stats, usage_queue_depth |
+| Метрики | Prometheus `/metrics`: HTTP request_count/latency, upstream results, db_pool_stats, usage_queue_depth; cache/refresh hooks добавляются по мере реализации |
 | Трейсы | OpenTelemetry; span на inference + access.Provider + Selector + Execute; trace-context прокидывается |
 | Health | `/healthz` (liveness = процесс жив), `/readyz` (readiness = DB ping) |
 | Alerting | метрики с SLO: error-rate > 1%, p95 latency > SLA × 2, refresh_failure_rate > 5% |

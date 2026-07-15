@@ -198,7 +198,10 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 ## Фаза 6 — Observability + Deployment (R6)
 **Цель:** prod-ready: k8s, metrics, traces, health, OpenAPI-serving.
 
-- [ ] Prometheus `/metrics`: request_count/latency histogram, refresh_success/failure, cache_hit/miss, db_pool_stats, usage_queue_depth
+- [x] Prometheus `/metrics`: isolated registry, HTTP request count/latency,
+  upstream result/lifecycle counters, pgx pool stats и usage queue depth
+- [ ] Prometheus: cache hit/miss и специализированные refresh success/failure
+  после появления соответствующих business hooks
 - [ ] OpenTelemetry traces: span на inference + access.Provider + Selector + Execute; trace-context propagation
 - [ ] `slog` structured JSON + redaction (никогда не логировать credentials/tokens/passwords)
 - [x] `/healthz` (liveness) и `/readyz` (readiness = PostgreSQL `Ping` с

@@ -21,6 +21,7 @@ import (
 	authtesting "github.com/ilyast91/CLIProxyNew/internal/auth/testing"
 	"github.com/ilyast91/CLIProxyNew/internal/config"
 	"github.com/ilyast91/CLIProxyNew/internal/httpapi"
+	"github.com/ilyast91/CLIProxyNew/internal/metrics"
 	"github.com/ilyast91/CLIProxyNew/internal/modelregistry"
 	openapidoc "github.com/ilyast91/CLIProxyNew/internal/openapi"
 	"github.com/ilyast91/CLIProxyNew/internal/security"
@@ -131,16 +132,6 @@ func run() error {
 	}
 	resultHook := usage.NewHook()
 	coreManager := coreauth.NewManager(authStore, selector.New(store.NewModelOverrideRepository(dbPool)), resultHook)
-	service, err := cliproxy.NewBuilder().
-		WithConfig(sdkCfg).
-		WithConfigPath(configPath).
-		WithCoreAuthManager(coreManager).
-		WithWatcherFactory(watcher.NoopFactory).
-		WithServerOptions(sdkapi.WithMiddleware(httpapi.RequestIDMiddleware(), httpapi.NewCORSMiddleware(cfg.Server.CORSAllowedOrigins)), sdkapi.WithRouterConfigurator(httpapi.SystemRouterConfigurator(dbPool)), sdkapi.WithRouterConfigurator(httpapi.OpenAPIRouterConfigurator(openapidoc.Document())), sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction), sessionAuthenticator, httpapi.LogoutHandler(sessions, cfg.Auth.Mode), httpapi.NewAPIKeyHandler(store.NewAPIKeyRepository(dbPool)), httpapi.NewUsageHandler(store.NewUsageEventRepository(dbPool)), httpapi.NewAdminUserHandler(store.NewAdminUserRepository(dbPool)), httpapi.NewAdminAPIKeyHandler(store.NewAPIKeyRepository(dbPool)), httpapi.NewAdminOAuthSessionHandler(store.NewOAuthSessionRepository(dbPool)), httpapi.NewAdminProviderKeyHandler(coreManager), httpapi.NewAdminAccountTestHandler(authtesting.NewChecker(coreManager)), httpapi.NewAdminQuotaHandler(coreManager), httpapi.NewAdminOAuthCredentialHandler(coreManager, store.NewAdminAuditLogRepository(dbPool)), httpapi.NewAdminModelHandler(store.NewAdminModelRepository(dbPool))))).
-		Build()
-	if err != nil {
-		return fmt.Errorf("build SDK service: %w", err)
-	}
 	usagePlugin := usage.NewBufferedPlugin(store.NewUsageEventRepository(dbPool))
 	defer func() {
 		flushCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -149,6 +140,17 @@ func run() error {
 			slog.Error("flush usage events", "error", err)
 		}
 	}()
+	metricsRegistry := metrics.NewRegistry(dbPool, resultHook, usagePlugin)
+	service, err := cliproxy.NewBuilder().
+		WithConfig(sdkCfg).
+		WithConfigPath(configPath).
+		WithCoreAuthManager(coreManager).
+		WithWatcherFactory(watcher.NoopFactory).
+		WithServerOptions(sdkapi.WithMiddleware(httpapi.RequestIDMiddleware(), httpapi.NewCORSMiddleware(cfg.Server.CORSAllowedOrigins), metricsRegistry.Middleware()), sdkapi.WithRouterConfigurator(httpapi.SystemRouterConfigurator(dbPool)), sdkapi.WithRouterConfigurator(httpapi.MetricsRouterConfigurator(metricsRegistry.Handler())), sdkapi.WithRouterConfigurator(httpapi.OpenAPIRouterConfigurator(openapidoc.Document())), sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction), sessionAuthenticator, httpapi.LogoutHandler(sessions, cfg.Auth.Mode), httpapi.NewAPIKeyHandler(store.NewAPIKeyRepository(dbPool)), httpapi.NewUsageHandler(store.NewUsageEventRepository(dbPool)), httpapi.NewAdminUserHandler(store.NewAdminUserRepository(dbPool)), httpapi.NewAdminAPIKeyHandler(store.NewAPIKeyRepository(dbPool)), httpapi.NewAdminOAuthSessionHandler(store.NewOAuthSessionRepository(dbPool)), httpapi.NewAdminProviderKeyHandler(coreManager), httpapi.NewAdminAccountTestHandler(authtesting.NewChecker(coreManager)), httpapi.NewAdminQuotaHandler(coreManager), httpapi.NewAdminOAuthCredentialHandler(coreManager, store.NewAdminAuditLogRepository(dbPool)), httpapi.NewAdminModelHandler(store.NewAdminModelRepository(dbPool))))).
+		Build()
+	if err != nil {
+		return fmt.Errorf("build SDK service: %w", err)
+	}
 	service.RegisterUsagePlugin(usagePlugin)
 	slog.Info("credential store registered", "key_version", cfg.Encryption.KeyVersion)
 	slog.Info("API key provider registered", "identity_source", cfg.Auth.Mode)
