@@ -136,7 +136,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   - [x] `/api/v1/me/keys` CRUD (R9.U.2; create/list/revoke)
   - [x] `/api/v1/me/usage` (R9.U.3; totals, модели и API-ключи за период)
   - [x] `/api/v1/admin/users`, `/api/v1/admin/keys` (R9.A.3; users list/status + all-keys)
-- [ ] R9.A.1 OAuth flow: `internal/auth/oauth` (FlowManager) — callback-flow (Codex/Claude/Antigravity) + device-flow (Kimi/xAI), сессии в oauth_sessions, `Store.Save` после exchange (Postgres lifecycle, typed admin list/get/cancel и tests готовы; provider adapters pending)
+- [ ] R9.A.1 OAuth flow: `internal/auth/oauth` (FlowManager) — callback-flow (Codex/Claude/Antigravity) + device-flow (Kimi/xAI), сессии в oauth_sessions, `Store.Save` после exchange (Postgres lifecycle, typed admin list/get/cancel и tests готовы; provider adapters blocked: public SDK не отдает async flow с внешним session store, а импорт `internal/*` запрещен R12)
 - [x] R9.A.5 testing: `internal/auth/testing` (Checker) — OAuth через
   `Refresh` с persistence обновлённого Auth, API-key через `HttpRequest` к
   provider metadata endpoint; `POST /api/v1/admin/accounts/{accountID}/test`
@@ -152,8 +152,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   лимитом тела, проверкой OAuth/email, dedup `provider+email`, SDK-managed ID
   и транзакционным audit при Store.Save
 - [ ] `admin_audit_log` writing на все mutating admin-действия
-- [ ] Middleware: session-cookie auth и role-guard готовы; request ID подключен
-  ко всем HTTP-маршрутам через `sdkapi.WithMiddleware`; остается CORS.
+- [x] Middleware: session-cookie auth, role-guard, request ID и CORS готовы;
+  CORS ограничен явным allow-list `server.cors_allowed_origins` и применяется
+  только к management-маршрутам `/api/v1`.
 - [ ] Functional tests (HTTP end-to-end) для всех management-эндпоинтов
 
 **Acceptance:** все R9-функции работают через REST, OpenAPI спецификация валидируется, drift-check с кодом проходит, `admin_audit_log` покрывает 100% mutating actions.
@@ -259,3 +260,5 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   dedup provider/email, аудированием и назначением ID public SDK Manager.
 - 2026-07-15 — progress: добавлен безопасный request ID middleware для всех
   HTTP-маршрутов через публичный `sdkapi.WithMiddleware`.
+- 2026-07-15 — progress: добавлен CORS для browser management API с явным
+  allow-list origin, credential-cookie support и корректным preflight.

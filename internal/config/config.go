@@ -14,6 +14,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -36,8 +37,9 @@ type Config struct {
 
 // ServerConfig — параметры HTTP-сервера.
 type ServerConfig struct {
-	Addr        string `yaml:"addr"`
-	Environment string `yaml:"environment"`
+	Addr               string   `yaml:"addr"`
+	Environment        string   `yaml:"environment"`
+	CORSAllowedOrigins []string `yaml:"cors_allowed_origins"`
 }
 
 const (
@@ -131,6 +133,9 @@ func (c *Config) Validate() error {
 	default:
 		return fmt.Errorf("unknown server.environment %q", c.Server.Environment)
 	}
+	if err := validateCORSOrigins(c.Server.CORSAllowedOrigins); err != nil {
+		return err
+	}
 
 	switch c.Auth.Mode {
 	case AuthModeLDAP:
@@ -198,7 +203,34 @@ func (c *Config) applyEnvOverrides() {
 	if v := strings.TrimSpace(os.Getenv("CLIPROXY_AUTH_MODE")); v != "" {
 		c.Auth.Mode = v
 	}
+	if value, ok := os.LookupEnv("CLIPROXY_CORS_ALLOWED_ORIGINS"); ok {
+		c.Server.CORSAllowedOrigins = splitCSV(value)
+	}
 	c.Auth.StaticUsername = os.Getenv("CLIPROXY_STATIC_USER_USERNAME")
 	c.Auth.StaticPassword = os.Getenv("CLIPROXY_STATIC_USER_PASSWORD")
 	c.Auth.StaticRole = os.Getenv("CLIPROXY_STATIC_USER_ROLE")
+}
+
+func validateCORSOrigins(origins []string) error {
+	for _, origin := range origins {
+		parsed, err := url.ParseRequestURI(origin)
+		if err != nil || parsed.Scheme == "" || parsed.Host == "" || parsed.User != nil || parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+			return fmt.Errorf("invalid server.cors_allowed_origins entry %q", origin)
+		}
+		if parsed.Scheme != "http" && parsed.Scheme != "https" {
+			return fmt.Errorf("invalid server.cors_allowed_origins scheme %q", parsed.Scheme)
+		}
+	}
+	return nil
+}
+
+func splitCSV(value string) []string {
+	parts := strings.Split(value, ",")
+	origins := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if origin := strings.TrimSpace(part); origin != "" {
+			origins = append(origins, origin)
+		}
+	}
+	return origins
 }

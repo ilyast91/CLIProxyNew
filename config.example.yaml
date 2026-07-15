@@ -5,6 +5,8 @@
 server:
   addr: ":8080"           # сетевой интерфейс и порт
   environment: "production" # development | test | production
+  # Явный allow-list для browser management API; пустой список отключает CORS.
+  cors_allowed_origins: [] # например ["https://console.corp.example"]
 
 auth:
   mode: "ldap"             # ldap | static; static разрешён только вне production
