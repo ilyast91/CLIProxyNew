@@ -41,6 +41,7 @@ func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthentic
 					admin.DELETE("/oauth/sessions/:state", oauthSessions.Cancel)
 				}
 				if models != nil {
+					admin.PUT("/models/:modelAlias", models.Upsert)
 					admin.GET("/models", models.List)
 				}
 			}

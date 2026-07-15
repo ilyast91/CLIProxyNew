@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/netip"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ilyast91/CLIProxyNew/internal/store"
@@ -11,6 +12,14 @@ import (
 
 type adminModelStore interface {
 	List(context.Context) ([]store.ModelOverride, error)
+	UpsertWithAudit(context.Context, int64, store.UpsertModelOverrideParams, *netip.Addr) (store.ModelOverride, error)
+}
+
+type upsertModelRequest struct {
+	Provider      string          `json:"provider"`
+	UpstreamModel string          `json:"upstream_model"`
+	Enabled       bool            `json:"enabled"`
+	Config        json.RawMessage `json:"config"`
 }
 
 // AdminModelHandler обслуживает admin обзор model overrides.
@@ -22,6 +31,30 @@ type adminModelResponse struct {
 	UpstreamModel string          `json:"upstream_model"`
 	Enabled       bool            `json:"enabled"`
 	Config        json.RawMessage `json:"config"`
+}
+
+// Upsert сохраняет allow-list/model mapping и audit log.
+func (h *AdminModelHandler) Upsert(c *gin.Context) {
+	actor, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+	alias := c.Param("modelAlias")
+	var req upsertModelRequest
+	if h == nil || h.store == nil {
+		writeError(c, 500, "model override service is unavailable")
+		return
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		writeError(c, 400, "invalid model override")
+		return
+	}
+	v, err := h.store.UpsertWithAudit(c.Request.Context(), actor, store.UpsertModelOverrideParams{Provider: req.Provider, ModelAlias: alias, UpstreamModel: req.UpstreamModel, Enabled: req.Enabled, Config: req.Config}, requestActorIP(c))
+	if err != nil {
+		writeError(c, 400, "invalid model override")
+		return
+	}
+	c.JSON(http.StatusOK, adminModelResponse{ID: v.ID, Provider: v.Provider, ModelAlias: v.ModelAlias, UpstreamModel: v.UpstreamModel, Enabled: v.Enabled, Config: v.Config})
 }
 
 // NewAdminModelHandler создаёт handler model overrides.
