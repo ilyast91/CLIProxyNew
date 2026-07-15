@@ -140,7 +140,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [ ] R9.A.5 testing: `internal/auth/testing` (Checker) — Refresh для OAuth, HttpRequest для API-key
 - [ ] R9.A.2 batch API-keys провайдеров
 - [ ] R9.A.4 просмотр квоты (из Auth.Quota / AntigravityCreditsHint)
-- [x] R9.A.6 allow-list моделей + model-mapping (через model_overrides; admin read/upsert/delete с audit)
+- [x] R9.A.6 allow-list моделей + model-mapping (через model_overrides; admin read/upsert/delete с audit и OpenAPI)
 - [ ] R9.A.7 export/import OAuth JSON (dedup provider+email)
 - [ ] `admin_audit_log` writing на все mutating admin-действия
 - [ ] Middleware: session-cookie auth через active identity source, role-guard (user/admin), CORS, request_id

@@ -337,6 +337,31 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AdminAPIKey"
+    ModelOverride:
+      type: object
+      required: [id, provider, model_alias, upstream_model, enabled]
+      properties:
+        id: {type: integer, format: int64}
+        provider: {type: string}
+        model_alias: {type: string}
+        upstream_model: {type: string}
+        enabled: {type: boolean}
+        config: {}
+    ModelOverrideListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: {$ref: "#/components/schemas/ModelOverride"}
+    UpsertModelOverrideRequest:
+      type: object
+      required: [provider, upstream_model, enabled]
+      properties:
+        provider: {type: string}
+        upstream_model: {type: string}
+        enabled: {type: boolean}
+        config: {}
 
 # ───────────────────────────────────────────────────────────────────────────
 # Системные роуты (Ф0/Ф6).
@@ -687,6 +712,36 @@ paths:
           description: Flow отменён
         "404":
           description: Pending OAuth-сессия не найдена
+
+  /api/v1/admin/models:
+    get:
+      tags: [Admin]
+      summary: Список model overrides
+      description: Возвращает allow-list и mapping моделей, применяемые selector'ом.
+      operationId: listModelOverrides
+      security: [{SessionCookie: []}]
+      responses:
+        "200": {description: Model overrides, content: {application/json: {schema: {$ref: "#/components/schemas/ModelOverrideListResponse"}}}}
+  /api/v1/admin/models/{modelAlias}:
+    put:
+      tags: [Admin]
+      summary: Создать или обновить model override
+      description: Изменение записывается в admin audit log.
+      operationId: upsertModelOverride
+      security: [{SessionCookie: []}]
+      parameters: [{name: modelAlias, in: path, required: true, schema: {type: string}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/UpsertModelOverrideRequest"}}}}
+      responses:
+        "200": {description: Override сохранён, content: {application/json: {schema: {$ref: "#/components/schemas/ModelOverride"}}}}
+    delete:
+      tags: [Admin]
+      summary: Удалить model override
+      description: Удаление записывается в admin audit log.
+      operationId: deleteModelOverride
+      security: [{SessionCookie: []}]
+      parameters: [{name: modelAlias, in: path, required: true, schema: {type: string}}]
+      responses:
+        "204": {description: Override удалён}
 
   # ─────────────────────────────────────────────────────────────────────────
   # Management-API и Proxy-API добавляются в Ф4.
