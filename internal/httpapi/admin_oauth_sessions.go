@@ -25,6 +25,7 @@ type oauthSessionResponse struct {
 	Status       string    `json:"status"`
 	AuthID       string    `json:"auth_id,omitempty"`
 	ErrorMessage string    `json:"error_message,omitempty"`
+	UserCode     string    `json:"user_code,omitempty"`
 	ExpiresAt    time.Time `json:"expires_at"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
@@ -48,7 +49,7 @@ func (h *AdminOAuthSessionHandler) ListPending(c *gin.Context) {
 	}
 	out := make([]oauthSessionResponse, 0, len(sessions))
 	for _, s := range sessions {
-		out = append(out, oauthSessionResponse{State: s.State, Provider: s.Provider, FlowType: s.FlowType, Status: s.Status, AuthID: s.AuthID, ErrorMessage: s.ErrorMessage, ExpiresAt: s.ExpiresAt, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt})
+		out = append(out, oauthSessionResponse{State: s.State, Provider: s.Provider, FlowType: s.FlowType, Status: s.Status, AuthID: s.AuthID, ErrorMessage: s.ErrorMessage, UserCode: s.UserCode, ExpiresAt: s.ExpiresAt, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt})
 	}
 	c.JSON(200, gin.H{"data": out})
 }
@@ -68,7 +69,7 @@ func (h *AdminOAuthSessionHandler) Get(c *gin.Context) {
 		writeError(c, http.StatusInternalServerError, "get OAuth session failed")
 		return
 	}
-	c.JSON(http.StatusOK, oauthSessionResponse{State: session.State, Provider: session.Provider, FlowType: session.FlowType, Status: session.Status, AuthID: session.AuthID, ErrorMessage: session.ErrorMessage, ExpiresAt: session.ExpiresAt, CreatedAt: session.CreatedAt, UpdatedAt: session.UpdatedAt})
+	c.JSON(http.StatusOK, oauthSessionResponse{State: session.State, Provider: session.Provider, FlowType: session.FlowType, Status: session.Status, AuthID: session.AuthID, ErrorMessage: session.ErrorMessage, UserCode: session.UserCode, ExpiresAt: session.ExpiresAt, CreatedAt: session.CreatedAt, UpdatedAt: session.UpdatedAt})
 }
 
 // Cancel отменяет pending OAuth-сессию и пишет audit log.

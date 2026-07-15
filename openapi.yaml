@@ -362,6 +362,25 @@ components:
         upstream_model: {type: string}
         enabled: {type: boolean}
         config: {}
+    OAuthSession:
+      type: object
+      required: [state, provider, flow_type, status, expires_at, created_at, updated_at]
+      properties:
+        state: {type: string}
+        provider: {type: string}
+        flow_type: {type: string, enum: [callback, device]}
+        status: {type: string, enum: [pending, completed, error, cancelled]}
+        auth_id: {type: string}
+        error_message: {type: string}
+        user_code: {type: string, description: Отображаемый код device flow; не является device_code.}
+        expires_at: {type: string, format: date-time}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    OAuthSessionListResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {type: array, items: {$ref: "#/components/schemas/OAuthSession"}}
 
 # ───────────────────────────────────────────────────────────────────────────
 # Системные роуты (Ф0/Ф6).
@@ -682,12 +701,7 @@ paths:
       security:
         - SessionCookie: []
       responses:
-        "200":
-          description: OAuth-сессии без PKCE/device секретов
-          content:
-            application/json:
-              schema:
-                type: object
+        "200": {description: OAuth-сессии без PKCE/device секретов, content: {application/json: {schema: {$ref: "#/components/schemas/OAuthSessionListResponse"}}}}
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -702,7 +716,7 @@ paths:
       security: [{SessionCookie: []}]
       parameters: [{name: state, in: path, required: true, schema: {type: string}}]
       responses:
-        "200": {description: Статус OAuth-сессии, content: {application/json: {schema: {type: object}}}}
+        "200": {description: Статус OAuth-сессии, content: {application/json: {schema: {$ref: "#/components/schemas/OAuthSession"}}}}
         "404": {description: OAuth-сессия не найдена}
     delete:
       tags: [Admin]

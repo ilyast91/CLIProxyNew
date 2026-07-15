@@ -45,6 +45,18 @@ func TestAdminOAuthSessionHandlerCancelMapsNotFound(t *testing.T) {
 	}
 }
 
+func TestAdminOAuthSessionHandlerGetHidesSecrets(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	store := &fakeAdminOAuthSessions{sessions: []store.OAuthSession{{State: "state", Provider: "kimi", FlowType: "device", Status: "pending", DeviceCode: "secret-device", UserCode: "visible-code"}}}
+	router := gin.New()
+	router.GET("/api/v1/admin/oauth/sessions/:state", NewAdminOAuthSessionHandler(store).Get)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/admin/oauth/sessions/state", nil))
+	if response.Code != http.StatusOK || strings.Contains(response.Body.String(), "secret-device") || !strings.Contains(response.Body.String(), "visible-code") {
+		t.Fatalf("response=%d %s", response.Code, response.Body.String())
+	}
+}
+
 type fakeAdminOAuthSessions struct {
 	sessions  []store.OAuthSession
 	err       error
