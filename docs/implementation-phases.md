@@ -138,7 +138,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   - [x] `/api/v1/admin/users`, `/api/v1/admin/keys` (R9.A.3; users list/status + all-keys)
 - [ ] R9.A.1 OAuth flow: `internal/auth/oauth` (FlowManager) — callback-flow (Codex/Claude/Antigravity) + device-flow (Kimi/xAI), сессии в oauth_sessions, `Store.Save` после exchange (Postgres lifecycle, typed admin list/get/cancel и tests готовы; provider adapters pending)
 - [ ] R9.A.5 testing: `internal/auth/testing` (Checker) — Refresh для OAuth, HttpRequest для API-key
-- [ ] R9.A.2 batch API-keys провайдеров
+- [x] R9.A.2 batch API-keys провайдеров: `POST /api/v1/admin/providers/keys`
+  регистрирует до 100 credentials через public `coreauth.Manager.Register`,
+  шифрует их в Store и пишет audit в той же транзакции; ответ не содержит ключей
 - [ ] R9.A.4 просмотр квоты (из Auth.Quota / AntigravityCreditsHint)
 - [x] R9.A.6 allow-list моделей + model-mapping (через model_overrides; admin read/upsert/delete с audit, OpenAPI и HTTP tests)
 - [ ] R9.A.7 export/import OAuth JSON (dedup provider+email)
@@ -239,3 +241,5 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   SDK без fork/internal-импортов.
 - 2026-07-14 — progress: добавлены model overrides, usage persistence, runtime
   revisions, controlled restart и versioned principal adapter для analytics.
+- 2026-07-15 — progress: добавлена batch-регистрация upstream API-keys через
+  public SDK Manager с encrypted Store, транзакционным admin audit и OpenAPI.

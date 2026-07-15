@@ -155,10 +155,19 @@ func (s *CoreAuthStore) Save(ctx context.Context, auth *coreauth.Auth) (string, 
 		if _, err := queries.IncrementRuntimeRevision(ctx, UpstreamAccountsRevision); err != nil {
 			return "", fmt.Errorf("increment upstream accounts revision: %w", err)
 		}
+		if audit, ok := upstreamAccountAuditFromContext(ctx); ok {
+			audit.TargetID = id
+			if err := NewAdminAuditLogRepository(tx).Insert(ctx, audit); err != nil {
+				return "", fmt.Errorf("write upstream account audit: %w", err)
+			}
+		}
 		if err := tx.Commit(ctx); err != nil {
 			return "", fmt.Errorf("commit save upstream account: %w", err)
 		}
 		return savedID, nil
+	}
+	if _, ok := upstreamAccountAuditFromContext(ctx); ok {
+		return "", fmt.Errorf("save upstream account audit requires transactional store: %w", ErrInvalidInput)
 	}
 	savedID, err := s.queries.UpsertUpstreamAccount(ctx, params)
 	if err != nil {

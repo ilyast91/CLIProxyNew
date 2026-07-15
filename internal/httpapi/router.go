@@ -8,7 +8,7 @@ import (
 )
 
 // RouterConfigurator возвращает конфигуратор management-маршрутов для SDK ядра.
-func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthenticator, logout gin.HandlerFunc, keys *APIKeyHandler, usage *UsageHandler, adminUsers *AdminUserHandler, adminKeys *AdminAPIKeyHandler, oauthSessions *AdminOAuthSessionHandler, models *AdminModelHandler) func(*gin.Engine, *handlers.BaseAPIHandler, *config.Config) {
+func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthenticator, logout gin.HandlerFunc, keys *APIKeyHandler, usage *UsageHandler, adminUsers *AdminUserHandler, adminKeys *AdminAPIKeyHandler, oauthSessions *AdminOAuthSessionHandler, providerKeys *AdminProviderKeyHandler, models *AdminModelHandler) func(*gin.Engine, *handlers.BaseAPIHandler, *config.Config) {
 	return func(router *gin.Engine, _ *handlers.BaseAPIHandler, _ *config.Config) {
 		if login != nil {
 			router.POST("/api/v1/login", login.Handle)
@@ -27,7 +27,7 @@ func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthentic
 			if usage != nil {
 				management.GET("/me/usage", usage.Get)
 			}
-			if adminUsers != nil || adminKeys != nil || oauthSessions != nil || models != nil {
+			if adminUsers != nil || adminKeys != nil || oauthSessions != nil || providerKeys != nil || models != nil {
 				admin := management.Group("/admin", RequireRole(identity.RoleAdmin))
 				if adminUsers != nil {
 					admin.GET("/users", adminUsers.List)
@@ -40,6 +40,9 @@ func RouterConfigurator(login *LoginHandler, sessions *identity.SessionAuthentic
 					admin.GET("/oauth/sessions", oauthSessions.ListPending)
 					admin.GET("/oauth/sessions/:state", oauthSessions.Get)
 					admin.DELETE("/oauth/sessions/:state", oauthSessions.Cancel)
+				}
+				if providerKeys != nil {
+					admin.POST("/providers/keys", providerKeys.Create)
 				}
 				if models != nil {
 					admin.PUT("/models/:modelAlias", models.Upsert)

@@ -381,6 +381,54 @@ components:
       required: [data]
       properties:
         data: {type: array, items: {$ref: "#/components/schemas/OAuthSession"}}
+    ProviderAPIKeyAccount:
+      type: object
+      required: [provider, api_key]
+      properties:
+        provider:
+          type: string
+          minLength: 1
+        api_key:
+          type: string
+          minLength: 1
+          writeOnly: true
+          description: Upstream API-key; шифруется в credential store и никогда не возвращается.
+        base_url:
+          type: string
+          format: uri
+          description: Необязательный HTTP(S) base URL для OpenAI-compatible провайдера.
+        label:
+          type: string
+          description: Необязательная метка upstream-аккаунта.
+    CreateProviderKeysRequest:
+      type: object
+      required: [accounts]
+      properties:
+        accounts:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/ProviderAPIKeyAccount"
+    ProviderAPIKey:
+      type: object
+      required: [id, provider]
+      properties:
+        id:
+          type: string
+          description: Идентификатор, назначенный coreauth.Manager.
+        provider:
+          type: string
+        label:
+          type: string
+    ProviderAPIKeyListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProviderAPIKey"
 
 # ───────────────────────────────────────────────────────────────────────────
 # Системные роуты (Ф0/Ф6).
@@ -736,6 +784,36 @@ paths:
           description: Flow отменён
         "404":
           description: Pending OAuth-сессия не найдена
+
+  /api/v1/admin/providers/keys:
+    post:
+      tags: [Admin]
+      summary: Зарегистрировать upstream API-keys
+      description: Регистрирует до 100 статических upstream credentials через public SDK manager. Каждый credential шифруется в Store и записывается в admin audit log; ключи не возвращаются.
+      operationId: createProviderAPIKeys
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProviderKeysRequest"
+      responses:
+        "201":
+          description: Upstream credentials зарегистрированы
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderAPIKeyListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
 
   /api/v1/admin/models:
     get:
