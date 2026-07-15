@@ -21,7 +21,7 @@ func TestRouterConfiguratorRegistersLoginRoute(t *testing.T) {
 		ExpiresAt: time.Date(2026, time.July, 14, 18, 0, 0, 0, time.UTC),
 	}}, false)
 
-	RouterConfigurator(login, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)(router, nil, nil)
+	RouterConfigurator(login, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)(router, nil, nil)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/login", strings.NewReader(`{"username":"debug","password":"secret"}`))
 	request.Header.Set("Content-Type", "application/json")

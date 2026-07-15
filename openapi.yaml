@@ -478,6 +478,53 @@ components:
           $ref: "#/components/schemas/UpstreamQuota"
         antigravity_credits:
           $ref: "#/components/schemas/AntigravityCredits"
+    OAuthCredential:
+      type: object
+      required: [provider, attributes, metadata]
+      properties:
+        id:
+          type: string
+          description: Runtime ID из export игнорируется при import; новый ID назначает coreauth.Manager.
+        provider:
+          type: string
+        label:
+          type: string
+        status:
+          type: string
+        disabled:
+          type: boolean
+        proxy_url:
+          type: string
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Полные OAuth credentials, включая refresh/access token; секретное содержимое.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        last_refreshed_at:
+          type: string
+          format: date-time
+        next_refresh_after:
+          type: string
+          format: date-time
+    ImportedOAuthCredential:
+      type: object
+      required: [id, provider, email]
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+        email:
+          type: string
     AccountTestResponse:
       type: object
       required: [valid, method, quota]
@@ -951,6 +998,82 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           description: Upstream account не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/admin/oauth/accounts/{accountID}/export:
+    get:
+      tags: [Admin]
+      summary: Экспортировать OAuth credential
+      description: Отдаёт attachment с полным OAuth credential JSON. Файл содержит access/refresh tokens и должен обрабатываться как секрет; действие записывается в admin audit log.
+      operationId: exportOAuthCredential
+      security:
+        - SessionCookie: []
+      parameters:
+        - name: accountID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Полный OAuth credential attachment
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthCredential"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: OAuth account не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/admin/oauth/import:
+    post:
+      tags: [Admin]
+      summary: Импортировать OAuth credential
+      description: Импортирует один полный OAuth credential JSON. Дубликат `provider+email` отклоняется; внешний ID игнорируется, новый ID назначает coreauth.Manager. Действие пишется в admin audit log без токенов.
+      operationId: importOAuthCredential
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OAuthCredential"
+      responses:
+        "201":
+          description: OAuth credential импортирован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportedOAuthCredential"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: OAuth credential с таким provider и email уже существует
           content:
             application/json:
               schema:

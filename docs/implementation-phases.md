@@ -148,7 +148,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   возвращает `Auth.Quota`, expiry и `AntigravityCreditsHint`; `unknown=true`
   явно обозначает отсутствие реактивных runtime-данных, без inference-вызова
 - [x] R9.A.6 allow-list моделей + model-mapping (через model_overrides; admin read/upsert/delete с audit, OpenAPI и HTTP tests)
-- [ ] R9.A.7 export/import OAuth JSON (dedup provider+email)
+- [x] R9.A.7 export/import OAuth JSON: export attachment с audit; import с
+  лимитом тела, проверкой OAuth/email, dedup `provider+email`, SDK-managed ID
+  и транзакционным audit при Store.Save
 - [ ] `admin_audit_log` writing на все mutating admin-действия
 - [ ] Middleware: session-cookie auth через active identity source, role-guard (user/admin), CORS, request_id
 - [ ] Functional tests (HTTP end-to-end) для всех management-эндпоинтов
@@ -252,3 +254,5 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   OAuth refresh и API-key metadata probes через публичный ProviderExecutor.
 - 2026-07-15 — progress: добавлен read-only просмотр runtime-квоты upstream
   аккаунта, включая public Antigravity credits hint и явный unknown-state.
+- 2026-07-15 — progress: добавлены экспорт и импорт OAuth credential JSON с
+  dedup provider/email, аудированием и назначением ID public SDK Manager.
