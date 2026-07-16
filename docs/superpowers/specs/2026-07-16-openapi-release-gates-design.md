@@ -124,10 +124,12 @@ Gin wildcard `/v1beta/models/*action` проецируется в OpenAPI как
 ### 4.1 Размещение и изоляция
 
 E2E размещается в отдельном test-only пакете `internal/e2e`. Он не содержит
-production-кода и не попадает в coverage denominator. Тест не запускается
-параллельно, потому что SDK использует process-global registries для access и
-usage plugins. Cleanup обязан восстановить global access registration,
-остановить Service и закрыть buffered usage plugin.
+production-кода и не попадает в coverage denominator. В пакете находится один
+непараллельный runtime test, потому что SDK использует process-global registries
+для access и usage plugins. Cleanup восстанавливает global access registration,
+закрывает buffered usage plugin и останавливает Service. `Service.Shutdown`
+завершает global usage manager, поэтому каждый gate запускает E2E в отдельном
+`go test` process и не повторяет runtime test через `-count` внутри процесса.
 
 PostgreSQL поднимается через тот же pinned testcontainers image, что и store
 integration tests. E2E локально применяет реальные миграции и использует
