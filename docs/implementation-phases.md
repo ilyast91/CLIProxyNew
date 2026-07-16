@@ -227,7 +227,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [ ] k8s manifests: Deployment (≥2 replicas, HPA), ConfigMap (config.yaml), Secret (env), Service, Ingress
 - [ ] Runbook dev/test: переключение `auth.mode` только через scale-to-zero /
   recreate; production всегда `auth.mode=ldap`
-- [ ] Graceful shutdown: `Service.Shutdown(ctx)`, drain in-flight ≤ 30с
+- [x] Graceful shutdown: после завершения `Service.Run` вызывается публичный
+  `Service.Shutdown(ctx)` с отдельным timeout 30с для drain in-flight запросов
 - [ ] Liveness/readiness probes в k8s
 - [ ] Configuration: config.yaml.example, .env.example, deployment README
 
@@ -309,3 +310,5 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   настройки, `Auth.ProxyURL` очищается, используются HTTP_PROXY/HTTPS_PROXY/NO_PROXY.
 - 2026-07-15 — progress: сквозное HTTP-покрытие management расширено на
   user API-key read/revoke и admin user-status mutation через session-cookie.
+- 2026-07-16 — progress: graceful shutdown вызывает публичный SDK
+  `Service.Shutdown` с отдельным лимитом 30с; lifecycle helper покрыт unit-тестами.

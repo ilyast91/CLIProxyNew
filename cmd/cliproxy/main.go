@@ -39,7 +39,13 @@ import (
 const (
 	appName    = "cliproxy"
 	appVersion = "dev"
+
+	shutdownTimeout = 30 * time.Second
 )
+
+type serviceShutdowner interface {
+	Shutdown(context.Context) error
+}
 
 func main() {
 	if err := run(); err != nil {
@@ -161,11 +167,23 @@ func run() error {
 	slog.Info("core auth result hook registered")
 
 	slog.Info("SDK service ready")
-	if err := service.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-		return fmt.Errorf("run SDK service: %w", err)
+	runErr := service.Run(ctx)
+	shutdownErr := shutdownService(service)
+	if runErr != nil && !errors.Is(runErr, context.Canceled) {
+		return fmt.Errorf("run SDK service: %w", runErr)
+	}
+	if shutdownErr != nil {
+		return fmt.Errorf("shutdown SDK service: %w", shutdownErr)
 	}
 	slog.Info("shutdown complete")
 	return nil
+}
+
+// shutdownService ограничивает graceful shutdown SDK-сервиса установленным SLA.
+func shutdownService(service serviceShutdowner) error {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	return service.Shutdown(shutdownCtx)
 }
 
 func identityProviderFromConfig(cfg *config.Config) (identity.Provider, error) {

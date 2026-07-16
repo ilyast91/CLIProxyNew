@@ -1,6 +1,6 @@
 # CLIProxyNew
 
-Бизнес-обвязка над upstream relay-движком — оборачивает CLI-агентов (Codex, Claude Code, Gemini CLI и др.) в OpenAI/Gemini/Claude/Codex/Grok-совместимый API с auth (LDAP), аналитикой использования, management-поверхностью для пользователей и администраторов, per-call-type egress-прокси и observability.
+Бизнес-обвязка над upstream relay-движком — оборачивает CLI-агентов (Codex, Claude Code, Gemini CLI и др.) в OpenAI/Gemini/Claude/Codex/Grok-совместимый API с auth (LDAP), аналитикой использования, management-поверхностью для пользователей и администраторов, system egress proxy и observability.
 
 ## Архитектурная модель
 
@@ -13,7 +13,7 @@
 | Слой | Роль | Где живёт |
 |------|------|-----------|
 | **Ядро (upstream relay engine)** | Вызовы провайдеров, transport, streaming, парсинг, refresh-протоколы OAuth, реестр моделей, плагины | **Внешняя Go-зависимость** в `go.mod` (мы её не пишем) |
-| **CLIProxyNew (этот репо)** | Auth (LDAP), аналитика, management-API (user/admin), per-call-type прокси, БД, observability, k8s | Здесь |
+| **CLIProxyNew (этот репо)** | Auth (LDAP/static для development/test), аналитика, management API (user/admin), БД, system proxy, observability, k8s | Здесь |
 
 > **Принцип:** ядро — внешняя go-зависимость. Бизнес-слой реализует **7 контрактов расширения** ядра (ADR-9): `coreauth.Store`, `coreauth.Selector`, `coreauth.Hook`, `usage.Plugin`, `access.Provider`, `WatcherFactory`, `ModelRegistryHook`. Мы не дублируем upstream-специфику (refresh-протоколы, transport) — делегируем ядру.
 
@@ -23,9 +23,9 @@
 - **БД:** Postgres + `pgx/v5` + `sqlc` + `golang-migrate` (без ORM)
 - **Аналитика:** Postgres (партиционирование по дню + материализованные агрегаты; задел под ClickHouse)
 - **Auth:** LDAP (bind/search, live-lookup групп), opaque session-токены (cookie) + long-lived API-keys (bcrypt)
-- **Шифрование at-rest:** bcrypt (API-keys) + AES-256-GCM (upstream-credentials, LDAP bind), мастер-ключ из env (k8s Secret), key-versioning для ротации
+- **Шифрование at-rest:** bcrypt (API-keys) + AES-256-GCM (upstream credentials); LDAP bind-password остаётся только в env/k8s Secret, key-versioning поддерживает ротацию
 - **Scheduler/watcher:** ядро делает auto-refresh, бизнес-слой оркеструет (Postgres advisory lock для leader election)
-- **Egress-прокси:** per-call-type (inference/auth/quota/models), direct по умолчанию (R10)
+- **Egress-прокси:** единая policy процесса через `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` (R10)
 - **Observability:** Prometheus, OpenTelemetry, `slog`
 - **Деплой:** k8s, multi-replica, stateless (без Redis на первой версии)
 
@@ -50,7 +50,7 @@ docs/            — требования, ADR, дизайн
 
 ## Документация
 
-- [`docs/requirements.md`](docs/requirements.md) — требования R1–R10 (зафиксированы)
+- [`docs/requirements.md`](docs/requirements.md) — требования R1–R12 (зафиксированы)
 - [`docs/architecture-principles.md`](docs/architecture-principles.md) — требования к архитектуре (принципы, quality attributes, SLA, тестирование)
 - [`docs/architecture.md`](docs/architecture.md) — архитектурный дизайн (components, потоки, deployment)
 - [`docs/database-schema.md`](docs/database-schema.md) — схема БД (ER, таблицы, индексы, миграции)
@@ -58,9 +58,11 @@ docs/            — требования, ADR, дизайн
 - [`docs/design/r9-oauth-and-testing.md`](docs/design/r9-oauth-and-testing.md) — дизайн OAuth login-flow и тестирования аккаунтов (R9.A.1, R9.A.5)
 - [`docs/implementation-phases.md`](docs/implementation-phases.md) — план имплементации по фазам (Ф0–Ф7)
 - [`docs/adr/ADR-9-sdk-contracts.md`](docs/adr/ADR-9-sdk-contracts.md) — контракты интеграции с ядром (7 интерфейсов)
-- [`docs/adr/ADR-10-per-call-type-proxy.md`](docs/adr/ADR-10-per-call-type-proxy.md) — per-call-type egress proxy routing
+- [`docs/adr/ADR-10-per-call-type-proxy.md`](docs/adr/ADR-10-per-call-type-proxy.md) — system egress proxy через окружение процесса
 - [`AGENTS.md`](AGENTS.md) — инструкция для агентов
 
 ## Статус
 
-📋 Требования зафиксированы (R1–R11, 10 ADR). Архитектура, БД и план по фазам описаны. **Имплементация: Фаза 0 (Foundation).**
+Реализованы foundation, persistence, основные auth/core contracts, system proxy,
+management API и значительная часть observability. Текущий детальный статус и
+оставшиеся работы: [`docs/implementation-phases.md`](docs/implementation-phases.md).
