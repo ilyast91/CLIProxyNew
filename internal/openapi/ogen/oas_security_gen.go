@@ -13,6 +13,9 @@ import (
 
 // SecurityHandler is handler for security parameters.
 type SecurityHandler interface {
+	// HandleBearerApiKey handles BearerApiKey security.
+	// Long-lived API-key (как у OpenAI), проверяется через access.Provider (R2).
+	HandleBearerApiKey(ctx context.Context, operationName OperationName, t BearerApiKey) (context.Context, error)
 	// HandleSessionCookie handles SessionCookie security.
 	// Opaque session-токен, устанавливается после login через
 	// настроенный identity source (R1.2).
@@ -32,6 +35,36 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 		return value, true
 	}
 	return "", false
+}
+
+// operationRolesBearerApiKey is a private map storing roles per operation.
+var operationRolesBearerApiKey = map[string][]string{
+	ProxyChatCompletionsOperation: []string{},
+	ProxyGenerateContentOperation: []string{},
+	ProxyMessagesOperation:        []string{},
+	ProxyModelsOperation:          []string{},
+	ProxyResponsesOperation:       []string{},
+}
+
+// GetRolesForBearerApiKey returns the required roles for the given operation.
+//
+// This is useful for authorization scenarios where you need to know which roles
+// are required for an operation.
+//
+// Example:
+//
+//	requiredRoles := GetRolesForBearerApiKey(AddPetOperation)
+//
+// Returns nil if the operation has no role requirements or if the operation is unknown.
+func GetRolesForBearerApiKey(operation string) []string {
+	roles, ok := operationRolesBearerApiKey[operation]
+	if !ok {
+		return nil
+	}
+	// Return a copy to prevent external modification
+	result := make([]string, len(roles))
+	copy(result, roles)
+	return result
 }
 
 // operationRolesSessionCookie is a private map storing roles per operation.
@@ -78,6 +111,23 @@ func GetRolesForSessionCookie(operation string) []string {
 	return result
 }
 
+func (s *Server) securityBearerApiKey(ctx context.Context, operationName OperationName, req *http.Request) (context.Context, bool, error) {
+	var t BearerApiKey
+	token, ok := findAuthorization(req.Header, "Bearer")
+	if !ok {
+		return ctx, false, nil
+	}
+	t.Token = token
+	t.Roles = operationRolesBearerApiKey[operationName]
+	rctx, err := s.sec.HandleBearerApiKey(ctx, operationName, t)
+	if errors.Is(err, ogenerrors.ErrSkipServerSecurity) {
+		return nil, false, nil
+	} else if err != nil {
+		return nil, false, err
+	}
+	return rctx, true, err
+}
+
 func (s *Server) securitySessionCookie(ctx context.Context, operationName OperationName, req *http.Request) (context.Context, bool, error) {
 	var t SessionCookie
 	const parameterName = "cliproxy_session"
@@ -103,12 +153,23 @@ func (s *Server) securitySessionCookie(ctx context.Context, operationName Operat
 
 // SecuritySource is provider of security values (tokens, passwords, etc.).
 type SecuritySource interface {
+	// BearerApiKey provides BearerApiKey security value.
+	// Long-lived API-key (как у OpenAI), проверяется через access.Provider (R2).
+	BearerApiKey(ctx context.Context, operationName OperationName) (BearerApiKey, error)
 	// SessionCookie provides SessionCookie security value.
 	// Opaque session-токен, устанавливается после login через
 	// настроенный identity source (R1.2).
 	SessionCookie(ctx context.Context, operationName OperationName) (SessionCookie, error)
 }
 
+func (s *Client) securityBearerApiKey(ctx context.Context, operationName OperationName, req *http.Request) error {
+	t, err := s.sec.BearerApiKey(ctx, operationName)
+	if err != nil {
+		return errors.Wrap(err, "security source \"BearerApiKey\"")
+	}
+	req.Header.Set("Authorization", "Bearer "+t.Token)
+	return nil
+}
 func (s *Client) securitySessionCookie(ctx context.Context, operationName OperationName, req *http.Request) error {
 	t, err := s.sec.SessionCookie(ctx, operationName)
 	if err != nil {

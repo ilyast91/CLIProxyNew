@@ -217,6 +217,56 @@ func (UnimplementedHandler) OpenapiJson(ctx context.Context) error {
 	return ht.ErrNotImplemented
 }
 
+// ProxyChatCompletions implements proxyChatCompletions operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой описывает только URL, auth и общие ошибки.
+//
+// POST /v1/chat/completions
+func (UnimplementedHandler) ProxyChatCompletions(ctx context.Context) (r ProxyChatCompletionsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyGenerateContent implements proxyGenerateContent operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/models/{model}:generateContent
+func (UnimplementedHandler) ProxyGenerateContent(ctx context.Context, params ProxyGenerateContentParams) (r ProxyGenerateContentRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyMessages implements proxyMessages operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/messages
+func (UnimplementedHandler) ProxyMessages(ctx context.Context) (r ProxyMessagesRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyModels implements proxyModels operation.
+//
+// Список моделей формируется upstream SDK; его схема
+// намеренно не дублируется в бизнес-слое.
+//
+// GET /v1/models
+func (UnimplementedHandler) ProxyModels(ctx context.Context) (r ProxyModelsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyResponses implements proxyResponses operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/responses
+func (UnimplementedHandler) ProxyResponses(ctx context.Context) (r ProxyResponsesRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // Readyz implements readyz operation.
 //
 // Возвращает 200, если сервис готов принимать трафик (DB

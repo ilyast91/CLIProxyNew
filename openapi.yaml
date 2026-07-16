@@ -637,6 +637,104 @@ paths:
                 type: object
                 description: OpenAPI 3.1 document
 
+  # ─────────────────────────────────────────────────────────────────────────
+  # Proxy routes (R8, R11). Payload schemas intentionally stay in upstream SDK.
+  # ─────────────────────────────────────────────────────────────────────────
+  /v1/chat/completions:
+    post:
+      tags: [Proxy]
+      summary: OpenAI-compatible chat completion
+      description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой описывает только URL, auth и общие ошибки.
+      operationId: proxyChatCompletions
+      security:
+        - BearerApiKey: []
+      responses:
+        "200":
+          description: Upstream-compatible response
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/messages:
+    post:
+      tags: [Proxy]
+      summary: Anthropic-compatible message
+      description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+      operationId: proxyMessages
+      security:
+        - BearerApiKey: []
+      responses:
+        "200":
+          description: Upstream-compatible response
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/models/{model}:generateContent:
+    post:
+      tags: [Proxy]
+      summary: Gemini-compatible content generation
+      description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+      operationId: proxyGenerateContent
+      security:
+        - BearerApiKey: []
+      parameters:
+        - name: model
+          in: path
+          required: true
+          description: Идентификатор модели, интерпретируемый upstream SDK.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Upstream-compatible response
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/responses:
+    post:
+      tags: [Proxy]
+      summary: OpenAI Responses API request
+      description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+      operationId: proxyResponses
+      security:
+        - BearerApiKey: []
+      responses:
+        "200":
+          description: Upstream-compatible response
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/models:
+    get:
+      tags: [Proxy]
+      summary: List available models
+      description: Список моделей формируется upstream SDK; его схема намеренно не дублируется в бизнес-слое.
+      operationId: proxyModels
+      security:
+        - BearerApiKey: []
+      responses:
+        "200":
+          description: Upstream-compatible model list
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
   /api/v1/login:
     post:
       tags: [Auth]

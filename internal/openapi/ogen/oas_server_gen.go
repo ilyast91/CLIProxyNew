@@ -152,6 +152,41 @@ type Handler interface {
 	//
 	// GET /openapi.json
 	OpenapiJson(ctx context.Context) error
+	// ProxyChatCompletions implements proxyChatCompletions operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой описывает только URL, auth и общие ошибки.
+	//
+	// POST /v1/chat/completions
+	ProxyChatCompletions(ctx context.Context) (ProxyChatCompletionsRes, error)
+	// ProxyGenerateContent implements proxyGenerateContent operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/models/{model}:generateContent
+	ProxyGenerateContent(ctx context.Context, params ProxyGenerateContentParams) (ProxyGenerateContentRes, error)
+	// ProxyMessages implements proxyMessages operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/messages
+	ProxyMessages(ctx context.Context) (ProxyMessagesRes, error)
+	// ProxyModels implements proxyModels operation.
+	//
+	// Список моделей формируется upstream SDK; его схема
+	// намеренно не дублируется в бизнес-слое.
+	//
+	// GET /v1/models
+	ProxyModels(ctx context.Context) (ProxyModelsRes, error)
+	// ProxyResponses implements proxyResponses operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/responses
+	ProxyResponses(ctx context.Context) (ProxyResponsesRes, error)
 	// Readyz implements readyz operation.
 	//
 	// Возвращает 200, если сервис готов принимать трафик (DB

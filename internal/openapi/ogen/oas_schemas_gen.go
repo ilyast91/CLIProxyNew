@@ -1083,6 +1083,31 @@ func (s *AntigravityCredits) SetUpdatedAt(val OptDateTime) {
 	s.UpdatedAt = val
 }
 
+type BearerApiKey struct {
+	Token string
+	Roles []string
+}
+
+// GetToken returns the value of Token.
+func (s *BearerApiKey) GetToken() string {
+	return s.Token
+}
+
+// GetRoles returns the value of Roles.
+func (s *BearerApiKey) GetRoles() []string {
+	return s.Roles
+}
+
+// SetToken sets the value of Token.
+func (s *BearerApiKey) SetToken(val string) {
+	s.Token = val
+}
+
+// SetRoles sets the value of Roles.
+func (s *BearerApiKey) SetRoles(val []string) {
+	s.Roles = val
+}
+
 // CancelOAuthSessionNoContent is response for CancelOAuthSession operation.
 type CancelOAuthSessionNoContent struct{}
 
@@ -2942,6 +2967,87 @@ func (s *ProviderAPIKeyListResponse) SetData(val []ProviderAPIKey) {
 }
 
 func (*ProviderAPIKeyListResponse) createProviderAPIKeysRes() {}
+
+type ProxyChatCompletionsBadRequest Error
+
+func (*ProxyChatCompletionsBadRequest) proxyChatCompletionsRes() {}
+
+type ProxyChatCompletionsInternalServerError Error
+
+func (*ProxyChatCompletionsInternalServerError) proxyChatCompletionsRes() {}
+
+// ProxyChatCompletionsOK is response for ProxyChatCompletions operation.
+type ProxyChatCompletionsOK struct{}
+
+func (*ProxyChatCompletionsOK) proxyChatCompletionsRes() {}
+
+type ProxyChatCompletionsUnauthorized Error
+
+func (*ProxyChatCompletionsUnauthorized) proxyChatCompletionsRes() {}
+
+type ProxyGenerateContentBadRequest Error
+
+func (*ProxyGenerateContentBadRequest) proxyGenerateContentRes() {}
+
+type ProxyGenerateContentInternalServerError Error
+
+func (*ProxyGenerateContentInternalServerError) proxyGenerateContentRes() {}
+
+// ProxyGenerateContentOK is response for ProxyGenerateContent operation.
+type ProxyGenerateContentOK struct{}
+
+func (*ProxyGenerateContentOK) proxyGenerateContentRes() {}
+
+type ProxyGenerateContentUnauthorized Error
+
+func (*ProxyGenerateContentUnauthorized) proxyGenerateContentRes() {}
+
+type ProxyMessagesBadRequest Error
+
+func (*ProxyMessagesBadRequest) proxyMessagesRes() {}
+
+type ProxyMessagesInternalServerError Error
+
+func (*ProxyMessagesInternalServerError) proxyMessagesRes() {}
+
+// ProxyMessagesOK is response for ProxyMessages operation.
+type ProxyMessagesOK struct{}
+
+func (*ProxyMessagesOK) proxyMessagesRes() {}
+
+type ProxyMessagesUnauthorized Error
+
+func (*ProxyMessagesUnauthorized) proxyMessagesRes() {}
+
+type ProxyModelsInternalServerError Error
+
+func (*ProxyModelsInternalServerError) proxyModelsRes() {}
+
+// ProxyModelsOK is response for ProxyModels operation.
+type ProxyModelsOK struct{}
+
+func (*ProxyModelsOK) proxyModelsRes() {}
+
+type ProxyModelsUnauthorized Error
+
+func (*ProxyModelsUnauthorized) proxyModelsRes() {}
+
+type ProxyResponsesBadRequest Error
+
+func (*ProxyResponsesBadRequest) proxyResponsesRes() {}
+
+type ProxyResponsesInternalServerError Error
+
+func (*ProxyResponsesInternalServerError) proxyResponsesRes() {}
+
+// ProxyResponsesOK is response for ProxyResponses operation.
+type ProxyResponsesOK struct{}
+
+func (*ProxyResponsesOK) proxyResponsesRes() {}
+
+type ProxyResponsesUnauthorized Error
+
+func (*ProxyResponsesUnauthorized) proxyResponsesRes() {}
 
 type ReadyzOK struct {
 	Data io.Reader

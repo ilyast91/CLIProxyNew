@@ -455,6 +455,72 @@ func decodeGetUpstreamAccountQuotaParams(args [1]string, argsEscaped bool, r *ht
 	return params, nil
 }
 
+// ProxyGenerateContentParams is parameters of proxyGenerateContent operation.
+type ProxyGenerateContentParams struct {
+	// Идентификатор модели, интерпретируемый upstream SDK.
+	Model string
+}
+
+func unpackProxyGenerateContentParams(packed middleware.Parameters) (params ProxyGenerateContentParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "model",
+			In:   "path",
+		}
+		params.Model = packed[key].(string)
+	}
+	return params
+}
+
+func decodeProxyGenerateContentParams(args [1]string, argsEscaped bool, r *http.Request) (params ProxyGenerateContentParams, _ error) {
+	// Decode path: model.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "model",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Model = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "model",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // RevokeMyAPIKeyParams is parameters of revokeMyAPIKey operation.
 type RevokeMyAPIKeyParams struct {
 	KeyID int64

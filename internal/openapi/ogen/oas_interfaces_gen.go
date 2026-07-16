@@ -57,6 +57,26 @@ type LoginRes interface {
 	loginRes()
 }
 
+type ProxyChatCompletionsRes interface {
+	proxyChatCompletionsRes()
+}
+
+type ProxyGenerateContentRes interface {
+	proxyGenerateContentRes()
+}
+
+type ProxyMessagesRes interface {
+	proxyMessagesRes()
+}
+
+type ProxyModelsRes interface {
+	proxyModelsRes()
+}
+
+type ProxyResponsesRes interface {
+	proxyResponsesRes()
+}
+
 type ReadyzRes interface {
 	readyzRes()
 }

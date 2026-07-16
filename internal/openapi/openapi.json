@@ -1961,6 +1961,159 @@
           "System"
         ]
       }
+    },
+    "/v1/chat/completions": {
+      "post": {
+        "description": "Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой описывает только URL, auth и общие ошибки.",
+        "operationId": "proxyChatCompletions",
+        "responses": {
+          "200": {
+            "description": "Upstream-compatible response"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "BearerApiKey": []
+          }
+        ],
+        "summary": "OpenAI-compatible chat completion",
+        "tags": [
+          "Proxy"
+        ]
+      }
+    },
+    "/v1/messages": {
+      "post": {
+        "description": "Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.",
+        "operationId": "proxyMessages",
+        "responses": {
+          "200": {
+            "description": "Upstream-compatible response"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "BearerApiKey": []
+          }
+        ],
+        "summary": "Anthropic-compatible message",
+        "tags": [
+          "Proxy"
+        ]
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "description": "Список моделей формируется upstream SDK; его схема намеренно не дублируется в бизнес-слое.",
+        "operationId": "proxyModels",
+        "responses": {
+          "200": {
+            "description": "Upstream-compatible model list"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "BearerApiKey": []
+          }
+        ],
+        "summary": "List available models",
+        "tags": [
+          "Proxy"
+        ]
+      }
+    },
+    "/v1/models/{model}:generateContent": {
+      "post": {
+        "description": "Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.",
+        "operationId": "proxyGenerateContent",
+        "parameters": [
+          {
+            "description": "Идентификатор модели, интерпретируемый upstream SDK.",
+            "in": "path",
+            "name": "model",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upstream-compatible response"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "BearerApiKey": []
+          }
+        ],
+        "summary": "Gemini-compatible content generation",
+        "tags": [
+          "Proxy"
+        ]
+      }
+    },
+    "/v1/responses": {
+      "post": {
+        "description": "Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.",
+        "operationId": "proxyResponses",
+        "responses": {
+          "200": {
+            "description": "Upstream-compatible response"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "BearerApiKey": []
+          }
+        ],
+        "summary": "OpenAI Responses API request",
+        "tags": [
+          "Proxy"
+        ]
+      }
     }
   },
   "servers": [

@@ -147,7 +147,10 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 ## Фаза 4 — Management API (R9)
 **Цель:** полный management-API, OpenAPI-first.
 
-- [ ] `openapi.yaml` — все management-эндпоинты (R9.U, R9.A, oauth/sessions) + прокси-роуты (без body-схем) + системные (/healthz, /readyz, /metrics, /openapi.json)
+- [ ] `openapi.yaml` — management-эндпоинты (R9.U, R9.A, oauth/sessions) и
+  основные proxy compatibility URLs (`chat/completions`, `messages`,
+  `generateContent`, `responses`, `models`) описаны без body-схем; остаётся
+  сверка полного proxy surface SDK и опциональный `/docs`
 - [x] Генерация typed bindings из `openapi.yaml`: `ogen` v1.20.3 через
   compatibility projection (ADR-11); контракт покрывает lifecycle management-сессии
   (`/api/v1/me`, `/api/v1/logout`); adapter существующих handlers — отдельный шаг
@@ -324,3 +327,6 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - 2026-07-16 — progress: добавлен PostgreSQL regression для guarded rollback
   identity_source migration при static user; static/prod и source-isolation
   проверки сведены в закрытый security regression набор Ф2.
+- 2026-07-16 — progress: OpenAPI пополнен основными proxy compatibility URLs
+  с Bearer API-key и общими errors без дублирования upstream payload schemas;
+  embedded JSON и ogen bindings пересозданы.
