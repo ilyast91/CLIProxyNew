@@ -41,6 +41,7 @@ func TestDocumentDescribesSessionLifecycleEndpoints(t *testing.T) {
 func TestDocumentDescribesProxyEndpointsWithBearerAuthentication(t *testing.T) {
 	type operation struct {
 		Security   []map[string][]string `json:"security"`
+		Tags       []string              `json:"tags"`
 		Parameters []struct {
 			Name     string `json:"name"`
 			In       string `json:"in"`
@@ -88,7 +89,9 @@ func TestDocumentDescribesProxyEndpointsWithBearerAuthentication(t *testing.T) {
 		{method: "post", path: "/v1beta/models/{model}:{action}", pathParameters: []string{"model", "action"}},
 	}
 
+	expectedSet := make(map[string]struct{}, len(expected))
 	for _, want := range expected {
+		expectedSet[want.method+" "+want.path] = struct{}{}
 		operations, ok := document.Paths[want.path]
 		if !ok {
 			t.Fatalf("path %q is not documented", want.path)
@@ -107,9 +110,35 @@ func TestDocumentDescribesProxyEndpointsWithBearerAuthentication(t *testing.T) {
 		}
 	}
 
+	actualSet := make(map[string]struct{}, len(expected))
+	for path, operations := range document.Paths {
+		for method, operation := range operations {
+			if hasTag(operation.Tags, "Proxy") {
+				actualSet[method+" "+path] = struct{}{}
+			}
+		}
+	}
+	if len(actualSet) != len(expectedSet) {
+		t.Fatalf("proxy operation count = %d, want %d: %#v", len(actualSet), len(expectedSet), actualSet)
+	}
+	for operation := range actualSet {
+		if _, ok := expectedSet[operation]; !ok {
+			t.Fatalf("unexpected proxy operation %s", operation)
+		}
+	}
+
 	if _, ok := document.Paths["/v1/models/{model}:generateContent"]; ok {
 		t.Fatal("legacy Gemini path /v1/models/{model}:generateContent must not be documented")
 	}
+}
+
+func hasTag(tags []string, want string) bool {
+	for _, tag := range tags {
+		if tag == want {
+			return true
+		}
+	}
+	return false
 }
 
 func hasRequiredPathParameter(parameters []struct {

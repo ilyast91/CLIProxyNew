@@ -109,7 +109,11 @@ func newRuntimeHarness(t *testing.T) *runtimeHarness {
 
 	sdkaccess.ClearExclusiveProvider()
 	sdkaccess.UnregisterProvider(businessaccess.ProviderIdentifier)
-	sdkaccess.RegisterProvider(businessaccess.ProviderIdentifier, businessaccess.NewProvider(apiKeys, identity.SourceStatic))
+	principalQueue := make(chan string, 1)
+	sdkaccess.RegisterProvider(businessaccess.ProviderIdentifier, &capturingAccessProvider{
+		delegate:   businessaccess.NewProvider(apiKeys, identity.SourceStatic),
+		principals: principalQueue,
+	})
 	sdkaccess.SetExclusiveProvider(businessaccess.ProviderIdentifier)
 	t.Cleanup(func() {
 		sdkaccess.ClearExclusiveProvider()
@@ -185,7 +189,7 @@ func newRuntimeHarness(t *testing.T) *runtimeHarness {
 	baseURL := "http://" + addr
 	waitForHealthyService(t, baseURL, runErr)
 	waitForProviderRuntime(t, coreManager, "claude", e2eModel, runErr)
-	coreManager.RegisterExecutor(fakeClaudeExecutor{})
+	coreManager.RegisterExecutor(fakeClaudeExecutor{principals: principalQueue})
 
 	jar, err := cookiejar.New(nil)
 	if err != nil {
@@ -293,6 +297,48 @@ func (h *runtimeHarness) verifyLoginKeyInferenceUsageAdmin(t *testing.T) {
 	status = h.requestJSON(t, http.MethodGet, "/api/v1/admin/keys", "", nil, &adminKeys)
 	if status != http.StatusOK || len(adminKeys.Data) != 1 || adminKeys.Data[0].ID != createdKey.APIKey.ID || adminKeys.Data[0].UserID != login.UserID || adminKeys.Data[0].Prefix != createdKey.APIKey.Prefix {
 		t.Fatalf("admin keys response: status=%d data=%+v", status, adminKeys.Data)
+	}
+
+	h.verifyAdminRoleGuard(t)
+}
+
+func (h *runtimeHarness) verifyAdminRoleGuard(t *testing.T) {
+	t.Helper()
+
+	withoutSession := *h
+	withoutSession.client = &http.Client{Timeout: 5 * time.Second}
+	if status := withoutSession.requestJSON(t, http.MethodGet, "/api/v1/admin/users", "", nil, nil); status != http.StatusUnauthorized {
+		t.Fatalf("anonymous admin status = %d, want %d", status, http.StatusUnauthorized)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	user, err := store.NewUserRepository(h.pool).UpsertStatic(ctx, store.UpsertUserParams{
+		Username: "static:runtime-user", Email: "runtime-user@example.test", Role: identity.RoleUser,
+	})
+	if err != nil {
+		t.Fatalf("создать E2E user для role guard: %v", err)
+	}
+	const userToken = "runtime-user-session"
+	if _, err := store.NewSessionRepository(h.pool).Create(ctx, store.CreateSessionParams{
+		UserID: user.ID, Token: userToken, Role: identity.RoleUser, ExpiresAt: time.Now().Add(time.Hour),
+	}); err != nil {
+		t.Fatalf("создать E2E user session: %v", err)
+	}
+
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatalf("создать user cookie jar: %v", err)
+	}
+	baseURL, err := url.Parse(h.baseURL)
+	if err != nil {
+		t.Fatalf("разобрать E2E base URL: %v", err)
+	}
+	jar.SetCookies(baseURL, []*http.Cookie{{Name: identity.SessionCookieName, Value: userToken, Path: "/"}})
+	userSession := *h
+	userSession.client = &http.Client{Jar: jar, Timeout: 5 * time.Second}
+	if status := userSession.requestJSON(t, http.MethodGet, "/api/v1/admin/users", "", nil, nil); status != http.StatusForbidden {
+		t.Fatalf("user admin status = %d, want %d", status, http.StatusForbidden)
 	}
 }
 
@@ -468,14 +514,39 @@ func applyMigrations(t *testing.T, dsn string) {
 	}
 }
 
-type fakeClaudeExecutor struct{}
+type capturingAccessProvider struct {
+	delegate   sdkaccess.Provider
+	principals chan<- string
+}
+
+func (p *capturingAccessProvider) Identifier() string { return p.delegate.Identifier() }
+
+func (p *capturingAccessProvider) Authenticate(ctx context.Context, request *http.Request) (*sdkaccess.Result, *sdkaccess.AuthError) {
+	result, authError := p.delegate.Authenticate(ctx, request)
+	if authError == nil && result != nil {
+		select {
+		case p.principals <- result.Principal:
+		default:
+		}
+	}
+	return result, authError
+}
+
+type fakeClaudeExecutor struct {
+	principals <-chan string
+}
 
 func (fakeClaudeExecutor) Identifier() string { return "claude" }
 
-func (fakeClaudeExecutor) Execute(ctx context.Context, auth *coreauth.Auth, request coreexecutor.Request, _ coreexecutor.Options) (coreexecutor.Response, error) {
-	principal := executionPrincipal(ctx)
+func (e fakeClaudeExecutor) Execute(ctx context.Context, auth *coreauth.Auth, request coreexecutor.Request, _ coreexecutor.Options) (coreexecutor.Response, error) {
+	var principal string
+	select {
+	case principal = <-e.principals:
+	case <-ctx.Done():
+		return coreexecutor.Response{}, ctx.Err()
+	}
 	if principal == "" {
-		return coreexecutor.Response{}, errors.New("SDK did not propagate access principal to provider execution context")
+		return coreexecutor.Response{}, errors.New("access provider returned an empty principal")
 	}
 	model := request.Model
 	alias := sdkusage.RequestedModelAliasFromContext(ctx)
@@ -487,22 +558,6 @@ func (fakeClaudeExecutor) Execute(ctx context.Context, auth *coreauth.Auth, requ
 		Payload: []byte(`{"id":"chatcmpl-e2e","object":"chat.completion","model":"claude-sonnet-4-5-20250929","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":7,"total_tokens":12}}`),
 		Headers: http.Header{"Content-Type": []string{"application/json"}},
 	}, nil
-}
-
-func executionPrincipal(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	ginContext, ok := ctx.Value("gin").(interface{ Get(any) (any, bool) })
-	if !ok || ginContext == nil {
-		return ""
-	}
-	value, exists := ginContext.Get("userApiKey")
-	if !exists {
-		return ""
-	}
-	principal, _ := value.(string)
-	return principal
 }
 
 func (fakeClaudeExecutor) ExecuteStream(context.Context, *coreauth.Auth, coreexecutor.Request, coreexecutor.Options) (*coreexecutor.StreamResult, error) {
