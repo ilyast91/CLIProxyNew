@@ -209,7 +209,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   snapshot candidate cache клиентских API-keys с outcome `hit|miss`
 - [ ] Prometheus: специализированные refresh success/failure
   после появления соответствующих business hooks
-- [ ] OpenTelemetry traces: span на inference + access.Provider + Selector + Execute; trace-context propagation
+- [ ] OpenTelemetry traces: HTTP server span и trace-context propagation готовы;
+  вложенные spans для access.Provider, Selector и SDK Execute остаются
 - [x] Structured request logging: middleware пишет только method, route template,
   status, duration, request ID и principal без headers, query или body
 - [x] `slog` structured JSON + redaction: глобальный handler скрывает attrs с

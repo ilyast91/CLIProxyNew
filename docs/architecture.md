@@ -431,7 +431,9 @@ controlled restart после `Store.Save/Delete`; это загружает а�
   authorization/API-key на `[REDACTED]`, включая `WithAttrs` и slog groups.
   HTTP middleware пишет access log только с method, route template, status,
   duration, request ID и user ID; headers, query и body не читаются.
-- **Middleware:** session-cookie auth для management; logging; CORS; role-guard (user/admin).
+- **Middleware:** session-cookie auth для management; OpenTelemetry server span
+  с propagation context в SDK; безопасный access logging; CORS; role-guard
+  (user/admin).
 
 ### `internal/cache` (R6)
 In-process кэш за интерфейсом:
