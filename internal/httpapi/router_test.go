@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ilyast91/CLIProxyNew/internal/auth/identity"
 	"github.com/ilyast91/CLIProxyNew/internal/store"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 )
 
 func TestRouterConfiguratorRegistersLoginRoute(t *testing.T) {
@@ -88,6 +89,69 @@ func TestRouterConfiguratorPassesSessionPrincipalToMutatingManagementHandlers(t 
 	}
 }
 
+func TestRouterConfiguratorRunsProviderAndModelAdminFlows(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	sessions := routerSessions()
+	registrar := &fakeUpstreamAuthRegistrar{}
+	models := &fakeAdminModelStore{override: store.ModelOverride{ID: 9, Provider: "openai", ModelAlias: "fast", UpstreamModel: "gpt-5", Enabled: true}}
+	RouterConfigurator(nil, sessions, nil, nil, nil, nil, nil, nil, NewAdminProviderKeyHandler(registrar), nil, nil, nil, NewAdminModelHandler(models))(router, nil, nil)
+
+	request := managementJSONRequest(http.MethodPost, "/api/v1/admin/providers/keys", `{"accounts":[{"provider":"claude","api_key":"upstream-secret"}]}`, "admin-token")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated || len(registrar.auths) != 1 {
+		t.Fatalf("provider keys status=%d registered=%d body=%s", response.Code, len(registrar.auths), response.Body.String())
+	}
+
+	request = managementJSONRequest(http.MethodPut, "/api/v1/admin/models/fast", `{"provider":"openai","upstream_model":"gpt-5","enabled":true}`, "admin-token")
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || models.actor != 42 || models.params.ModelAlias != "fast" {
+		t.Fatalf("model upsert status=%d actor=%d params=%+v body=%s", response.Code, models.actor, models.params, response.Body.String())
+	}
+
+	forbidden := managementJSONRequest(http.MethodPost, "/api/v1/admin/providers/keys", `{"accounts":[{"provider":"claude","api_key":"upstream-secret"}]}`, "user-token")
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, forbidden)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("user provider keys status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestRouterConfiguratorRunsOAuthAndAccountAdminFlows(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	sessions := routerSessions()
+	oauthSessions := &fakeAdminOAuthSessions{sessions: []store.OAuthSession{{State: "state-1", Provider: "claude", FlowType: "callback", Status: "pending"}}}
+	checker := &fakeAccountChecker{}
+	quota := &fakeQuotaLookup{auth: &coreauth.Auth{ID: "account-1", Provider: "claude"}}
+	oauthManager := &fakeOAuthCredentialManager{auths: []*coreauth.Auth{{ID: "oauth-1", Provider: "claude", Attributes: map[string]string{coreauth.AttributeAuthKind: coreauth.AuthKindOAuth}, Metadata: map[string]any{"email": "admin@example.com", "refresh_token": "secret-refresh"}}}}
+	RouterConfigurator(nil, sessions, nil, nil, nil, nil, nil, NewAdminOAuthSessionHandler(oauthSessions), nil, NewAdminAccountTestHandler(checker), NewAdminQuotaHandler(quota), NewAdminOAuthCredentialHandler(oauthManager, &fakeAdminAuditLogger{}), nil)(router, nil, nil)
+
+	for _, path := range []string{"/api/v1/admin/oauth/sessions", "/api/v1/admin/accounts/account-1/quota", "/api/v1/admin/oauth/accounts/oauth-1/export"} {
+		response := managementRequest(router, http.MethodGet, path, "admin-token")
+		if response.Code != http.StatusOK {
+			t.Fatalf("GET %s status=%d body=%s", path, response.Code, response.Body.String())
+		}
+	}
+	response := managementRequest(router, http.MethodPost, "/api/v1/admin/accounts/account-1/test", "admin-token")
+	if response.Code != http.StatusOK || checker.accountID != "account-1" {
+		t.Fatalf("account test status=%d account=%q body=%s", response.Code, checker.accountID, response.Body.String())
+	}
+	response = managementRequest(router, http.MethodDelete, "/api/v1/admin/oauth/sessions/state-1", "admin-token")
+	if response.Code != http.StatusNoContent || oauthSessions.actor != 42 || oauthSessions.state != "state-1" {
+		t.Fatalf("oauth cancel status=%d actor=%d state=%q body=%s", response.Code, oauthSessions.actor, oauthSessions.state, response.Body.String())
+	}
+
+	request := managementJSONRequest(http.MethodPost, "/api/v1/admin/oauth/import", `{"provider":"claude","attributes":{"auth_kind":"oauth"},"metadata":{"email":"new@example.com","refresh_token":"secret-refresh"}}`, "admin-token")
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated || oauthManager.registered == nil {
+		t.Fatalf("oauth import status=%d registered=%+v body=%s", response.Code, oauthManager.registered, response.Body.String())
+	}
+}
+
 func managementRequest(router http.Handler, method, path, token string) *httptest.ResponseRecorder {
 	request := httptest.NewRequest(method, path, nil)
 	if token != "" {
@@ -96,6 +160,20 @@ func managementRequest(router http.Handler, method, path, token string) *httptes
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, request)
 	return response
+}
+
+func managementJSONRequest(method, path, body, token string) *http.Request {
+	request := httptest.NewRequest(method, path, strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	request.AddCookie(&http.Cookie{Name: identity.SessionCookieName, Value: token})
+	return request
+}
+
+func routerSessions() *identity.SessionAuthenticator {
+	return identity.NewSessionAuthenticator(routerSessionLookup{sessions: map[string]store.Session{
+		"user-token":  {UserID: 7, Role: identity.RoleUser},
+		"admin-token": {UserID: 42, Role: identity.RoleAdmin},
+	}}, identity.SourceLDAP)
 }
 
 type routerSessionLookup struct{ sessions map[string]store.Session }

@@ -179,7 +179,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   только к management-маршрутам `/api/v1`.
 - [ ] Functional tests (HTTP end-to-end) для всех management-эндпоинтов:
   покрыты router → session-cookie → role guard, user API-key read/revoke и
-  admin status mutation; endpoint-specific сценарии остальных маршрутов остаются
+  admin status mutation, provider keys/models, OAuth sessions/import/export и
+  account test/quota; endpoint-specific сценарии login/logout, usage и admin keys остаются
 
 **Acceptance:** все R9-функции работают через REST, OpenAPI спецификация валидируется, drift-check с кодом проходит, `admin_audit_log` покрывает 100% mutating actions.
 
