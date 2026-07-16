@@ -171,7 +171,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [x] R9.A.7 export/import OAuth JSON: export attachment с audit; import с
   лимитом тела, проверкой OAuth/email, dedup `provider+email`, SDK-managed ID
   и транзакционным audit при Store.Save
-- [ ] `admin_audit_log` writing на все mutating admin-действия
+- [x] `admin_audit_log` writing на все mutating admin-действия: статус
+  пользователя, upstream credentials, model overrides и отмена OAuth-сессий;
+  транзакционные integration tests подтверждают domain state и audit record
 - [x] Middleware: session-cookie auth, role-guard, request ID и CORS готовы;
   CORS ограничен явным allow-list `server.cors_allowed_origins` и применяется
   только к management-маршрутам `/api/v1`.
