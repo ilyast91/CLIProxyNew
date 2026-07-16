@@ -80,8 +80,8 @@ func (c *cacheCollector) Collect(ch chan<- prometheus.Metric) {
 	if c.stats != nil {
 		stats = c.stats.CacheStats()
 	}
-	ch <- prometheus.MustNewConstMetric(c.lookups, prometheus.CounterValue, float64(stats.Hits), "api_key_candidates", "hit")
-	ch <- prometheus.MustNewConstMetric(c.lookups, prometheus.CounterValue, float64(stats.Misses), "api_key_candidates", "miss")
+	ch <- prometheus.MustNewConstMetric(c.lookups, prometheus.CounterValue, float64(stats.Hits), "api_key_auth", "hit")
+	ch <- prometheus.MustNewConstMetric(c.lookups, prometheus.CounterValue, float64(stats.Misses), "api_key_auth", "miss")
 }
 
 // Handler возвращает HTTP handler Prometheus exposition format.

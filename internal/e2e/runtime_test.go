@@ -24,6 +24,7 @@ import (
 	"github.com/ilyast91/CLIProxyNew/internal/auth/selector"
 	"github.com/ilyast91/CLIProxyNew/internal/config"
 	"github.com/ilyast91/CLIProxyNew/internal/httpapi"
+	"github.com/ilyast91/CLIProxyNew/internal/metrics"
 	"github.com/ilyast91/CLIProxyNew/internal/security"
 	"github.com/ilyast91/CLIProxyNew/internal/store"
 	"github.com/ilyast91/CLIProxyNew/internal/usage"
@@ -51,6 +52,7 @@ const e2eHTTPClientTimeout = 30 * time.Second
 type runtimeHarness struct {
 	baseURL   string
 	client    *http.Client
+	metrics   http.Handler
 	pool      *pgxpool.Pool
 	usageRepo *store.UsageEventRepository
 }
@@ -112,7 +114,7 @@ func newRuntimeHarness(t *testing.T) *runtimeHarness {
 
 	sdkaccess.ClearExclusiveProvider()
 	sdkaccess.UnregisterProvider(businessaccess.ProviderIdentifier)
-	principalQueue := make(chan string, 1)
+	principalQueue := make(chan string, 16)
 	sdkaccess.RegisterProvider(businessaccess.ProviderIdentifier, &capturingAccessProvider{
 		delegate:   businessaccess.NewProvider(apiKeys, identity.SourceStatic),
 		principals: principalQueue,
@@ -141,12 +143,14 @@ func newRuntimeHarness(t *testing.T) *runtimeHarness {
 	}
 
 	usagePlugin := usage.NewBufferedPlugin(usageRepo)
+	metricsRegistry := metrics.NewRegistry(pool, resultHook, usagePlugin, apiKeys)
 	service, err := cliproxy.NewBuilder().
 		WithConfig(sdkConfig).
 		WithConfigPath(configPath).
 		WithCoreAuthManager(coreManager).
 		WithWatcherFactory(watcher.NoopFactory).
 		WithServerOptions(
+			sdkapi.WithMiddleware(metricsRegistry.Middleware()),
 			sdkapi.WithRouterConfigurator(httpapi.SystemRouterConfigurator(pool)),
 			sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(
 				httpapi.NewLoginHandler(loginService, false),
@@ -154,7 +158,7 @@ func newRuntimeHarness(t *testing.T) *runtimeHarness {
 				nil,
 				httpapi.NewAPIKeyHandler(apiKeys),
 				httpapi.NewUsageHandler(usageRepo),
-				httpapi.NewAdminUserHandler(store.NewAdminUserRepository(pool), sessionAuthenticator),
+				httpapi.NewAdminUserHandler(store.NewAdminUserRepository(pool), sessionAuthenticator, apiKeys),
 				httpapi.NewAdminAPIKeyHandler(apiKeys),
 				nil, nil, nil, nil, nil, nil,
 			)),
@@ -201,7 +205,7 @@ func newRuntimeHarness(t *testing.T) *runtimeHarness {
 	return &runtimeHarness{
 		baseURL: baseURL,
 		client:  &http.Client{Jar: jar, Timeout: e2eHTTPClientTimeout},
-		pool:    pool, usageRepo: usageRepo,
+		metrics: metricsRegistry.Handler(), pool: pool, usageRepo: usageRepo,
 	}
 }
 

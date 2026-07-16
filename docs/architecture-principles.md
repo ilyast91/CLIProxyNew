@@ -39,8 +39,8 @@ SLA на накладные расходы бизнес-слоя (без upstrea
 | Метрика | Цель | Где измеряется |
 |---------|------|----------------|
 | Inference-запрос, overhead бизнес-слоя | **≤ 5 мс (p95)**: auth + selector + analytics | trace span на inference |
-| `access.Provider.Authenticate` (cache hit) | **≤ 2 мс (p95)**: lookup + bcrypt | trace span |
-| `access.Provider.Authenticate` (cache miss) | **≤ 15 мс (p95)**: DB lookup + bcrypt | trace span |
+| `access.Provider.Authenticate` (verified cache hit) | **≤ 2 мс (p95)**: SHA-256 lookup без повторного bcrypt | trace span |
+| `access.Provider.Authenticate` (cache miss) | **≤ 500 мс (p95)**: DB lookup + bcrypt cost 12 | trace span |
 | `Selector.Pick` | **≤ 3 мс (p95)**: model_overrides + выбор | trace span |
 | `Store.Save` (после refresh) | **≤ 10 мс (p95)**: AES-GCM + UPSERT | metric histogram |
 | `usage.Plugin.HandleUsage` | **async, не блокирует ответ**; bulk INSERT batched | metric queue depth |
@@ -53,7 +53,8 @@ SLA на накладные расходы бизнес-слоя (без upstrea
 | Линейное масштабирование | до N реплик без shared-state (цель — линейный growth throughput) |
 | Postgres — единственный bottleneck | партиционирование `usage_events` по дню + материализованные агрегаты |
 | In-process кэш | TTL 5–15с; eventual consistency revocation ≤ TTL (приемлемо, R2.4) |
-| Целевая нагрузка (для load-тестов) | **TBD** — зафиксировать в load-test-plan перед v1 |
+| CI regression profile | 4 concurrent worker, 200 steady-state inference-запросов после warm-up, fake upstream без задержки |
+| Production capacity profile | Определяется отдельно для конкретного deployment по replica count и PostgreSQL sizing |
 
 ### 2.3 Надёжность/доступность (reliability/availability)
 
@@ -202,3 +203,6 @@ graph TB
   `sdk/*`, compatibility gate для обновлений v7 и ADR-процесс для major.
 - 2026-07-16 — compatibility gate подтверждён на CLIProxyAPI v7.2.80;
   обновлены Go/tooling dependencies и public SDK reference.
+- 2026-07-16 — Ф7 SLA profile зафиксирован как 4 worker / 200 steady-state
+  запросов; verified API-key cache устраняет повторный bcrypt, CI проверяет
+  business p95 access+selector ≤5мс и cache hit ratio ≥95%.

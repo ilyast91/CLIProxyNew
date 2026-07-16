@@ -114,7 +114,26 @@ jobs:
           cache: true
 
       - name: Run runtime E2E
-        run: go test -run '^TestIntegrationRuntime' -timeout 10m ./internal/e2e -v
+        run: go test -run '^TestIntegrationRuntimeLoginKeyInferenceUsageAdmin$' -timeout 10m ./internal/e2e -v
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Steady-state SLA бизнес-слоя без искажения race instrumentation.
+  # ─────────────────────────────────────────────────────────────────────────
+  sla:
+    name: Load/SLA regression
+    runs-on: ubuntu-latest
+    needs: static-checks
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run load/SLA gate
+        run: go test -count=1 -run '^TestIntegrationRuntimeSLA$' -timeout 10m ./internal/e2e -v
 
   # ─────────────────────────────────────────────────────────────────────────
   # Aggregate coverage handwritten internal/* code.
@@ -221,6 +240,7 @@ jobs:
       - unit-contract
       - integration
       - e2e
+      - sla
       - coverage
       - security
       - full-race

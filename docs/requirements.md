@@ -151,6 +151,10 @@
 - ✅ **Решено:** `access.Provider` дополнительно проверяет `users.status` —
   API-key заблокированного пользователя (`status=blocked`) отклоняется
   (с учётом eventual consistency R2.4).
+- ✅ **Решено:** успешная bcrypt-проверка API-key кэшируется на 10с по
+  SHA-256 отпечатку полного ключа + identity source; plaintext не хранится.
+  Блокировка пользователя и revoke немедленно инвалидируют cache текущей
+  реплики, остальные реплики сходятся в пределах TTL по R2.4.
 - ✅ **Решено:** `access.Provider` и session middleware дополнительно сверяют
   `users.identity_source` с текущим `auth.mode`; static API-key/cookie не
   действуют в LDAP/prod режиме.

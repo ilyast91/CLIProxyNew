@@ -4,7 +4,7 @@
 > оставшиеся работы классифицированы ниже по наличию внешних блокеров.
 > **Текущий scope:** бизнес-слой R1–R12 и автоматизированный release hardening.
 > Provider-specific OAuth flows и другие SDK-зависимые расширения не реализуются
-> до появления подходящих публичных контрактов; load/chaos, `/docs` и
+> до появления подходящих публичных контрактов; chaos, `/docs` и
 > operational runbooks доступны для следующего внутреннего инкремента.
 > **Связанные:** [requirements.md](requirements.md), [architecture-principles.md](architecture-principles.md),
 > [architecture.md](architecture.md), [database-schema.md](database-schema.md).
@@ -100,8 +100,10 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   check users.status → versioned Principal с user_id/api_key_id для analytics
 - [x] `access.RegisterProvider("db-apikey", ...)` + `access.SetExclusiveProvider("db-apikey")`
 - [x] `internal/cache` — generic TTL, api_key_lookup и session_lookup готовы;
-  session cache использует TTL 10с, локально invalidates на admin block/logout,
-  а межрепличная согласованность ограничена TTL
+  verified API-key cache использует SHA-256 отпечаток и TTL 10с без хранения
+  plaintext, session cache также использует TTL 10с; оба локально
+  инвалидируются на admin block/revoke/logout, а межрепличная согласованность
+  ограничена TTL
 - [x] Unit tests: LDAP через fake connection, access cache hit/miss и blocked
   user, фиксированные user/admin session TTL и cache invalidation
 - [x] Regression tests: static запрещён в production; source isolation для
@@ -110,8 +112,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 
 **Acceptance текущего scope:** login создаёт cookie с фиксированным TTL, запрос
 с API-key авторизуется, заблокированный пользователь отвергается, cache
-hit/miss и invalidation покрыты тестами. SLA hit ratio проверяется будущим
-load-gate Ф7.
+hit/miss и invalidation покрыты тестами. SLA hit ratio проверяется load-gate Ф7.
 
 ---
 
@@ -226,7 +227,7 @@ OpenAPI спецификация валидируется, drift-check с код
 - [x] Prometheus `/metrics`: isolated registry, HTTP request count/latency,
   upstream result/lifecycle counters, pgx pool stats и usage queue depth
 - [x] Prometheus cache hit/miss: `cliproxy_cache_lookups_total` экспортирует
-  snapshot candidate cache клиентских API-keys с outcome `hit|miss`
+  snapshot verified auth cache клиентских API-keys с outcome `hit|miss`
 - [ ] Prometheus: специализированные refresh success/failure
   после появления соответствующих business hooks
 - [x] OpenTelemetry traces: HTTP server span и trace-context propagation,
@@ -262,7 +263,9 @@ OpenAPI спецификация валидируется, drift-check с код
 **Цель:** автоматизированный release hardening и последующая валидация
 операционных SLA перед production v1.
 
-- [ ] Load-тесты по SLA ([architecture-principles.md](architecture-principles.md) §2.1): vegeta/k6 — overhead бизнес-слоя ≤ 5мс p95, cache hit ≥ 95%
+- [x] Load/SLA E2E gate: 4 concurrent worker и 200 steady-state inference-
+  запросов через реальный SDK runtime + PostgreSQL; p95 access+selector ≤5мс,
+  verified API-key cache hit ratio ≥95%; performance test исключён из race build
 - [x] E2E: реальный SDK runtime + PostgreSQL, login → API-key → inference →
   analytics → user/admin operations
 - [x] Behavioral contract gate: все 7 контрактов ADR-9 с race-проверками и
@@ -279,15 +282,16 @@ OpenAPI спецификация валидируется, drift-check с код
 - [ ] R12: runbook обновления SDK (release notes → upgrade branch →
   `sdk-reference.md` → contract/integration/race gates → rollback version)
 - [ ] Documentation: godoc для всех пакетов, README update, runbook (restore backup, rotate AES key, rotate API-key, rotate LDAP bind)
-- [ ] Regression suite: SLA-метрики как CI gate (не regress'ить)
+- [x] Regression suite: отдельный non-race `Load/SLA regression` CI job входит
+  в обязательные зависимости build
 - [ ] Chaos: kill leader → проверка failover; kill replica → сервис жив
 
-**Automated hardening acceptance:** E2E, ADR-9 contracts, PostgreSQL
+**Automated hardening acceptance:** E2E, load/SLA, ADR-9 contracts, PostgreSQL
 integration, static regression, coverage ≥ 70%, security audit и full race
 являются независимыми CI jobs; build зависит от каждого gate.
 
-**Оставшиеся release-operations gates:** load/SLA, chaos/failover и
-операционные runbooks. До их закрытия документ не объявляет production v1 ready.
+**Оставшиеся release-operations gates:** chaos/failover и операционные
+runbooks. До их закрытия документ не объявляет production v1 ready.
 
 ---
 
@@ -297,10 +301,6 @@ integration, static regression, coverage ≥ 70%, security audit и full race
 
 - **Ф6:** добавить опциональный `/docs` с Swagger UI или Redoc поверх уже
   доступного `/openapi.json`.
-- **Ф7:** добавить load/SLA harness на vegeta или k6 и подтвердить overhead
-  бизнес-слоя ≤ 5мс p95 и cache hit ratio ≥ 95%.
-- **Ф7:** после появления load harness включить SLA-метрики в CI как
-  regression gate.
 - **Ф7:** добавить chaos/failover проверки: kill leader с подтверждением
   handoff и kill replica с подтверждением доступности сервиса.
 - **Ф7 / R12:** оформить runbook обновления SDK: release notes, отдельная
@@ -311,8 +311,8 @@ integration, static regression, coverage ≥ 70%, security audit и full race
 - **Опциональный cleanup:** убрать текущий Spectral warning
   `operation-description`, добавив `description` для `GET /api/v1/me`.
 
-Эти задачи не требуют изменения публичного SDK-контракта. Load/SLA, chaos и
-операционные runbooks являются release-operations gates для production v1;
+Эти задачи не требуют изменения публичного SDK-контракта. Chaos и операционные
+runbooks являются release-operations gates для production v1;
 `/docs` и Spectral warning остаются опциональными улучшениями.
 
 ### С внешними блокерами
@@ -345,7 +345,7 @@ reflection-обходами: такие решения нарушают R12 и A
 | Ф4 Management API | Закрыта в текущем scope | 3–4 нед | Ф2, Ф3 | R9 + OpenAPI; provider OAuth SDK-blocked |
 | Ф5 R10 system proxy | Закрыта | 1 нед | Ф3 | Proxy policy через окружение процесса |
 | Ф6 Observability + k8s | Частично закрыта | 2 нед | Ф4, Ф5 | Prod deployment; `/docs` без блокера, 2 SDK-blocked пункта |
-| Ф7 Testing + Hardening | Частично закрыта | 2 нед | Ф6 | Automated gates закрыты; release ops без внешних блокеров |
+| Ф7 Testing + Hardening | Частично закрыта | 2 нед | Ф6 | Automated gates и load/SLA закрыты; chaos/runbooks остаются |
 | **Итого** | | **~16–19 нед** (1 dev) / **~8–10 нед** (2–3 dev) | | |
 
 ## Что НЕ в плане v1 (явные ограничения)
@@ -418,3 +418,6 @@ reflection-обходами: такие решения нарушают R12 и A
 - 2026-07-16 — актуализирован статус фаз: Ф0–Ф5 закрыты, Ф6–Ф7 разделены на
   выполнимые release-operations задачи и пять расширений, заблокированных
   отсутствующими публичными SDK-контрактами.
+- 2026-07-16 — Ф7 progress: verified API-key cache по SHA-256 отпечатку
+  устраняет повторный bcrypt; добавлен обязательный non-race E2E SLA gate на
+  4 worker / 200 запросов с business p95 ≤5мс и cache hit ratio ≥95%.

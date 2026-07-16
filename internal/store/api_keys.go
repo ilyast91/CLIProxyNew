@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
@@ -17,9 +18,10 @@ import (
 type APIKeyRepository struct {
 	queries         *dbgen.Queries
 	candidatesCache *cache.TTL[apiKeyCacheKey, []apiKeyCandidate]
+	verifiedCache   *cache.TTL[verifiedAPIKeyCacheKey, APIKeyPrincipal]
 }
 
-const apiKeyCandidatesCacheTTL = 10 * time.Second
+const apiKeyCacheTTL = 10 * time.Second
 
 type apiKeyCacheKey struct {
 	prefix         string
@@ -32,20 +34,26 @@ type apiKeyCandidate struct {
 	keyHash string
 }
 
+type verifiedAPIKeyCacheKey struct {
+	digest         [sha256.Size]byte
+	identitySource string
+}
+
 // NewAPIKeyRepository создаёт репозиторий API-ключей.
 func NewAPIKeyRepository(db dbgen.DBTX) *APIKeyRepository {
 	return &APIKeyRepository{
 		queries:         dbgen.New(db),
-		candidatesCache: cache.NewTTL[apiKeyCacheKey, []apiKeyCandidate](apiKeyCandidatesCacheTTL, nil),
+		candidatesCache: cache.NewTTL[apiKeyCacheKey, []apiKeyCandidate](apiKeyCacheTTL, nil),
+		verifiedCache:   cache.NewTTL[verifiedAPIKeyCacheKey, APIKeyPrincipal](apiKeyCacheTTL, nil),
 	}
 }
 
-// CacheStats возвращает snapshot candidate cache для observability.
+// CacheStats возвращает snapshot verified authentication cache для observability.
 func (r *APIKeyRepository) CacheStats() cache.Stats {
-	if r == nil || r.candidatesCache == nil {
+	if r == nil || r.verifiedCache == nil {
 		return cache.Stats{}
 	}
-	return r.candidatesCache.Stats()
+	return r.verifiedCache.Stats()
 }
 
 // Create хэширует и сохраняет API-ключ, не сохраняя plaintext.
@@ -79,30 +87,21 @@ func (r *APIKeyRepository) Authenticate(ctx context.Context, plaintext string) (
 	if len(plaintext) < APIKeyPrefixLength {
 		return APIKeyPrincipal{}, ErrInvalidCredential
 	}
-
-	candidates, err := r.findCandidates(ctx, apiKeyCacheKey{prefix: plaintext[:APIKeyPrefixLength]})
-	if err != nil {
-		return APIKeyPrincipal{}, err
-	}
-	for _, candidate := range candidates {
-		if !security.VerifySecret(candidate.keyHash, plaintext) {
-			continue
-		}
-		active, err := r.userIsActive(ctx, candidate.userID)
-		if err != nil {
-			return APIKeyPrincipal{}, err
-		}
-		if active {
-			return APIKeyPrincipal{UserID: candidate.userID, APIKeyID: candidate.id}, nil
-		}
-	}
-	return APIKeyPrincipal{}, ErrInvalidCredential
+	return r.authenticate(ctx, plaintext, "")
 }
 
 // AuthenticateForSource проверяет API-key только для активного identity source.
 func (r *APIKeyRepository) AuthenticateForSource(ctx context.Context, plaintext, identitySource string) (APIKeyPrincipal, error) {
 	if len(plaintext) < APIKeyPrefixLength || !validIdentitySource(identitySource) {
 		return APIKeyPrincipal{}, ErrInvalidCredential
+	}
+	return r.authenticate(ctx, plaintext, identitySource)
+}
+
+func (r *APIKeyRepository) authenticate(ctx context.Context, plaintext, identitySource string) (APIKeyPrincipal, error) {
+	verifiedKey := verifiedAPIKeyCacheKey{digest: sha256.Sum256([]byte(plaintext)), identitySource: identitySource}
+	if principal, ok := r.verifiedCache.Get(verifiedKey); ok {
+		return principal, nil
 	}
 
 	candidates, err := r.findCandidates(ctx, apiKeyCacheKey{
@@ -121,10 +120,22 @@ func (r *APIKeyRepository) AuthenticateForSource(ctx context.Context, plaintext,
 			return APIKeyPrincipal{}, err
 		}
 		if active {
-			return APIKeyPrincipal{UserID: candidate.userID, APIKeyID: candidate.id}, nil
+			principal := APIKeyPrincipal{UserID: candidate.userID, APIKeyID: candidate.id}
+			r.verifiedCache.Set(verifiedKey, principal)
+			return principal, nil
 		}
 	}
 	return APIKeyPrincipal{}, ErrInvalidCredential
+}
+
+// InvalidateUser удаляет локально кэшированный verified principal пользователя.
+func (r *APIKeyRepository) InvalidateUser(userID int64) {
+	if r == nil || userID <= 0 {
+		return
+	}
+	r.verifiedCache.DeleteWhere(func(_ verifiedAPIKeyCacheKey, principal APIKeyPrincipal) bool {
+		return principal.UserID == userID
+	})
 }
 
 func (r *APIKeyRepository) findCandidates(ctx context.Context, key apiKeyCacheKey) ([]apiKeyCandidate, error) {
@@ -211,6 +222,7 @@ func (r *APIKeyRepository) Revoke(ctx context.Context, userID, keyID int64) erro
 		return ErrNotFound
 	}
 	r.candidatesCache.Clear()
+	r.verifiedCache.Clear()
 	return nil
 }
 

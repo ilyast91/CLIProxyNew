@@ -23,8 +23,8 @@ type sessionUserInvalidator interface {
 
 // AdminUserHandler обслуживает admin-операции с пользователями.
 type AdminUserHandler struct {
-	store       adminUserStore
-	invalidator sessionUserInvalidator
+	store        adminUserStore
+	invalidators []sessionUserInvalidator
 }
 
 type adminUserResponse struct {
@@ -44,11 +44,13 @@ type setUserStatusRequest struct {
 
 // NewAdminUserHandler создаёт handler admin-операций с пользователями.
 func NewAdminUserHandler(userStore adminUserStore, invalidators ...sessionUserInvalidator) *AdminUserHandler {
-	var invalidator sessionUserInvalidator
-	if len(invalidators) > 0 {
-		invalidator = invalidators[0]
+	configured := make([]sessionUserInvalidator, 0, len(invalidators))
+	for _, invalidator := range invalidators {
+		if invalidator != nil {
+			configured = append(configured, invalidator)
+		}
 	}
-	return &AdminUserHandler{store: userStore, invalidator: invalidator}
+	return &AdminUserHandler{store: userStore, invalidators: configured}
 }
 
 // List возвращает пользователей для администратора.
@@ -105,8 +107,8 @@ func (h *AdminUserHandler) SetStatus(c *gin.Context) {
 		writeError(c, http.StatusInternalServerError, "set user status failed")
 		return
 	}
-	if h.invalidator != nil {
-		h.invalidator.InvalidateUser(targetUserID)
+	for _, invalidator := range h.invalidators {
+		invalidator.InvalidateUser(targetUserID)
 	}
 	c.Status(http.StatusNoContent)
 }

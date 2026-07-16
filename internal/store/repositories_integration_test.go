@@ -136,6 +136,7 @@ func TestIntegrationUserAPIKeyAndSessionRepositories(t *testing.T) {
 	if err := users.SetStatus(ctx, user.ID, "blocked"); err != nil {
 		t.Fatalf("SetStatus() error = %v", err)
 	}
+	apiKeys.InvalidateUser(user.ID)
 	if _, err := apiKeys.Authenticate(ctx, plaintextKey); !errors.Is(err, ErrInvalidCredential) {
 		t.Fatalf("Authenticate(blocked) error = %v, want ErrInvalidCredential", err)
 	}

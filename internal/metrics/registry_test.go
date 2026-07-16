@@ -51,8 +51,8 @@ func TestRegistryExportsCacheLookupMetrics(t *testing.T) {
 		t.Fatalf("metrics status=%d body=%q", response.Code, response.Body.String())
 	}
 	for _, metric := range []string{
-		`cliproxy_cache_lookups_total{cache="api_key_candidates",outcome="hit"} 9`,
-		`cliproxy_cache_lookups_total{cache="api_key_candidates",outcome="miss"} 1`,
+		`cliproxy_cache_lookups_total{cache="api_key_auth",outcome="hit"} 9`,
+		`cliproxy_cache_lookups_total{cache="api_key_auth",outcome="miss"} 1`,
 	} {
 		if !strings.Contains(response.Body.String(), metric) {
 			t.Fatalf("metrics body does not contain %q:\n%s", metric, response.Body.String())

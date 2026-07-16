@@ -61,6 +61,28 @@ func TestAdminUserHandlerSetStatusWritesActorAndTarget(t *testing.T) {
 	}
 }
 
+func TestAdminUserStatusInvalidatesAllCaches(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	store := &fakeAdminUserStore{}
+	first := &fakeSessionInvalidator{}
+	second := &fakeSessionInvalidator{}
+	router := gin.New()
+	router.Use(func(c *gin.Context) { c.Set(ContextUserID, int64(42)) })
+	router.PATCH("/api/v1/admin/users/:userID", NewAdminUserHandler(store, first, second).SetStatus)
+
+	request := httptest.NewRequest(http.MethodPatch, "/api/v1/admin/users/7", strings.NewReader(`{"status":"blocked"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
+	if first.userID != 7 || second.userID != 7 {
+		t.Fatalf("invalidated user IDs = first:%d second:%d, want 7", first.userID, second.userID)
+	}
+}
+
 type fakeSessionInvalidator struct{ userID int64 }
 
 func (i *fakeSessionInvalidator) InvalidateUser(userID int64) { i.userID = userID }
