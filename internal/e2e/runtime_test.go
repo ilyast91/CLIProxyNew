@@ -45,6 +45,9 @@ import (
 const postgresImage = "postgres@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193"
 const e2eModel = "claude-sonnet-4-5-20250929"
 
+// bcrypt cost 12 под race detector на shared CI runner может занимать больше 5с.
+const e2eHTTPClientTimeout = 30 * time.Second
+
 type runtimeHarness struct {
 	baseURL   string
 	client    *http.Client
@@ -197,7 +200,7 @@ func newRuntimeHarness(t *testing.T) *runtimeHarness {
 	}
 	return &runtimeHarness{
 		baseURL: baseURL,
-		client:  &http.Client{Jar: jar, Timeout: 5 * time.Second},
+		client:  &http.Client{Jar: jar, Timeout: e2eHTTPClientTimeout},
 		pool:    pool, usageRepo: usageRepo,
 	}
 }
