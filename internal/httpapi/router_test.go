@@ -152,6 +152,43 @@ func TestRouterConfiguratorRunsOAuthAndAccountAdminFlows(t *testing.T) {
 	}
 }
 
+func TestRouterConfiguratorRunsSessionUsageAndAdminKeyFlows(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	sessions := routerSessions()
+	logoutStore := &routerSessionDeleter{}
+	usage := &fakeUsageSummaryReader{summary: store.UsageSummary{RequestCount: 3}}
+	userKeys := &fakeAPIKeyStore{keys: []store.APIKey{{ID: 10, UserID: 7, Prefix: "cpn_live", Status: "active"}}}
+	adminKeys := &fakeAdminAPIKeyStore{keys: []store.AdminAPIKey{{APIKey: store.APIKey{ID: 10, UserID: 7, Prefix: "cpn_live", Status: "active"}, OwnerUsername: "user", OwnerIdentitySource: identity.SourceLDAP, OwnerStatus: "active"}}}
+	login := NewLoginHandler(fakeLoginService{result: identity.LoginResult{UserID: 7, Role: identity.RoleUser, Token: "new-session", ExpiresAt: time.Date(2026, time.July, 16, 18, 0, 0, 0, time.UTC)}}, false)
+	RouterConfigurator(login, sessions, LogoutHandler(logoutStore, identity.SourceLDAP), NewAPIKeyHandler(userKeys), NewUsageHandler(usage), nil, NewAdminAPIKeyHandler(adminKeys), nil, nil, nil, nil, nil, nil)(router, nil, nil)
+
+	loginRequest := httptest.NewRequest(http.MethodPost, "/api/v1/login", strings.NewReader(`{"username":"debug","password":"secret"}`))
+	loginRequest.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, loginRequest)
+	if response.Code != http.StatusOK || !strings.Contains(response.Header().Get("Set-Cookie"), "new-session") {
+		t.Fatalf("login status=%d cookie=%q body=%s", response.Code, response.Header().Get("Set-Cookie"), response.Body.String())
+	}
+
+	response = managementRequest(router, http.MethodGet, "/api/v1/me/usage", "user-token")
+	if response.Code != http.StatusOK || !usage.called || usage.userID != 7 {
+		t.Fatalf("usage status=%d called=%t user=%d body=%s", response.Code, usage.called, usage.userID, response.Body.String())
+	}
+	response = managementRequest(router, http.MethodGet, "/api/v1/admin/keys", "admin-token")
+	if response.Code != http.StatusOK || !containsAll(response.Body.String(), `"owner_username":"user"`) {
+		t.Fatalf("admin keys status=%d body=%s", response.Code, response.Body.String())
+	}
+
+	logoutRequest := httptest.NewRequest(http.MethodPost, "/api/v1/logout", nil)
+	logoutRequest.AddCookie(&http.Cookie{Name: identity.SessionCookieName, Value: "user-token"})
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, logoutRequest)
+	if response.Code != http.StatusNoContent || logoutStore.token != "user-token" || logoutStore.source != identity.SourceLDAP {
+		t.Fatalf("logout status=%d token=%q source=%q", response.Code, logoutStore.token, logoutStore.source)
+	}
+}
+
 func managementRequest(router http.Handler, method, path, token string) *httptest.ResponseRecorder {
 	request := httptest.NewRequest(method, path, nil)
 	if token != "" {
@@ -187,4 +224,15 @@ func (l routerSessionLookup) GetByTokenForSource(_ context.Context, token, sourc
 		return store.Session{}, store.ErrInvalidCredential
 	}
 	return session, nil
+}
+
+type routerSessionDeleter struct {
+	token  string
+	source string
+}
+
+func (d *routerSessionDeleter) DeleteByTokenForSource(_ context.Context, token, source string) error {
+	d.token = token
+	d.source = source
+	return nil
 }
