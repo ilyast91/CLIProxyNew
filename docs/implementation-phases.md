@@ -365,6 +365,8 @@ integration, static regression, coverage ≥ 70%, security audit и full race
 - 2026-07-16 — dependency refresh: Go 1.26.5, CLIProxyAPI v7.2.80, ogen
   v1.23.0, Gin v1.12.0, pgx v5.10.0, testcontainers v0.43.0, OTel 1.44;
   CI actions обновлены до v7, public SDK diff задокументирован.
+- 2026-07-16 — security patch: indirect `quic-go` обновлён с v0.59.0 до
+  v0.59.1, устраняющей достижимую GO-2026-5676; `govulncheck` включён в CI.
 - 2026-07-16 — hardening: OpenAPI синхронизирован с 27 proxy operations SDK,
   добавлены behavioral ADR-9 gate, runtime E2E, aggregate coverage 70%, source
   security audit, PostgreSQL integration и full-race CI jobs перед build;
