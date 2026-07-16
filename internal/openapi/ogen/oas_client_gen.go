@@ -172,6 +172,13 @@ type Invoker interface {
 	//
 	// GET /openapi.json
 	OpenapiJson(ctx context.Context) error
+	// ProxyAlphaSearch invokes proxyAlphaSearch operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/alpha/search
+	ProxyAlphaSearch(ctx context.Context) (ProxyAlphaSearchRes, error)
 	// ProxyChatCompletions invokes proxyChatCompletions operation.
 	//
 	// Тело и ответ прозрачно обрабатываются upstream SDK;
@@ -179,13 +186,82 @@ type Invoker interface {
 	//
 	// POST /v1/chat/completions
 	ProxyChatCompletions(ctx context.Context) (ProxyChatCompletionsRes, error)
-	// ProxyGenerateContent invokes proxyGenerateContent operation.
+	// ProxyCodexAlphaSearch invokes proxyCodexAlphaSearch operation.
 	//
 	// Тело и ответ прозрачно обрабатываются upstream SDK;
 	// бизнес-слой не владеет их схемами.
 	//
-	// POST /v1/models/{model}:generateContent
-	ProxyGenerateContent(ctx context.Context, params ProxyGenerateContentParams) (ProxyGenerateContentRes, error)
+	// POST /backend-api/codex/alpha/search
+	ProxyCodexAlphaSearch(ctx context.Context) (ProxyCodexAlphaSearchRes, error)
+	// ProxyCodexResponses invokes proxyCodexResponses operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /backend-api/codex/responses
+	ProxyCodexResponses(ctx context.Context) (ProxyCodexResponsesRes, error)
+	// ProxyCodexResponsesCompact invokes proxyCodexResponsesCompact operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /backend-api/codex/responses/compact
+	ProxyCodexResponsesCompact(ctx context.Context) (ProxyCodexResponsesCompactRes, error)
+	// ProxyCodexResponsesWebsocket invokes proxyCodexResponsesWebsocket operation.
+	//
+	// Websocket handshake и дальнейший обмен обрабатываются upstream SDK.
+	//
+	// GET /backend-api/codex/responses
+	ProxyCodexResponsesWebsocket(ctx context.Context) (ProxyCodexResponsesWebsocketRes, error)
+	// ProxyCompletions invokes proxyCompletions operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой описывает только URL, auth и общие ошибки.
+	//
+	// POST /v1/completions
+	ProxyCompletions(ctx context.Context) (ProxyCompletionsRes, error)
+	// ProxyGeminiInteractions invokes proxyGeminiInteractions operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1beta/interactions
+	ProxyGeminiInteractions(ctx context.Context) (ProxyGeminiInteractionsRes, error)
+	// ProxyGeminiModelActionGet invokes proxyGeminiModelActionGet operation.
+	//
+	// Model action прозрачно обрабатывается upstream SDK; бизнес-слой
+	// не владеет схемой ответа.
+	//
+	// GET /v1beta/models/{model}:{action}
+	ProxyGeminiModelActionGet(ctx context.Context, params ProxyGeminiModelActionGetParams) (ProxyGeminiModelActionGetRes, error)
+	// ProxyGeminiModelActionPost invokes proxyGeminiModelActionPost operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1beta/models/{model}:{action}
+	ProxyGeminiModelActionPost(ctx context.Context, params ProxyGeminiModelActionPostParams) (ProxyGeminiModelActionPostRes, error)
+	// ProxyGeminiModels invokes proxyGeminiModels operation.
+	//
+	// Список моделей формируется upstream SDK; его схема
+	// намеренно не дублируется в бизнес-слое.
+	//
+	// GET /v1beta/models
+	ProxyGeminiModels(ctx context.Context) (ProxyGeminiModelsRes, error)
+	// ProxyImageEdits invokes proxyImageEdits operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/images/edits
+	ProxyImageEdits(ctx context.Context) (ProxyImageEditsRes, error)
+	// ProxyImageGenerations invokes proxyImageGenerations operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/images/generations
+	ProxyImageGenerations(ctx context.Context) (ProxyImageGenerationsRes, error)
 	// ProxyMessages invokes proxyMessages operation.
 	//
 	// Тело и ответ прозрачно обрабатываются upstream SDK;
@@ -193,6 +269,13 @@ type Invoker interface {
 	//
 	// POST /v1/messages
 	ProxyMessages(ctx context.Context) (ProxyMessagesRes, error)
+	// ProxyMessagesCountTokens invokes proxyMessagesCountTokens operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/messages/count_tokens
+	ProxyMessagesCountTokens(ctx context.Context) (ProxyMessagesCountTokensRes, error)
 	// ProxyModels invokes proxyModels operation.
 	//
 	// Список моделей формируется upstream SDK; его схема
@@ -200,6 +283,27 @@ type Invoker interface {
 	//
 	// GET /v1/models
 	ProxyModels(ctx context.Context) (ProxyModelsRes, error)
+	// ProxyOpenAIVideosContent invokes proxyOpenAIVideosContent operation.
+	//
+	// Video content прозрачно отдаётся upstream SDK; локальная response schema
+	// не дублируется.
+	//
+	// GET /openai/v1/videos/{video_id}/content
+	ProxyOpenAIVideosContent(ctx context.Context, params ProxyOpenAIVideosContentParams) (ProxyOpenAIVideosContentRes, error)
+	// ProxyOpenAIVideosCreate invokes proxyOpenAIVideosCreate operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /openai/v1/videos
+	ProxyOpenAIVideosCreate(ctx context.Context) (ProxyOpenAIVideosCreateRes, error)
+	// ProxyOpenAIVideosRetrieve invokes proxyOpenAIVideosRetrieve operation.
+	//
+	// Статус и результат video request формируются upstream SDK;
+	// локальная response schema не дублируется.
+	//
+	// GET /openai/v1/videos/{video_id}
+	ProxyOpenAIVideosRetrieve(ctx context.Context, params ProxyOpenAIVideosRetrieveParams) (ProxyOpenAIVideosRetrieveRes, error)
 	// ProxyResponses invokes proxyResponses operation.
 	//
 	// Тело и ответ прозрачно обрабатываются upstream SDK;
@@ -207,6 +311,53 @@ type Invoker interface {
 	//
 	// POST /v1/responses
 	ProxyResponses(ctx context.Context) (ProxyResponsesRes, error)
+	// ProxyResponsesCompact invokes proxyResponsesCompact operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/responses/compact
+	ProxyResponsesCompact(ctx context.Context) (ProxyResponsesCompactRes, error)
+	// ProxyResponsesWebsocket invokes proxyResponsesWebsocket operation.
+	//
+	// Websocket handshake и дальнейший обмен обрабатываются upstream SDK.
+	//
+	// GET /v1/responses
+	ProxyResponsesWebsocket(ctx context.Context) (ProxyResponsesWebsocketRes, error)
+	// ProxyXAIVideoEdits invokes proxyXAIVideoEdits operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/videos/edits
+	ProxyXAIVideoEdits(ctx context.Context) (ProxyXAIVideoEditsRes, error)
+	// ProxyXAIVideoExtensions invokes proxyXAIVideoExtensions operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/videos/extensions
+	ProxyXAIVideoExtensions(ctx context.Context) (ProxyXAIVideoExtensionsRes, error)
+	// ProxyXAIVideoGenerations invokes proxyXAIVideoGenerations operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/videos/generations
+	ProxyXAIVideoGenerations(ctx context.Context) (ProxyXAIVideoGenerationsRes, error)
+	// ProxyXAIVideoRetrieve invokes proxyXAIVideoRetrieve operation.
+	//
+	// Статус и результат video request формируются upstream SDK;
+	// локальная response schema не дублируется.
+	//
+	// GET /v1/videos/{request_id}
+	ProxyXAIVideoRetrieve(ctx context.Context, params ProxyXAIVideoRetrieveParams) (ProxyXAIVideoRetrieveRes, error)
+	// ProxyXAIVideos invokes proxyXAIVideos operation.
+	//
+	// Alias video generation route, transparently handled by upstream SDK.
+	//
+	// POST /v1/videos
+	ProxyXAIVideos(ctx context.Context) (ProxyXAIVideosRes, error)
 	// Readyz invokes readyz operation.
 	//
 	// Возвращает 200, если сервис готов принимать трафик (DB ping
@@ -2544,6 +2695,120 @@ func (c *Client) sendOpenapiJson(ctx context.Context) (res *OpenapiJsonOK, err e
 	return result, nil
 }
 
+// ProxyAlphaSearch invokes proxyAlphaSearch operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/alpha/search
+func (c *Client) ProxyAlphaSearch(ctx context.Context) (ProxyAlphaSearchRes, error) {
+	res, err := c.sendProxyAlphaSearch(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyAlphaSearch(ctx context.Context) (res ProxyAlphaSearchRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyAlphaSearch"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/v1/alpha/search"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyAlphaSearchOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1/alpha/search"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyAlphaSearchOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyAlphaSearchResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // ProxyChatCompletions invokes proxyChatCompletions operation.
 //
 // Тело и ответ прозрачно обрабатываются upstream SDK;
@@ -2658,22 +2923,22 @@ func (c *Client) sendProxyChatCompletions(ctx context.Context) (res ProxyChatCom
 	return result, nil
 }
 
-// ProxyGenerateContent invokes proxyGenerateContent operation.
+// ProxyCodexAlphaSearch invokes proxyCodexAlphaSearch operation.
 //
 // Тело и ответ прозрачно обрабатываются upstream SDK;
 // бизнес-слой не владеет их схемами.
 //
-// POST /v1/models/{model}:generateContent
-func (c *Client) ProxyGenerateContent(ctx context.Context, params ProxyGenerateContentParams) (ProxyGenerateContentRes, error) {
-	res, err := c.sendProxyGenerateContent(ctx, params)
+// POST /backend-api/codex/alpha/search
+func (c *Client) ProxyCodexAlphaSearch(ctx context.Context) (ProxyCodexAlphaSearchRes, error) {
+	res, err := c.sendProxyCodexAlphaSearch(ctx)
 	return res, err
 }
 
-func (c *Client) sendProxyGenerateContent(ctx context.Context, params ProxyGenerateContentParams) (res ProxyGenerateContentRes, err error) {
+func (c *Client) sendProxyCodexAlphaSearch(ctx context.Context) (res ProxyCodexAlphaSearchRes, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("proxyGenerateContent"),
+		otelogen.OperationID("proxyCodexAlphaSearch"),
 		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/v1/models/{model}:generateContent"),
+		semconv.URLTemplateKey.String("/backend-api/codex/alpha/search"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -2689,7 +2954,7 @@ func (c *Client) sendProxyGenerateContent(ctx context.Context, params ProxyGener
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, ProxyGenerateContentOperation,
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyCodexAlphaSearchOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -2706,27 +2971,8 @@ func (c *Client) sendProxyGenerateContent(ctx context.Context, params ProxyGener
 
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [3]string
-	pathParts[0] = "/v1/models/"
-	{
-		// Encode "model" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "model",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.StringToString(params.Model))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = ":generateContent"
+	var pathParts [1]string
+	pathParts[0] = "/backend-api/codex/alpha/search"
 	uri.AddPathParts(u, pathParts[:]...)
 
 	stage = "EncodeRequest"
@@ -2740,7 +2986,7 @@ func (c *Client) sendProxyGenerateContent(ctx context.Context, params ProxyGener
 		var satisfied bitset
 		{
 			stage = "Security:BearerApiKey"
-			switch err := c.securityBearerApiKey(ctx, ProxyGenerateContentOperation, r); {
+			switch err := c.securityBearerApiKey(ctx, ProxyCodexAlphaSearchOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -2783,7 +3029,1220 @@ func (c *Client) sendProxyGenerateContent(ctx context.Context, params ProxyGener
 	}()
 
 	stage = "DecodeResponse"
-	result, err := decodeProxyGenerateContentResponse(resp)
+	result, err := decodeProxyCodexAlphaSearchResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyCodexResponses invokes proxyCodexResponses operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /backend-api/codex/responses
+func (c *Client) ProxyCodexResponses(ctx context.Context) (ProxyCodexResponsesRes, error) {
+	res, err := c.sendProxyCodexResponses(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyCodexResponses(ctx context.Context) (res ProxyCodexResponsesRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyCodexResponses"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/backend-api/codex/responses"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyCodexResponsesOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/backend-api/codex/responses"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyCodexResponsesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyCodexResponsesResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyCodexResponsesCompact invokes proxyCodexResponsesCompact operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /backend-api/codex/responses/compact
+func (c *Client) ProxyCodexResponsesCompact(ctx context.Context) (ProxyCodexResponsesCompactRes, error) {
+	res, err := c.sendProxyCodexResponsesCompact(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyCodexResponsesCompact(ctx context.Context) (res ProxyCodexResponsesCompactRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyCodexResponsesCompact"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/backend-api/codex/responses/compact"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyCodexResponsesCompactOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/backend-api/codex/responses/compact"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyCodexResponsesCompactOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyCodexResponsesCompactResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyCodexResponsesWebsocket invokes proxyCodexResponsesWebsocket operation.
+//
+// Websocket handshake и дальнейший обмен обрабатываются upstream SDK.
+//
+// GET /backend-api/codex/responses
+func (c *Client) ProxyCodexResponsesWebsocket(ctx context.Context) (ProxyCodexResponsesWebsocketRes, error) {
+	res, err := c.sendProxyCodexResponsesWebsocket(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyCodexResponsesWebsocket(ctx context.Context) (res ProxyCodexResponsesWebsocketRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyCodexResponsesWebsocket"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/backend-api/codex/responses"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyCodexResponsesWebsocketOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/backend-api/codex/responses"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyCodexResponsesWebsocketOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyCodexResponsesWebsocketResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyCompletions invokes proxyCompletions operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой описывает только URL, auth и общие ошибки.
+//
+// POST /v1/completions
+func (c *Client) ProxyCompletions(ctx context.Context) (ProxyCompletionsRes, error) {
+	res, err := c.sendProxyCompletions(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyCompletions(ctx context.Context) (res ProxyCompletionsRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyCompletions"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/v1/completions"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyCompletionsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1/completions"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyCompletionsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyCompletionsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyGeminiInteractions invokes proxyGeminiInteractions operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1beta/interactions
+func (c *Client) ProxyGeminiInteractions(ctx context.Context) (ProxyGeminiInteractionsRes, error) {
+	res, err := c.sendProxyGeminiInteractions(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyGeminiInteractions(ctx context.Context) (res ProxyGeminiInteractionsRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyGeminiInteractions"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/v1beta/interactions"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyGeminiInteractionsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1beta/interactions"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyGeminiInteractionsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyGeminiInteractionsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyGeminiModelActionGet invokes proxyGeminiModelActionGet operation.
+//
+// Model action прозрачно обрабатывается upstream SDK; бизнес-слой
+// не владеет схемой ответа.
+//
+// GET /v1beta/models/{model}:{action}
+func (c *Client) ProxyGeminiModelActionGet(ctx context.Context, params ProxyGeminiModelActionGetParams) (ProxyGeminiModelActionGetRes, error) {
+	res, err := c.sendProxyGeminiModelActionGet(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendProxyGeminiModelActionGet(ctx context.Context, params ProxyGeminiModelActionGetParams) (res ProxyGeminiModelActionGetRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyGeminiModelActionGet"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/v1beta/models/{model}:{action}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyGeminiModelActionGetOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [4]string
+	pathParts[0] = "/v1beta/models/"
+	{
+		// Encode "model" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "model",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.Model))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = ":"
+	{
+		// Encode "action" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "action",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.Action))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[3] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyGeminiModelActionGetOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyGeminiModelActionGetResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyGeminiModelActionPost invokes proxyGeminiModelActionPost operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1beta/models/{model}:{action}
+func (c *Client) ProxyGeminiModelActionPost(ctx context.Context, params ProxyGeminiModelActionPostParams) (ProxyGeminiModelActionPostRes, error) {
+	res, err := c.sendProxyGeminiModelActionPost(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendProxyGeminiModelActionPost(ctx context.Context, params ProxyGeminiModelActionPostParams) (res ProxyGeminiModelActionPostRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyGeminiModelActionPost"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/v1beta/models/{model}:{action}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyGeminiModelActionPostOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [4]string
+	pathParts[0] = "/v1beta/models/"
+	{
+		// Encode "model" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "model",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.Model))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = ":"
+	{
+		// Encode "action" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "action",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.Action))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[3] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyGeminiModelActionPostOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyGeminiModelActionPostResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyGeminiModels invokes proxyGeminiModels operation.
+//
+// Список моделей формируется upstream SDK; его схема
+// намеренно не дублируется в бизнес-слое.
+//
+// GET /v1beta/models
+func (c *Client) ProxyGeminiModels(ctx context.Context) (ProxyGeminiModelsRes, error) {
+	res, err := c.sendProxyGeminiModels(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyGeminiModels(ctx context.Context) (res ProxyGeminiModelsRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyGeminiModels"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/v1beta/models"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyGeminiModelsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1beta/models"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyGeminiModelsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyGeminiModelsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyImageEdits invokes proxyImageEdits operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/images/edits
+func (c *Client) ProxyImageEdits(ctx context.Context) (ProxyImageEditsRes, error) {
+	res, err := c.sendProxyImageEdits(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyImageEdits(ctx context.Context) (res ProxyImageEditsRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyImageEdits"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/v1/images/edits"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyImageEditsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1/images/edits"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyImageEditsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyImageEditsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyImageGenerations invokes proxyImageGenerations operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/images/generations
+func (c *Client) ProxyImageGenerations(ctx context.Context) (ProxyImageGenerationsRes, error) {
+	res, err := c.sendProxyImageGenerations(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyImageGenerations(ctx context.Context) (res ProxyImageGenerationsRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyImageGenerations"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/v1/images/generations"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyImageGenerationsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1/images/generations"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyImageGenerationsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyImageGenerationsResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -2905,6 +4364,120 @@ func (c *Client) sendProxyMessages(ctx context.Context) (res ProxyMessagesRes, e
 	return result, nil
 }
 
+// ProxyMessagesCountTokens invokes proxyMessagesCountTokens operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/messages/count_tokens
+func (c *Client) ProxyMessagesCountTokens(ctx context.Context) (ProxyMessagesCountTokensRes, error) {
+	res, err := c.sendProxyMessagesCountTokens(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyMessagesCountTokens(ctx context.Context) (res ProxyMessagesCountTokensRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyMessagesCountTokens"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/v1/messages/count_tokens"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyMessagesCountTokensOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1/messages/count_tokens"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyMessagesCountTokensOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyMessagesCountTokensResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // ProxyModels invokes proxyModels operation.
 //
 // Список моделей формируется upstream SDK; его схема
@@ -3019,6 +4592,385 @@ func (c *Client) sendProxyModels(ctx context.Context) (res ProxyModelsRes, err e
 	return result, nil
 }
 
+// ProxyOpenAIVideosContent invokes proxyOpenAIVideosContent operation.
+//
+// Video content прозрачно отдаётся upstream SDK; локальная response schema
+// не дублируется.
+//
+// GET /openai/v1/videos/{video_id}/content
+func (c *Client) ProxyOpenAIVideosContent(ctx context.Context, params ProxyOpenAIVideosContentParams) (ProxyOpenAIVideosContentRes, error) {
+	res, err := c.sendProxyOpenAIVideosContent(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendProxyOpenAIVideosContent(ctx context.Context, params ProxyOpenAIVideosContentParams) (res ProxyOpenAIVideosContentRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyOpenAIVideosContent"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/openai/v1/videos/{video_id}/content"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyOpenAIVideosContentOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/openai/v1/videos/"
+	{
+		// Encode "video_id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "video_id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.VideoID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/content"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyOpenAIVideosContentOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyOpenAIVideosContentResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyOpenAIVideosCreate invokes proxyOpenAIVideosCreate operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /openai/v1/videos
+func (c *Client) ProxyOpenAIVideosCreate(ctx context.Context) (ProxyOpenAIVideosCreateRes, error) {
+	res, err := c.sendProxyOpenAIVideosCreate(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyOpenAIVideosCreate(ctx context.Context) (res ProxyOpenAIVideosCreateRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyOpenAIVideosCreate"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/openai/v1/videos"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyOpenAIVideosCreateOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/openai/v1/videos"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyOpenAIVideosCreateOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyOpenAIVideosCreateResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyOpenAIVideosRetrieve invokes proxyOpenAIVideosRetrieve operation.
+//
+// Статус и результат video request формируются upstream SDK;
+// локальная response schema не дублируется.
+//
+// GET /openai/v1/videos/{video_id}
+func (c *Client) ProxyOpenAIVideosRetrieve(ctx context.Context, params ProxyOpenAIVideosRetrieveParams) (ProxyOpenAIVideosRetrieveRes, error) {
+	res, err := c.sendProxyOpenAIVideosRetrieve(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendProxyOpenAIVideosRetrieve(ctx context.Context, params ProxyOpenAIVideosRetrieveParams) (res ProxyOpenAIVideosRetrieveRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyOpenAIVideosRetrieve"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/openai/v1/videos/{video_id}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyOpenAIVideosRetrieveOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/openai/v1/videos/"
+	{
+		// Encode "video_id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "video_id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.VideoID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyOpenAIVideosRetrieveOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyOpenAIVideosRetrieveResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // ProxyResponses invokes proxyResponses operation.
 //
 // Тело и ответ прозрачно обрабатываются upstream SDK;
@@ -3126,6 +5078,820 @@ func (c *Client) sendProxyResponses(ctx context.Context) (res ProxyResponsesRes,
 
 	stage = "DecodeResponse"
 	result, err := decodeProxyResponsesResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyResponsesCompact invokes proxyResponsesCompact operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/responses/compact
+func (c *Client) ProxyResponsesCompact(ctx context.Context) (ProxyResponsesCompactRes, error) {
+	res, err := c.sendProxyResponsesCompact(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyResponsesCompact(ctx context.Context) (res ProxyResponsesCompactRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyResponsesCompact"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/v1/responses/compact"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyResponsesCompactOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1/responses/compact"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyResponsesCompactOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyResponsesCompactResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyResponsesWebsocket invokes proxyResponsesWebsocket operation.
+//
+// Websocket handshake и дальнейший обмен обрабатываются upstream SDK.
+//
+// GET /v1/responses
+func (c *Client) ProxyResponsesWebsocket(ctx context.Context) (ProxyResponsesWebsocketRes, error) {
+	res, err := c.sendProxyResponsesWebsocket(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyResponsesWebsocket(ctx context.Context) (res ProxyResponsesWebsocketRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyResponsesWebsocket"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/v1/responses"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyResponsesWebsocketOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1/responses"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyResponsesWebsocketOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyResponsesWebsocketResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyXAIVideoEdits invokes proxyXAIVideoEdits operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/videos/edits
+func (c *Client) ProxyXAIVideoEdits(ctx context.Context) (ProxyXAIVideoEditsRes, error) {
+	res, err := c.sendProxyXAIVideoEdits(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyXAIVideoEdits(ctx context.Context) (res ProxyXAIVideoEditsRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyXAIVideoEdits"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/v1/videos/edits"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyXAIVideoEditsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1/videos/edits"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyXAIVideoEditsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyXAIVideoEditsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyXAIVideoExtensions invokes proxyXAIVideoExtensions operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/videos/extensions
+func (c *Client) ProxyXAIVideoExtensions(ctx context.Context) (ProxyXAIVideoExtensionsRes, error) {
+	res, err := c.sendProxyXAIVideoExtensions(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyXAIVideoExtensions(ctx context.Context) (res ProxyXAIVideoExtensionsRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyXAIVideoExtensions"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/v1/videos/extensions"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyXAIVideoExtensionsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1/videos/extensions"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyXAIVideoExtensionsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyXAIVideoExtensionsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyXAIVideoGenerations invokes proxyXAIVideoGenerations operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/videos/generations
+func (c *Client) ProxyXAIVideoGenerations(ctx context.Context) (ProxyXAIVideoGenerationsRes, error) {
+	res, err := c.sendProxyXAIVideoGenerations(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyXAIVideoGenerations(ctx context.Context) (res ProxyXAIVideoGenerationsRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyXAIVideoGenerations"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/v1/videos/generations"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyXAIVideoGenerationsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1/videos/generations"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyXAIVideoGenerationsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyXAIVideoGenerationsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyXAIVideoRetrieve invokes proxyXAIVideoRetrieve operation.
+//
+// Статус и результат video request формируются upstream SDK;
+// локальная response schema не дублируется.
+//
+// GET /v1/videos/{request_id}
+func (c *Client) ProxyXAIVideoRetrieve(ctx context.Context, params ProxyXAIVideoRetrieveParams) (ProxyXAIVideoRetrieveRes, error) {
+	res, err := c.sendProxyXAIVideoRetrieve(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendProxyXAIVideoRetrieve(ctx context.Context, params ProxyXAIVideoRetrieveParams) (res ProxyXAIVideoRetrieveRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyXAIVideoRetrieve"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/v1/videos/{request_id}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyXAIVideoRetrieveOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/v1/videos/"
+	{
+		// Encode "request_id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "request_id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.RequestID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyXAIVideoRetrieveOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyXAIVideoRetrieveResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProxyXAIVideos invokes proxyXAIVideos operation.
+//
+// Alias video generation route, transparently handled by upstream SDK.
+//
+// POST /v1/videos
+func (c *Client) ProxyXAIVideos(ctx context.Context) (ProxyXAIVideosRes, error) {
+	res, err := c.sendProxyXAIVideos(ctx)
+	return res, err
+}
+
+func (c *Client) sendProxyXAIVideos(ctx context.Context) (res ProxyXAIVideosRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("proxyXAIVideos"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/v1/videos"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProxyXAIVideosOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/v1/videos"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerApiKey"
+			switch err := c.securityBearerApiKey(ctx, ProxyXAIVideosOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerApiKey\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProxyXAIVideosResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

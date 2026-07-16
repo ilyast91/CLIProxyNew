@@ -18,6 +18,12 @@ components:
                     schema:
                         $ref: '#/components/schemas/Error'
             description: Внутренняя ошибка
+        NotFound:
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Error'
+            description: Ресурс не найден
         Unauthorized:
             content:
                 application/json:
@@ -1233,6 +1239,79 @@ paths:
             summary: Личная usage-статистика
             tags:
                 - User
+    /backend-api/codex/alpha/search:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyCodexAlphaSearch
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Direct Codex alpha search
+            tags:
+                - Proxy
+    /backend-api/codex/responses:
+        get:
+            description: Websocket handshake и дальнейший обмен обрабатываются upstream SDK.
+            operationId: proxyCodexResponsesWebsocket
+            responses:
+                "101":
+                    description: Switching Protocols
+                "200":
+                    description: Websocket-compatible upstream response when upgrade is not negotiated
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Direct Codex Responses websocket
+            tags:
+                - Proxy
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyCodexResponses
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Direct Codex Responses API request
+            tags:
+                - Proxy
+    /backend-api/codex/responses/compact:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyCodexResponsesCompact
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Direct Codex Responses compaction
+            tags:
+                - Proxy
     /healthz:
         get:
             description: Возвращает 200, если процесс жив. Не проверяет БД.
@@ -1265,6 +1344,78 @@ paths:
             summary: Prometheus metrics
             tags:
                 - System
+    /openai/v1/videos:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyOpenAIVideosCreate
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: OpenAI video creation
+            tags:
+                - Proxy
+    /openai/v1/videos/{video_id}:
+        get:
+            description: Статус и результат video request формируются upstream SDK; локальная response schema не дублируется.
+            operationId: proxyOpenAIVideosRetrieve
+            parameters:
+                - description: Идентификатор video request, интерпретируемый upstream SDK.
+                  in: path
+                  name: video_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "404":
+                    $ref: '#/components/responses/NotFound'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Получить OpenAI video request
+            tags:
+                - Proxy
+    /openai/v1/videos/{video_id}/content:
+        get:
+            description: Video content прозрачно отдаётся upstream SDK; локальная response schema не дублируется.
+            operationId: proxyOpenAIVideosContent
+            parameters:
+                - description: Идентификатор video request, интерпретируемый upstream SDK.
+                  in: path
+                  name: video_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "404":
+                    $ref: '#/components/responses/NotFound'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Получить OpenAI video content
+            tags:
+                - Proxy
     /openapi.json:
         get:
             description: |
@@ -1306,6 +1457,121 @@ paths:
             summary: Readiness probe
             tags:
                 - System
+    /v1beta/interactions:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyGeminiInteractions
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Gemini-compatible interaction
+            tags:
+                - Proxy
+    /v1beta/models:
+        get:
+            description: Список моделей формируется upstream SDK; его схема намеренно не дублируется в бизнес-слое.
+            operationId: proxyGeminiModels
+            responses:
+                "200":
+                    description: Upstream-compatible model list
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Gemini-compatible model list
+            tags:
+                - Proxy
+    /v1beta/models/{model}:{action}:
+        get:
+            description: Model action прозрачно обрабатывается upstream SDK; бизнес-слой не владеет схемой ответа.
+            operationId: proxyGeminiModelActionGet
+            parameters:
+                - description: Идентификатор Gemini-модели.
+                  in: path
+                  name: model
+                  required: true
+                  schema:
+                    type: string
+                - description: Действие над моделью, интерпретируемое upstream SDK.
+                  in: path
+                  name: action
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Gemini-compatible model action via GET
+            tags:
+                - Proxy
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyGeminiModelActionPost
+            parameters:
+                - description: Идентификатор Gemini-модели.
+                  in: path
+                  name: model
+                  required: true
+                  schema:
+                    type: string
+                - description: Действие над моделью, интерпретируемое upstream SDK.
+                  in: path
+                  name: action
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Gemini-compatible model action via POST
+            tags:
+                - Proxy
+    /v1/alpha/search:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyAlphaSearch
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Codex alpha search
+            tags:
+                - Proxy
     /v1/chat/completions:
         post:
             description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой описывает только URL, auth и общие ошибки.
@@ -1322,6 +1588,60 @@ paths:
             security:
                 - BearerApiKey: []
             summary: OpenAI-compatible chat completion
+            tags:
+                - Proxy
+    /v1/completions:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой описывает только URL, auth и общие ошибки.
+            operationId: proxyCompletions
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: OpenAI-compatible completion
+            tags:
+                - Proxy
+    /v1/images/edits:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyImageEdits
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: OpenAI-compatible image edit
+            tags:
+                - Proxy
+    /v1/images/generations:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyImageGenerations
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: OpenAI-compatible image generation
             tags:
                 - Proxy
     /v1/messages:
@@ -1342,6 +1662,24 @@ paths:
             summary: Anthropic-compatible message
             tags:
                 - Proxy
+    /v1/messages/count_tokens:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyMessagesCountTokens
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Anthropic-compatible token count
+            tags:
+                - Proxy
     /v1/models:
         get:
             description: Список моделей формируется upstream SDK; его схема намеренно не дублируется в бизнес-слое.
@@ -1358,20 +1696,15 @@ paths:
             summary: List available models
             tags:
                 - Proxy
-    /v1/models/{model}:generateContent:
-        post:
-            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
-            operationId: proxyGenerateContent
-            parameters:
-                - description: Идентификатор модели, интерпретируемый upstream SDK.
-                  in: path
-                  name: model
-                  required: true
-                  schema:
-                    type: string
+    /v1/responses:
+        get:
+            description: Websocket handshake и дальнейший обмен обрабатываются upstream SDK.
+            operationId: proxyResponsesWebsocket
             responses:
+                "101":
+                    description: Switching Protocols
                 "200":
-                    description: Upstream-compatible response
+                    description: Websocket-compatible upstream response when upgrade is not negotiated
                 "400":
                     $ref: '#/components/responses/BadRequest'
                 "401":
@@ -1380,10 +1713,9 @@ paths:
                     $ref: '#/components/responses/InternalError'
             security:
                 - BearerApiKey: []
-            summary: Gemini-compatible content generation
+            summary: OpenAI Responses websocket
             tags:
                 - Proxy
-    /v1/responses:
         post:
             description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
             operationId: proxyResponses
@@ -1399,6 +1731,123 @@ paths:
             security:
                 - BearerApiKey: []
             summary: OpenAI Responses API request
+            tags:
+                - Proxy
+    /v1/responses/compact:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyResponsesCompact
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: OpenAI Responses compaction
+            tags:
+                - Proxy
+    /v1/videos:
+        post:
+            description: Alias video generation route, transparently handled by upstream SDK.
+            operationId: proxyXAIVideos
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: xAI-compatible video generation
+            tags:
+                - Proxy
+    /v1/videos/{request_id}:
+        get:
+            description: Статус и результат video request формируются upstream SDK; локальная response schema не дублируется.
+            operationId: proxyXAIVideoRetrieve
+            parameters:
+                - description: Идентификатор video request, интерпретируемый upstream SDK.
+                  in: path
+                  name: request_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "404":
+                    $ref: '#/components/responses/NotFound'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: Получить результат xAI video request
+            tags:
+                - Proxy
+    /v1/videos/edits:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyXAIVideoEdits
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: xAI video edit
+            tags:
+                - Proxy
+    /v1/videos/extensions:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyXAIVideoExtensions
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: xAI video extension
+            tags:
+                - Proxy
+    /v1/videos/generations:
+        post:
+            description: Тело и ответ прозрачно обрабатываются upstream SDK; бизнес-слой не владеет их схемами.
+            operationId: proxyXAIVideoGenerations
+            responses:
+                "200":
+                    description: Upstream-compatible response
+                "400":
+                    $ref: '#/components/responses/BadRequest'
+                "401":
+                    $ref: '#/components/responses/Unauthorized'
+                "500":
+                    $ref: '#/components/responses/InternalError'
+            security:
+                - BearerApiKey: []
+            summary: xAI video generation
             tags:
                 - Proxy
 servers:

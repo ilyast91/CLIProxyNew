@@ -2990,6 +2990,23 @@ func (s *ProviderAPIKeyListResponse) SetData(val []ProviderAPIKey) {
 
 func (*ProviderAPIKeyListResponse) createProviderAPIKeysRes() {}
 
+type ProxyAlphaSearchBadRequest Error
+
+func (*ProxyAlphaSearchBadRequest) proxyAlphaSearchRes() {}
+
+type ProxyAlphaSearchInternalServerError Error
+
+func (*ProxyAlphaSearchInternalServerError) proxyAlphaSearchRes() {}
+
+// ProxyAlphaSearchOK is response for ProxyAlphaSearch operation.
+type ProxyAlphaSearchOK struct{}
+
+func (*ProxyAlphaSearchOK) proxyAlphaSearchRes() {}
+
+type ProxyAlphaSearchUnauthorized Error
+
+func (*ProxyAlphaSearchUnauthorized) proxyAlphaSearchRes() {}
+
 type ProxyChatCompletionsBadRequest Error
 
 func (*ProxyChatCompletionsBadRequest) proxyChatCompletionsRes() {}
@@ -3007,26 +3024,218 @@ type ProxyChatCompletionsUnauthorized Error
 
 func (*ProxyChatCompletionsUnauthorized) proxyChatCompletionsRes() {}
 
-type ProxyGenerateContentBadRequest Error
+type ProxyCodexAlphaSearchBadRequest Error
 
-func (*ProxyGenerateContentBadRequest) proxyGenerateContentRes() {}
+func (*ProxyCodexAlphaSearchBadRequest) proxyCodexAlphaSearchRes() {}
 
-type ProxyGenerateContentInternalServerError Error
+type ProxyCodexAlphaSearchInternalServerError Error
 
-func (*ProxyGenerateContentInternalServerError) proxyGenerateContentRes() {}
+func (*ProxyCodexAlphaSearchInternalServerError) proxyCodexAlphaSearchRes() {}
 
-// ProxyGenerateContentOK is response for ProxyGenerateContent operation.
-type ProxyGenerateContentOK struct{}
+// ProxyCodexAlphaSearchOK is response for ProxyCodexAlphaSearch operation.
+type ProxyCodexAlphaSearchOK struct{}
 
-func (*ProxyGenerateContentOK) proxyGenerateContentRes() {}
+func (*ProxyCodexAlphaSearchOK) proxyCodexAlphaSearchRes() {}
 
-type ProxyGenerateContentUnauthorized Error
+type ProxyCodexAlphaSearchUnauthorized Error
 
-func (*ProxyGenerateContentUnauthorized) proxyGenerateContentRes() {}
+func (*ProxyCodexAlphaSearchUnauthorized) proxyCodexAlphaSearchRes() {}
+
+type ProxyCodexResponsesBadRequest Error
+
+func (*ProxyCodexResponsesBadRequest) proxyCodexResponsesRes() {}
+
+type ProxyCodexResponsesCompactBadRequest Error
+
+func (*ProxyCodexResponsesCompactBadRequest) proxyCodexResponsesCompactRes() {}
+
+type ProxyCodexResponsesCompactInternalServerError Error
+
+func (*ProxyCodexResponsesCompactInternalServerError) proxyCodexResponsesCompactRes() {}
+
+// ProxyCodexResponsesCompactOK is response for ProxyCodexResponsesCompact operation.
+type ProxyCodexResponsesCompactOK struct{}
+
+func (*ProxyCodexResponsesCompactOK) proxyCodexResponsesCompactRes() {}
+
+type ProxyCodexResponsesCompactUnauthorized Error
+
+func (*ProxyCodexResponsesCompactUnauthorized) proxyCodexResponsesCompactRes() {}
+
+type ProxyCodexResponsesInternalServerError Error
+
+func (*ProxyCodexResponsesInternalServerError) proxyCodexResponsesRes() {}
+
+// ProxyCodexResponsesOK is response for ProxyCodexResponses operation.
+type ProxyCodexResponsesOK struct{}
+
+func (*ProxyCodexResponsesOK) proxyCodexResponsesRes() {}
+
+type ProxyCodexResponsesUnauthorized Error
+
+func (*ProxyCodexResponsesUnauthorized) proxyCodexResponsesRes() {}
+
+type ProxyCodexResponsesWebsocketBadRequest Error
+
+func (*ProxyCodexResponsesWebsocketBadRequest) proxyCodexResponsesWebsocketRes() {}
+
+type ProxyCodexResponsesWebsocketInternalServerError Error
+
+func (*ProxyCodexResponsesWebsocketInternalServerError) proxyCodexResponsesWebsocketRes() {}
+
+// ProxyCodexResponsesWebsocketOK is response for ProxyCodexResponsesWebsocket operation.
+type ProxyCodexResponsesWebsocketOK struct{}
+
+func (*ProxyCodexResponsesWebsocketOK) proxyCodexResponsesWebsocketRes() {}
+
+// ProxyCodexResponsesWebsocketSwitchingProtocols is response for ProxyCodexResponsesWebsocket operation.
+type ProxyCodexResponsesWebsocketSwitchingProtocols struct{}
+
+func (*ProxyCodexResponsesWebsocketSwitchingProtocols) proxyCodexResponsesWebsocketRes() {}
+
+type ProxyCodexResponsesWebsocketUnauthorized Error
+
+func (*ProxyCodexResponsesWebsocketUnauthorized) proxyCodexResponsesWebsocketRes() {}
+
+type ProxyCompletionsBadRequest Error
+
+func (*ProxyCompletionsBadRequest) proxyCompletionsRes() {}
+
+type ProxyCompletionsInternalServerError Error
+
+func (*ProxyCompletionsInternalServerError) proxyCompletionsRes() {}
+
+// ProxyCompletionsOK is response for ProxyCompletions operation.
+type ProxyCompletionsOK struct{}
+
+func (*ProxyCompletionsOK) proxyCompletionsRes() {}
+
+type ProxyCompletionsUnauthorized Error
+
+func (*ProxyCompletionsUnauthorized) proxyCompletionsRes() {}
+
+type ProxyGeminiInteractionsBadRequest Error
+
+func (*ProxyGeminiInteractionsBadRequest) proxyGeminiInteractionsRes() {}
+
+type ProxyGeminiInteractionsInternalServerError Error
+
+func (*ProxyGeminiInteractionsInternalServerError) proxyGeminiInteractionsRes() {}
+
+// ProxyGeminiInteractionsOK is response for ProxyGeminiInteractions operation.
+type ProxyGeminiInteractionsOK struct{}
+
+func (*ProxyGeminiInteractionsOK) proxyGeminiInteractionsRes() {}
+
+type ProxyGeminiInteractionsUnauthorized Error
+
+func (*ProxyGeminiInteractionsUnauthorized) proxyGeminiInteractionsRes() {}
+
+type ProxyGeminiModelActionGetBadRequest Error
+
+func (*ProxyGeminiModelActionGetBadRequest) proxyGeminiModelActionGetRes() {}
+
+type ProxyGeminiModelActionGetInternalServerError Error
+
+func (*ProxyGeminiModelActionGetInternalServerError) proxyGeminiModelActionGetRes() {}
+
+// ProxyGeminiModelActionGetOK is response for ProxyGeminiModelActionGet operation.
+type ProxyGeminiModelActionGetOK struct{}
+
+func (*ProxyGeminiModelActionGetOK) proxyGeminiModelActionGetRes() {}
+
+type ProxyGeminiModelActionGetUnauthorized Error
+
+func (*ProxyGeminiModelActionGetUnauthorized) proxyGeminiModelActionGetRes() {}
+
+type ProxyGeminiModelActionPostBadRequest Error
+
+func (*ProxyGeminiModelActionPostBadRequest) proxyGeminiModelActionPostRes() {}
+
+type ProxyGeminiModelActionPostInternalServerError Error
+
+func (*ProxyGeminiModelActionPostInternalServerError) proxyGeminiModelActionPostRes() {}
+
+// ProxyGeminiModelActionPostOK is response for ProxyGeminiModelActionPost operation.
+type ProxyGeminiModelActionPostOK struct{}
+
+func (*ProxyGeminiModelActionPostOK) proxyGeminiModelActionPostRes() {}
+
+type ProxyGeminiModelActionPostUnauthorized Error
+
+func (*ProxyGeminiModelActionPostUnauthorized) proxyGeminiModelActionPostRes() {}
+
+type ProxyGeminiModelsBadRequest Error
+
+func (*ProxyGeminiModelsBadRequest) proxyGeminiModelsRes() {}
+
+type ProxyGeminiModelsInternalServerError Error
+
+func (*ProxyGeminiModelsInternalServerError) proxyGeminiModelsRes() {}
+
+// ProxyGeminiModelsOK is response for ProxyGeminiModels operation.
+type ProxyGeminiModelsOK struct{}
+
+func (*ProxyGeminiModelsOK) proxyGeminiModelsRes() {}
+
+type ProxyGeminiModelsUnauthorized Error
+
+func (*ProxyGeminiModelsUnauthorized) proxyGeminiModelsRes() {}
+
+type ProxyImageEditsBadRequest Error
+
+func (*ProxyImageEditsBadRequest) proxyImageEditsRes() {}
+
+type ProxyImageEditsInternalServerError Error
+
+func (*ProxyImageEditsInternalServerError) proxyImageEditsRes() {}
+
+// ProxyImageEditsOK is response for ProxyImageEdits operation.
+type ProxyImageEditsOK struct{}
+
+func (*ProxyImageEditsOK) proxyImageEditsRes() {}
+
+type ProxyImageEditsUnauthorized Error
+
+func (*ProxyImageEditsUnauthorized) proxyImageEditsRes() {}
+
+type ProxyImageGenerationsBadRequest Error
+
+func (*ProxyImageGenerationsBadRequest) proxyImageGenerationsRes() {}
+
+type ProxyImageGenerationsInternalServerError Error
+
+func (*ProxyImageGenerationsInternalServerError) proxyImageGenerationsRes() {}
+
+// ProxyImageGenerationsOK is response for ProxyImageGenerations operation.
+type ProxyImageGenerationsOK struct{}
+
+func (*ProxyImageGenerationsOK) proxyImageGenerationsRes() {}
+
+type ProxyImageGenerationsUnauthorized Error
+
+func (*ProxyImageGenerationsUnauthorized) proxyImageGenerationsRes() {}
 
 type ProxyMessagesBadRequest Error
 
 func (*ProxyMessagesBadRequest) proxyMessagesRes() {}
+
+type ProxyMessagesCountTokensBadRequest Error
+
+func (*ProxyMessagesCountTokensBadRequest) proxyMessagesCountTokensRes() {}
+
+type ProxyMessagesCountTokensInternalServerError Error
+
+func (*ProxyMessagesCountTokensInternalServerError) proxyMessagesCountTokensRes() {}
+
+// ProxyMessagesCountTokensOK is response for ProxyMessagesCountTokens operation.
+type ProxyMessagesCountTokensOK struct{}
+
+func (*ProxyMessagesCountTokensOK) proxyMessagesCountTokensRes() {}
+
+type ProxyMessagesCountTokensUnauthorized Error
+
+func (*ProxyMessagesCountTokensUnauthorized) proxyMessagesCountTokensRes() {}
 
 type ProxyMessagesInternalServerError Error
 
@@ -3054,9 +3263,85 @@ type ProxyModelsUnauthorized Error
 
 func (*ProxyModelsUnauthorized) proxyModelsRes() {}
 
+type ProxyOpenAIVideosContentBadRequest Error
+
+func (*ProxyOpenAIVideosContentBadRequest) proxyOpenAIVideosContentRes() {}
+
+type ProxyOpenAIVideosContentInternalServerError Error
+
+func (*ProxyOpenAIVideosContentInternalServerError) proxyOpenAIVideosContentRes() {}
+
+type ProxyOpenAIVideosContentNotFound Error
+
+func (*ProxyOpenAIVideosContentNotFound) proxyOpenAIVideosContentRes() {}
+
+// ProxyOpenAIVideosContentOK is response for ProxyOpenAIVideosContent operation.
+type ProxyOpenAIVideosContentOK struct{}
+
+func (*ProxyOpenAIVideosContentOK) proxyOpenAIVideosContentRes() {}
+
+type ProxyOpenAIVideosContentUnauthorized Error
+
+func (*ProxyOpenAIVideosContentUnauthorized) proxyOpenAIVideosContentRes() {}
+
+type ProxyOpenAIVideosCreateBadRequest Error
+
+func (*ProxyOpenAIVideosCreateBadRequest) proxyOpenAIVideosCreateRes() {}
+
+type ProxyOpenAIVideosCreateInternalServerError Error
+
+func (*ProxyOpenAIVideosCreateInternalServerError) proxyOpenAIVideosCreateRes() {}
+
+// ProxyOpenAIVideosCreateOK is response for ProxyOpenAIVideosCreate operation.
+type ProxyOpenAIVideosCreateOK struct{}
+
+func (*ProxyOpenAIVideosCreateOK) proxyOpenAIVideosCreateRes() {}
+
+type ProxyOpenAIVideosCreateUnauthorized Error
+
+func (*ProxyOpenAIVideosCreateUnauthorized) proxyOpenAIVideosCreateRes() {}
+
+type ProxyOpenAIVideosRetrieveBadRequest Error
+
+func (*ProxyOpenAIVideosRetrieveBadRequest) proxyOpenAIVideosRetrieveRes() {}
+
+type ProxyOpenAIVideosRetrieveInternalServerError Error
+
+func (*ProxyOpenAIVideosRetrieveInternalServerError) proxyOpenAIVideosRetrieveRes() {}
+
+type ProxyOpenAIVideosRetrieveNotFound Error
+
+func (*ProxyOpenAIVideosRetrieveNotFound) proxyOpenAIVideosRetrieveRes() {}
+
+// ProxyOpenAIVideosRetrieveOK is response for ProxyOpenAIVideosRetrieve operation.
+type ProxyOpenAIVideosRetrieveOK struct{}
+
+func (*ProxyOpenAIVideosRetrieveOK) proxyOpenAIVideosRetrieveRes() {}
+
+type ProxyOpenAIVideosRetrieveUnauthorized Error
+
+func (*ProxyOpenAIVideosRetrieveUnauthorized) proxyOpenAIVideosRetrieveRes() {}
+
 type ProxyResponsesBadRequest Error
 
 func (*ProxyResponsesBadRequest) proxyResponsesRes() {}
+
+type ProxyResponsesCompactBadRequest Error
+
+func (*ProxyResponsesCompactBadRequest) proxyResponsesCompactRes() {}
+
+type ProxyResponsesCompactInternalServerError Error
+
+func (*ProxyResponsesCompactInternalServerError) proxyResponsesCompactRes() {}
+
+// ProxyResponsesCompactOK is response for ProxyResponsesCompact operation.
+type ProxyResponsesCompactOK struct{}
+
+func (*ProxyResponsesCompactOK) proxyResponsesCompactRes() {}
+
+type ProxyResponsesCompactUnauthorized Error
+
+func (*ProxyResponsesCompactUnauthorized) proxyResponsesCompactRes() {}
 
 type ProxyResponsesInternalServerError Error
 
@@ -3070,6 +3355,117 @@ func (*ProxyResponsesOK) proxyResponsesRes() {}
 type ProxyResponsesUnauthorized Error
 
 func (*ProxyResponsesUnauthorized) proxyResponsesRes() {}
+
+type ProxyResponsesWebsocketBadRequest Error
+
+func (*ProxyResponsesWebsocketBadRequest) proxyResponsesWebsocketRes() {}
+
+type ProxyResponsesWebsocketInternalServerError Error
+
+func (*ProxyResponsesWebsocketInternalServerError) proxyResponsesWebsocketRes() {}
+
+// ProxyResponsesWebsocketOK is response for ProxyResponsesWebsocket operation.
+type ProxyResponsesWebsocketOK struct{}
+
+func (*ProxyResponsesWebsocketOK) proxyResponsesWebsocketRes() {}
+
+// ProxyResponsesWebsocketSwitchingProtocols is response for ProxyResponsesWebsocket operation.
+type ProxyResponsesWebsocketSwitchingProtocols struct{}
+
+func (*ProxyResponsesWebsocketSwitchingProtocols) proxyResponsesWebsocketRes() {}
+
+type ProxyResponsesWebsocketUnauthorized Error
+
+func (*ProxyResponsesWebsocketUnauthorized) proxyResponsesWebsocketRes() {}
+
+type ProxyXAIVideoEditsBadRequest Error
+
+func (*ProxyXAIVideoEditsBadRequest) proxyXAIVideoEditsRes() {}
+
+type ProxyXAIVideoEditsInternalServerError Error
+
+func (*ProxyXAIVideoEditsInternalServerError) proxyXAIVideoEditsRes() {}
+
+// ProxyXAIVideoEditsOK is response for ProxyXAIVideoEdits operation.
+type ProxyXAIVideoEditsOK struct{}
+
+func (*ProxyXAIVideoEditsOK) proxyXAIVideoEditsRes() {}
+
+type ProxyXAIVideoEditsUnauthorized Error
+
+func (*ProxyXAIVideoEditsUnauthorized) proxyXAIVideoEditsRes() {}
+
+type ProxyXAIVideoExtensionsBadRequest Error
+
+func (*ProxyXAIVideoExtensionsBadRequest) proxyXAIVideoExtensionsRes() {}
+
+type ProxyXAIVideoExtensionsInternalServerError Error
+
+func (*ProxyXAIVideoExtensionsInternalServerError) proxyXAIVideoExtensionsRes() {}
+
+// ProxyXAIVideoExtensionsOK is response for ProxyXAIVideoExtensions operation.
+type ProxyXAIVideoExtensionsOK struct{}
+
+func (*ProxyXAIVideoExtensionsOK) proxyXAIVideoExtensionsRes() {}
+
+type ProxyXAIVideoExtensionsUnauthorized Error
+
+func (*ProxyXAIVideoExtensionsUnauthorized) proxyXAIVideoExtensionsRes() {}
+
+type ProxyXAIVideoGenerationsBadRequest Error
+
+func (*ProxyXAIVideoGenerationsBadRequest) proxyXAIVideoGenerationsRes() {}
+
+type ProxyXAIVideoGenerationsInternalServerError Error
+
+func (*ProxyXAIVideoGenerationsInternalServerError) proxyXAIVideoGenerationsRes() {}
+
+// ProxyXAIVideoGenerationsOK is response for ProxyXAIVideoGenerations operation.
+type ProxyXAIVideoGenerationsOK struct{}
+
+func (*ProxyXAIVideoGenerationsOK) proxyXAIVideoGenerationsRes() {}
+
+type ProxyXAIVideoGenerationsUnauthorized Error
+
+func (*ProxyXAIVideoGenerationsUnauthorized) proxyXAIVideoGenerationsRes() {}
+
+type ProxyXAIVideoRetrieveBadRequest Error
+
+func (*ProxyXAIVideoRetrieveBadRequest) proxyXAIVideoRetrieveRes() {}
+
+type ProxyXAIVideoRetrieveInternalServerError Error
+
+func (*ProxyXAIVideoRetrieveInternalServerError) proxyXAIVideoRetrieveRes() {}
+
+type ProxyXAIVideoRetrieveNotFound Error
+
+func (*ProxyXAIVideoRetrieveNotFound) proxyXAIVideoRetrieveRes() {}
+
+// ProxyXAIVideoRetrieveOK is response for ProxyXAIVideoRetrieve operation.
+type ProxyXAIVideoRetrieveOK struct{}
+
+func (*ProxyXAIVideoRetrieveOK) proxyXAIVideoRetrieveRes() {}
+
+type ProxyXAIVideoRetrieveUnauthorized Error
+
+func (*ProxyXAIVideoRetrieveUnauthorized) proxyXAIVideoRetrieveRes() {}
+
+type ProxyXAIVideosBadRequest Error
+
+func (*ProxyXAIVideosBadRequest) proxyXAIVideosRes() {}
+
+type ProxyXAIVideosInternalServerError Error
+
+func (*ProxyXAIVideosInternalServerError) proxyXAIVideosRes() {}
+
+// ProxyXAIVideosOK is response for ProxyXAIVideos operation.
+type ProxyXAIVideosOK struct{}
+
+func (*ProxyXAIVideosOK) proxyXAIVideosRes() {}
+
+type ProxyXAIVideosUnauthorized Error
+
+func (*ProxyXAIVideosUnauthorized) proxyXAIVideosRes() {}
 
 type ReadyzOK struct {
 	Data io.Reader

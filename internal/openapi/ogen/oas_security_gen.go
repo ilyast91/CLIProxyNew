@@ -39,11 +39,33 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 
 // operationRolesBearerApiKey is a private map storing roles per operation.
 var operationRolesBearerApiKey = map[string][]string{
-	ProxyChatCompletionsOperation: []string{},
-	ProxyGenerateContentOperation: []string{},
-	ProxyMessagesOperation:        []string{},
-	ProxyModelsOperation:          []string{},
-	ProxyResponsesOperation:       []string{},
+	ProxyAlphaSearchOperation:             []string{},
+	ProxyChatCompletionsOperation:         []string{},
+	ProxyCodexAlphaSearchOperation:        []string{},
+	ProxyCodexResponsesOperation:          []string{},
+	ProxyCodexResponsesCompactOperation:   []string{},
+	ProxyCodexResponsesWebsocketOperation: []string{},
+	ProxyCompletionsOperation:             []string{},
+	ProxyGeminiInteractionsOperation:      []string{},
+	ProxyGeminiModelActionGetOperation:    []string{},
+	ProxyGeminiModelActionPostOperation:   []string{},
+	ProxyGeminiModelsOperation:            []string{},
+	ProxyImageEditsOperation:              []string{},
+	ProxyImageGenerationsOperation:        []string{},
+	ProxyMessagesOperation:                []string{},
+	ProxyMessagesCountTokensOperation:     []string{},
+	ProxyModelsOperation:                  []string{},
+	ProxyOpenAIVideosContentOperation:     []string{},
+	ProxyOpenAIVideosCreateOperation:      []string{},
+	ProxyOpenAIVideosRetrieveOperation:    []string{},
+	ProxyResponsesOperation:               []string{},
+	ProxyResponsesCompactOperation:        []string{},
+	ProxyResponsesWebsocketOperation:      []string{},
+	ProxyXAIVideoEditsOperation:           []string{},
+	ProxyXAIVideoExtensionsOperation:      []string{},
+	ProxyXAIVideoGenerationsOperation:     []string{},
+	ProxyXAIVideoRetrieveOperation:        []string{},
+	ProxyXAIVideosOperation:               []string{},
 }
 
 // GetRolesForBearerApiKey returns the required roles for the given operation.

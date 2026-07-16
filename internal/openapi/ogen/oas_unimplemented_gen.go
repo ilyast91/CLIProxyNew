@@ -216,6 +216,16 @@ func (UnimplementedHandler) OpenapiJson(ctx context.Context) error {
 	return ht.ErrNotImplemented
 }
 
+// ProxyAlphaSearch implements proxyAlphaSearch operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/alpha/search
+func (UnimplementedHandler) ProxyAlphaSearch(ctx context.Context) (r ProxyAlphaSearchRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ProxyChatCompletions implements proxyChatCompletions operation.
 //
 // Тело и ответ прозрачно обрабатываются upstream SDK;
@@ -226,13 +236,112 @@ func (UnimplementedHandler) ProxyChatCompletions(ctx context.Context) (r ProxyCh
 	return r, ht.ErrNotImplemented
 }
 
-// ProxyGenerateContent implements proxyGenerateContent operation.
+// ProxyCodexAlphaSearch implements proxyCodexAlphaSearch operation.
 //
 // Тело и ответ прозрачно обрабатываются upstream SDK;
 // бизнес-слой не владеет их схемами.
 //
-// POST /v1/models/{model}:generateContent
-func (UnimplementedHandler) ProxyGenerateContent(ctx context.Context, params ProxyGenerateContentParams) (r ProxyGenerateContentRes, _ error) {
+// POST /backend-api/codex/alpha/search
+func (UnimplementedHandler) ProxyCodexAlphaSearch(ctx context.Context) (r ProxyCodexAlphaSearchRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyCodexResponses implements proxyCodexResponses operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /backend-api/codex/responses
+func (UnimplementedHandler) ProxyCodexResponses(ctx context.Context) (r ProxyCodexResponsesRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyCodexResponsesCompact implements proxyCodexResponsesCompact operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /backend-api/codex/responses/compact
+func (UnimplementedHandler) ProxyCodexResponsesCompact(ctx context.Context) (r ProxyCodexResponsesCompactRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyCodexResponsesWebsocket implements proxyCodexResponsesWebsocket operation.
+//
+// Websocket handshake и дальнейший обмен обрабатываются upstream SDK.
+//
+// GET /backend-api/codex/responses
+func (UnimplementedHandler) ProxyCodexResponsesWebsocket(ctx context.Context) (r ProxyCodexResponsesWebsocketRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyCompletions implements proxyCompletions operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой описывает только URL, auth и общие ошибки.
+//
+// POST /v1/completions
+func (UnimplementedHandler) ProxyCompletions(ctx context.Context) (r ProxyCompletionsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyGeminiInteractions implements proxyGeminiInteractions operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1beta/interactions
+func (UnimplementedHandler) ProxyGeminiInteractions(ctx context.Context) (r ProxyGeminiInteractionsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyGeminiModelActionGet implements proxyGeminiModelActionGet operation.
+//
+// Model action прозрачно обрабатывается upstream SDK; бизнес-слой
+// не владеет схемой ответа.
+//
+// GET /v1beta/models/{model}:{action}
+func (UnimplementedHandler) ProxyGeminiModelActionGet(ctx context.Context, params ProxyGeminiModelActionGetParams) (r ProxyGeminiModelActionGetRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyGeminiModelActionPost implements proxyGeminiModelActionPost operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1beta/models/{model}:{action}
+func (UnimplementedHandler) ProxyGeminiModelActionPost(ctx context.Context, params ProxyGeminiModelActionPostParams) (r ProxyGeminiModelActionPostRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyGeminiModels implements proxyGeminiModels operation.
+//
+// Список моделей формируется upstream SDK; его схема
+// намеренно не дублируется в бизнес-слое.
+//
+// GET /v1beta/models
+func (UnimplementedHandler) ProxyGeminiModels(ctx context.Context) (r ProxyGeminiModelsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyImageEdits implements proxyImageEdits operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/images/edits
+func (UnimplementedHandler) ProxyImageEdits(ctx context.Context) (r ProxyImageEditsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyImageGenerations implements proxyImageGenerations operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/images/generations
+func (UnimplementedHandler) ProxyImageGenerations(ctx context.Context) (r ProxyImageGenerationsRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -246,6 +355,16 @@ func (UnimplementedHandler) ProxyMessages(ctx context.Context) (r ProxyMessagesR
 	return r, ht.ErrNotImplemented
 }
 
+// ProxyMessagesCountTokens implements proxyMessagesCountTokens operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/messages/count_tokens
+func (UnimplementedHandler) ProxyMessagesCountTokens(ctx context.Context) (r ProxyMessagesCountTokensRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ProxyModels implements proxyModels operation.
 //
 // Список моделей формируется upstream SDK; его схема
@@ -256,6 +375,36 @@ func (UnimplementedHandler) ProxyModels(ctx context.Context) (r ProxyModelsRes, 
 	return r, ht.ErrNotImplemented
 }
 
+// ProxyOpenAIVideosContent implements proxyOpenAIVideosContent operation.
+//
+// Video content прозрачно отдаётся upstream SDK; локальная response schema
+// не дублируется.
+//
+// GET /openai/v1/videos/{video_id}/content
+func (UnimplementedHandler) ProxyOpenAIVideosContent(ctx context.Context, params ProxyOpenAIVideosContentParams) (r ProxyOpenAIVideosContentRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyOpenAIVideosCreate implements proxyOpenAIVideosCreate operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /openai/v1/videos
+func (UnimplementedHandler) ProxyOpenAIVideosCreate(ctx context.Context) (r ProxyOpenAIVideosCreateRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyOpenAIVideosRetrieve implements proxyOpenAIVideosRetrieve operation.
+//
+// Статус и результат video request формируются upstream SDK;
+// локальная response schema не дублируется.
+//
+// GET /openai/v1/videos/{video_id}
+func (UnimplementedHandler) ProxyOpenAIVideosRetrieve(ctx context.Context, params ProxyOpenAIVideosRetrieveParams) (r ProxyOpenAIVideosRetrieveRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ProxyResponses implements proxyResponses operation.
 //
 // Тело и ответ прозрачно обрабатываются upstream SDK;
@@ -263,6 +412,74 @@ func (UnimplementedHandler) ProxyModels(ctx context.Context) (r ProxyModelsRes, 
 //
 // POST /v1/responses
 func (UnimplementedHandler) ProxyResponses(ctx context.Context) (r ProxyResponsesRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyResponsesCompact implements proxyResponsesCompact operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/responses/compact
+func (UnimplementedHandler) ProxyResponsesCompact(ctx context.Context) (r ProxyResponsesCompactRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyResponsesWebsocket implements proxyResponsesWebsocket operation.
+//
+// Websocket handshake и дальнейший обмен обрабатываются upstream SDK.
+//
+// GET /v1/responses
+func (UnimplementedHandler) ProxyResponsesWebsocket(ctx context.Context) (r ProxyResponsesWebsocketRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyXAIVideoEdits implements proxyXAIVideoEdits operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/videos/edits
+func (UnimplementedHandler) ProxyXAIVideoEdits(ctx context.Context) (r ProxyXAIVideoEditsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyXAIVideoExtensions implements proxyXAIVideoExtensions operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/videos/extensions
+func (UnimplementedHandler) ProxyXAIVideoExtensions(ctx context.Context) (r ProxyXAIVideoExtensionsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyXAIVideoGenerations implements proxyXAIVideoGenerations operation.
+//
+// Тело и ответ прозрачно обрабатываются upstream SDK;
+// бизнес-слой не владеет их схемами.
+//
+// POST /v1/videos/generations
+func (UnimplementedHandler) ProxyXAIVideoGenerations(ctx context.Context) (r ProxyXAIVideoGenerationsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyXAIVideoRetrieve implements proxyXAIVideoRetrieve operation.
+//
+// Статус и результат video request формируются upstream SDK;
+// локальная response schema не дублируется.
+//
+// GET /v1/videos/{request_id}
+func (UnimplementedHandler) ProxyXAIVideoRetrieve(ctx context.Context, params ProxyXAIVideoRetrieveParams) (r ProxyXAIVideoRetrieveRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProxyXAIVideos implements proxyXAIVideos operation.
+//
+// Alias video generation route, transparently handled by upstream SDK.
+//
+// POST /v1/videos
+func (UnimplementedHandler) ProxyXAIVideos(ctx context.Context) (r ProxyXAIVideosRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -455,13 +455,15 @@ func decodeGetUpstreamAccountQuotaParams(args [1]string, argsEscaped bool, r *ht
 	return params, nil
 }
 
-// ProxyGenerateContentParams is parameters of proxyGenerateContent operation.
-type ProxyGenerateContentParams struct {
-	// Идентификатор модели, интерпретируемый upstream SDK.
+// ProxyGeminiModelActionGetParams is parameters of proxyGeminiModelActionGet operation.
+type ProxyGeminiModelActionGetParams struct {
+	// Идентификатор Gemini-модели.
 	Model string
+	// Действие над моделью, интерпретируемое upstream SDK.
+	Action string
 }
 
-func unpackProxyGenerateContentParams(packed middleware.Parameters) (params ProxyGenerateContentParams) {
+func unpackProxyGeminiModelActionGetParams(packed middleware.Parameters) (params ProxyGeminiModelActionGetParams) {
 	{
 		key := middleware.ParameterKey{
 			Name: "model",
@@ -469,10 +471,17 @@ func unpackProxyGenerateContentParams(packed middleware.Parameters) (params Prox
 		}
 		params.Model = packed[key].(string)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "action",
+			In:   "path",
+		}
+		params.Action = packed[key].(string)
+	}
 	return params
 }
 
-func decodeProxyGenerateContentParams(args [1]string, argsEscaped bool, r *http.Request) (params ProxyGenerateContentParams, _ error) {
+func decodeProxyGeminiModelActionGetParams(args [2]string, argsEscaped bool, r *http.Request) (params ProxyGeminiModelActionGetParams, _ error) {
 	// Decode path: model.
 	if err := func() error {
 		param := args[0]
@@ -514,6 +523,369 @@ func decodeProxyGenerateContentParams(args [1]string, argsEscaped bool, r *http.
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "model",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: action.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "action",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Action = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "action",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ProxyGeminiModelActionPostParams is parameters of proxyGeminiModelActionPost operation.
+type ProxyGeminiModelActionPostParams struct {
+	// Идентификатор Gemini-модели.
+	Model string
+	// Действие над моделью, интерпретируемое upstream SDK.
+	Action string
+}
+
+func unpackProxyGeminiModelActionPostParams(packed middleware.Parameters) (params ProxyGeminiModelActionPostParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "model",
+			In:   "path",
+		}
+		params.Model = packed[key].(string)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "action",
+			In:   "path",
+		}
+		params.Action = packed[key].(string)
+	}
+	return params
+}
+
+func decodeProxyGeminiModelActionPostParams(args [2]string, argsEscaped bool, r *http.Request) (params ProxyGeminiModelActionPostParams, _ error) {
+	// Decode path: model.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "model",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Model = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "model",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: action.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "action",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Action = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "action",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ProxyOpenAIVideosContentParams is parameters of proxyOpenAIVideosContent operation.
+type ProxyOpenAIVideosContentParams struct {
+	// Идентификатор video request, интерпретируемый upstream SDK.
+	VideoID string
+}
+
+func unpackProxyOpenAIVideosContentParams(packed middleware.Parameters) (params ProxyOpenAIVideosContentParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "video_id",
+			In:   "path",
+		}
+		params.VideoID = packed[key].(string)
+	}
+	return params
+}
+
+func decodeProxyOpenAIVideosContentParams(args [1]string, argsEscaped bool, r *http.Request) (params ProxyOpenAIVideosContentParams, _ error) {
+	// Decode path: video_id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "video_id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.VideoID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "video_id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ProxyOpenAIVideosRetrieveParams is parameters of proxyOpenAIVideosRetrieve operation.
+type ProxyOpenAIVideosRetrieveParams struct {
+	// Идентификатор video request, интерпретируемый upstream SDK.
+	VideoID string
+}
+
+func unpackProxyOpenAIVideosRetrieveParams(packed middleware.Parameters) (params ProxyOpenAIVideosRetrieveParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "video_id",
+			In:   "path",
+		}
+		params.VideoID = packed[key].(string)
+	}
+	return params
+}
+
+func decodeProxyOpenAIVideosRetrieveParams(args [1]string, argsEscaped bool, r *http.Request) (params ProxyOpenAIVideosRetrieveParams, _ error) {
+	// Decode path: video_id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "video_id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.VideoID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "video_id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ProxyXAIVideoRetrieveParams is parameters of proxyXAIVideoRetrieve operation.
+type ProxyXAIVideoRetrieveParams struct {
+	// Идентификатор video request, интерпретируемый upstream SDK.
+	RequestID string
+}
+
+func unpackProxyXAIVideoRetrieveParams(packed middleware.Parameters) (params ProxyXAIVideoRetrieveParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "request_id",
+			In:   "path",
+		}
+		params.RequestID = packed[key].(string)
+	}
+	return params
+}
+
+func decodeProxyXAIVideoRetrieveParams(args [1]string, argsEscaped bool, r *http.Request) (params ProxyXAIVideoRetrieveParams, _ error) {
+	// Decode path: request_id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "request_id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.RequestID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "request_id",
 			In:   "path",
 			Err:  err,
 		}

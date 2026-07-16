@@ -151,6 +151,13 @@ type Handler interface {
 	//
 	// GET /openapi.json
 	OpenapiJson(ctx context.Context) error
+	// ProxyAlphaSearch implements proxyAlphaSearch operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/alpha/search
+	ProxyAlphaSearch(ctx context.Context) (ProxyAlphaSearchRes, error)
 	// ProxyChatCompletions implements proxyChatCompletions operation.
 	//
 	// Тело и ответ прозрачно обрабатываются upstream SDK;
@@ -158,13 +165,82 @@ type Handler interface {
 	//
 	// POST /v1/chat/completions
 	ProxyChatCompletions(ctx context.Context) (ProxyChatCompletionsRes, error)
-	// ProxyGenerateContent implements proxyGenerateContent operation.
+	// ProxyCodexAlphaSearch implements proxyCodexAlphaSearch operation.
 	//
 	// Тело и ответ прозрачно обрабатываются upstream SDK;
 	// бизнес-слой не владеет их схемами.
 	//
-	// POST /v1/models/{model}:generateContent
-	ProxyGenerateContent(ctx context.Context, params ProxyGenerateContentParams) (ProxyGenerateContentRes, error)
+	// POST /backend-api/codex/alpha/search
+	ProxyCodexAlphaSearch(ctx context.Context) (ProxyCodexAlphaSearchRes, error)
+	// ProxyCodexResponses implements proxyCodexResponses operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /backend-api/codex/responses
+	ProxyCodexResponses(ctx context.Context) (ProxyCodexResponsesRes, error)
+	// ProxyCodexResponsesCompact implements proxyCodexResponsesCompact operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /backend-api/codex/responses/compact
+	ProxyCodexResponsesCompact(ctx context.Context) (ProxyCodexResponsesCompactRes, error)
+	// ProxyCodexResponsesWebsocket implements proxyCodexResponsesWebsocket operation.
+	//
+	// Websocket handshake и дальнейший обмен обрабатываются upstream SDK.
+	//
+	// GET /backend-api/codex/responses
+	ProxyCodexResponsesWebsocket(ctx context.Context) (ProxyCodexResponsesWebsocketRes, error)
+	// ProxyCompletions implements proxyCompletions operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой описывает только URL, auth и общие ошибки.
+	//
+	// POST /v1/completions
+	ProxyCompletions(ctx context.Context) (ProxyCompletionsRes, error)
+	// ProxyGeminiInteractions implements proxyGeminiInteractions operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1beta/interactions
+	ProxyGeminiInteractions(ctx context.Context) (ProxyGeminiInteractionsRes, error)
+	// ProxyGeminiModelActionGet implements proxyGeminiModelActionGet operation.
+	//
+	// Model action прозрачно обрабатывается upstream SDK; бизнес-слой
+	// не владеет схемой ответа.
+	//
+	// GET /v1beta/models/{model}:{action}
+	ProxyGeminiModelActionGet(ctx context.Context, params ProxyGeminiModelActionGetParams) (ProxyGeminiModelActionGetRes, error)
+	// ProxyGeminiModelActionPost implements proxyGeminiModelActionPost operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1beta/models/{model}:{action}
+	ProxyGeminiModelActionPost(ctx context.Context, params ProxyGeminiModelActionPostParams) (ProxyGeminiModelActionPostRes, error)
+	// ProxyGeminiModels implements proxyGeminiModels operation.
+	//
+	// Список моделей формируется upstream SDK; его схема
+	// намеренно не дублируется в бизнес-слое.
+	//
+	// GET /v1beta/models
+	ProxyGeminiModels(ctx context.Context) (ProxyGeminiModelsRes, error)
+	// ProxyImageEdits implements proxyImageEdits operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/images/edits
+	ProxyImageEdits(ctx context.Context) (ProxyImageEditsRes, error)
+	// ProxyImageGenerations implements proxyImageGenerations operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/images/generations
+	ProxyImageGenerations(ctx context.Context) (ProxyImageGenerationsRes, error)
 	// ProxyMessages implements proxyMessages operation.
 	//
 	// Тело и ответ прозрачно обрабатываются upstream SDK;
@@ -172,6 +248,13 @@ type Handler interface {
 	//
 	// POST /v1/messages
 	ProxyMessages(ctx context.Context) (ProxyMessagesRes, error)
+	// ProxyMessagesCountTokens implements proxyMessagesCountTokens operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/messages/count_tokens
+	ProxyMessagesCountTokens(ctx context.Context) (ProxyMessagesCountTokensRes, error)
 	// ProxyModels implements proxyModels operation.
 	//
 	// Список моделей формируется upstream SDK; его схема
@@ -179,6 +262,27 @@ type Handler interface {
 	//
 	// GET /v1/models
 	ProxyModels(ctx context.Context) (ProxyModelsRes, error)
+	// ProxyOpenAIVideosContent implements proxyOpenAIVideosContent operation.
+	//
+	// Video content прозрачно отдаётся upstream SDK; локальная response schema
+	// не дублируется.
+	//
+	// GET /openai/v1/videos/{video_id}/content
+	ProxyOpenAIVideosContent(ctx context.Context, params ProxyOpenAIVideosContentParams) (ProxyOpenAIVideosContentRes, error)
+	// ProxyOpenAIVideosCreate implements proxyOpenAIVideosCreate operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /openai/v1/videos
+	ProxyOpenAIVideosCreate(ctx context.Context) (ProxyOpenAIVideosCreateRes, error)
+	// ProxyOpenAIVideosRetrieve implements proxyOpenAIVideosRetrieve operation.
+	//
+	// Статус и результат video request формируются upstream SDK;
+	// локальная response schema не дублируется.
+	//
+	// GET /openai/v1/videos/{video_id}
+	ProxyOpenAIVideosRetrieve(ctx context.Context, params ProxyOpenAIVideosRetrieveParams) (ProxyOpenAIVideosRetrieveRes, error)
 	// ProxyResponses implements proxyResponses operation.
 	//
 	// Тело и ответ прозрачно обрабатываются upstream SDK;
@@ -186,6 +290,53 @@ type Handler interface {
 	//
 	// POST /v1/responses
 	ProxyResponses(ctx context.Context) (ProxyResponsesRes, error)
+	// ProxyResponsesCompact implements proxyResponsesCompact operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/responses/compact
+	ProxyResponsesCompact(ctx context.Context) (ProxyResponsesCompactRes, error)
+	// ProxyResponsesWebsocket implements proxyResponsesWebsocket operation.
+	//
+	// Websocket handshake и дальнейший обмен обрабатываются upstream SDK.
+	//
+	// GET /v1/responses
+	ProxyResponsesWebsocket(ctx context.Context) (ProxyResponsesWebsocketRes, error)
+	// ProxyXAIVideoEdits implements proxyXAIVideoEdits operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/videos/edits
+	ProxyXAIVideoEdits(ctx context.Context) (ProxyXAIVideoEditsRes, error)
+	// ProxyXAIVideoExtensions implements proxyXAIVideoExtensions operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/videos/extensions
+	ProxyXAIVideoExtensions(ctx context.Context) (ProxyXAIVideoExtensionsRes, error)
+	// ProxyXAIVideoGenerations implements proxyXAIVideoGenerations operation.
+	//
+	// Тело и ответ прозрачно обрабатываются upstream SDK;
+	// бизнес-слой не владеет их схемами.
+	//
+	// POST /v1/videos/generations
+	ProxyXAIVideoGenerations(ctx context.Context) (ProxyXAIVideoGenerationsRes, error)
+	// ProxyXAIVideoRetrieve implements proxyXAIVideoRetrieve operation.
+	//
+	// Статус и результат video request формируются upstream SDK;
+	// локальная response schema не дублируется.
+	//
+	// GET /v1/videos/{request_id}
+	ProxyXAIVideoRetrieve(ctx context.Context, params ProxyXAIVideoRetrieveParams) (ProxyXAIVideoRetrieveRes, error)
+	// ProxyXAIVideos implements proxyXAIVideos operation.
+	//
+	// Alias video generation route, transparently handled by upstream SDK.
+	//
+	// POST /v1/videos
+	ProxyXAIVideos(ctx context.Context) (ProxyXAIVideosRes, error)
 	// Readyz implements readyz operation.
 	//
 	// Возвращает 200, если сервис готов принимать трафик (DB ping

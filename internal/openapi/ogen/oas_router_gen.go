@@ -20,7 +20,7 @@ var (
 	rn6AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
-	rn44AllowedHeaders = map[string]string{
+	rn73AllowedHeaders = map[string]string{
 		"PATCH": "Content-Type",
 	}
 	rn26AllowedHeaders = map[string]string{
@@ -29,19 +29,79 @@ var (
 	rn4AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
-	rn31AllowedHeaders = map[string]string{
+	rn34AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn36AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
 		"POST": "Authorization",
 	}
 	rn37AllowedHeaders = map[string]string{
 		"POST": "Authorization",
 	}
-	rn38AllowedHeaders = map[string]string{
+	rn59AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn57AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
-	rn35AllowedHeaders = map[string]string{
+	rn58AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn31AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn33AllowedHeaders = map[string]string{
 		"POST": "Authorization",
 	}
 	rn39AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn48AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn50AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn51AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn52AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn54AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn60AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
+		"POST": "Authorization",
+	}
+	rn61AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn68AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn62AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn64AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn66AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn67AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn41AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn47AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn46AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
 		"POST": "Authorization",
 	}
 )
@@ -76,7 +136,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.notFound(w, r)
 		return
 	}
-	args := [1]string{}
+	args := [2]string{}
 
 	// Static code generated router with unwrapped path search.
 	switch {
@@ -534,7 +594,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "PATCH",
-										allowedHeaders: rn44AllowedHeaders,
+										allowedHeaders: rn73AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "application/json",
 									})
@@ -742,6 +802,98 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 				}
 
+			case 'b': // Prefix: "backend-api/codex/"
+
+				if l := len("backend-api/codex/"); len(elem) >= l && elem[0:l] == "backend-api/codex/" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					break
+				}
+				switch elem[0] {
+				case 'a': // Prefix: "alpha/search"
+
+					if l := len("alpha/search"); len(elem) >= l && elem[0:l] == "alpha/search" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "POST":
+							s.handleProxyCodexAlphaSearchRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "POST",
+								allowedHeaders: rn34AllowedHeaders,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+
+				case 'r': // Prefix: "responses"
+
+					if l := len("responses"); len(elem) >= l && elem[0:l] == "responses" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						switch r.Method {
+						case "GET":
+							s.handleProxyCodexResponsesWebsocketRequest([0]string{}, elemIsEscaped, w, r)
+						case "POST":
+							s.handleProxyCodexResponsesRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "GET,POST",
+								allowedHeaders: rn36AllowedHeaders,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/compact"
+
+						if l := len("/compact"); len(elem) >= l && elem[0:l] == "/compact" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "POST":
+								s.handleProxyCodexResponsesCompactRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "POST",
+									allowedHeaders: rn37AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+
+					}
+
+				}
+
 			case 'h': // Prefix: "healthz"
 
 				if l := len("healthz"); len(elem) >= l && elem[0:l] == "healthz" {
@@ -792,29 +944,133 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
-			case 'o': // Prefix: "openapi.json"
+			case 'o': // Prefix: "opena"
 
-				if l := len("openapi.json"); len(elem) >= l && elem[0:l] == "openapi.json" {
+				if l := len("opena"); len(elem) >= l && elem[0:l] == "opena" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
-					switch r.Method {
-					case "GET":
-						s.handleOpenapiJsonRequest([0]string{}, elemIsEscaped, w, r)
-					default:
-						s.notAllowed(w, r, notAllowedParams{
-							allowedMethods: "GET",
-							allowedHeaders: nil,
-							acceptPost:     "",
-							acceptPatch:    "",
-						})
+					break
+				}
+				switch elem[0] {
+				case 'i': // Prefix: "i/v1/videos"
+
+					if l := len("i/v1/videos"); len(elem) >= l && elem[0:l] == "i/v1/videos" {
+						elem = elem[l:]
+					} else {
+						break
 					}
 
-					return
+					if len(elem) == 0 {
+						switch r.Method {
+						case "POST":
+							s.handleProxyOpenAIVideosCreateRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "POST",
+								allowedHeaders: rn59AllowedHeaders,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/"
+
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						// Param: "video_id"
+						// Match until "/"
+						idx := strings.IndexByte(elem, '/')
+						if idx < 0 {
+							idx = len(elem)
+						}
+						args[0] = elem[:idx]
+						elem = elem[idx:]
+
+						if len(elem) == 0 {
+							switch r.Method {
+							case "GET":
+								s.handleProxyOpenAIVideosRetrieveRequest([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "GET",
+									allowedHeaders: rn57AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/content"
+
+							if l := len("/content"); len(elem) >= l && elem[0:l] == "/content" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "GET":
+									s.handleProxyOpenAIVideosContentRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET",
+										allowedHeaders: rn58AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						}
+
+					}
+
+				case 'p': // Prefix: "pi.json"
+
+					if l := len("pi.json"); len(elem) >= l && elem[0:l] == "pi.json" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "GET":
+							s.handleOpenapiJsonRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "GET",
+								allowedHeaders: nil,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+
 				}
 
 			case 'r': // Prefix: "readyz"
@@ -842,9 +1098,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
-			case 'v': // Prefix: "v1/"
+			case 'v': // Prefix: "v1"
 
-				if l := len("v1/"); len(elem) >= l && elem[0:l] == "v1/" {
+				if l := len("v1"); len(elem) >= l && elem[0:l] == "v1" {
 					elem = elem[l:]
 				} else {
 					break
@@ -854,34 +1110,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					break
 				}
 				switch elem[0] {
-				case 'c': // Prefix: "chat/completions"
+				case '/': // Prefix: "/"
 
-					if l := len("chat/completions"); len(elem) >= l && elem[0:l] == "chat/completions" {
-						elem = elem[l:]
-					} else {
-						break
-					}
-
-					if len(elem) == 0 {
-						// Leaf node.
-						switch r.Method {
-						case "POST":
-							s.handleProxyChatCompletionsRequest([0]string{}, elemIsEscaped, w, r)
-						default:
-							s.notAllowed(w, r, notAllowedParams{
-								allowedMethods: "POST",
-								allowedHeaders: rn31AllowedHeaders,
-								acceptPost:     "",
-								acceptPatch:    "",
-							})
-						}
-
-						return
-					}
-
-				case 'm': // Prefix: "m"
-
-					if l := len("m"); len(elem) >= l && elem[0:l] == "m" {
+					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 						elem = elem[l:]
 					} else {
 						break
@@ -891,9 +1122,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						break
 					}
 					switch elem[0] {
-					case 'e': // Prefix: "essages"
+					case 'a': // Prefix: "alpha/search"
 
-						if l := len("essages"); len(elem) >= l && elem[0:l] == "essages" {
+						if l := len("alpha/search"); len(elem) >= l && elem[0:l] == "alpha/search" {
 							elem = elem[l:]
 						} else {
 							break
@@ -903,11 +1134,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							// Leaf node.
 							switch r.Method {
 							case "POST":
-								s.handleProxyMessagesRequest([0]string{}, elemIsEscaped, w, r)
+								s.handleProxyAlphaSearchRequest([0]string{}, elemIsEscaped, w, r)
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn37AllowedHeaders,
+									allowedHeaders: rn31AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -916,9 +1147,227 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							return
 						}
 
-					case 'o': // Prefix: "odels"
+					case 'c': // Prefix: "c"
 
-						if l := len("odels"); len(elem) >= l && elem[0:l] == "odels" {
+						if l := len("c"); len(elem) >= l && elem[0:l] == "c" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							break
+						}
+						switch elem[0] {
+						case 'h': // Prefix: "hat/completions"
+
+							if l := len("hat/completions"); len(elem) >= l && elem[0:l] == "hat/completions" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "POST":
+									s.handleProxyChatCompletionsRequest([0]string{}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "POST",
+										allowedHeaders: rn33AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						case 'o': // Prefix: "ompletions"
+
+							if l := len("ompletions"); len(elem) >= l && elem[0:l] == "ompletions" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "POST":
+									s.handleProxyCompletionsRequest([0]string{}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "POST",
+										allowedHeaders: rn39AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						}
+
+					case 'i': // Prefix: "images/"
+
+						if l := len("images/"); len(elem) >= l && elem[0:l] == "images/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							break
+						}
+						switch elem[0] {
+						case 'e': // Prefix: "edits"
+
+							if l := len("edits"); len(elem) >= l && elem[0:l] == "edits" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "POST":
+									s.handleProxyImageEditsRequest([0]string{}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "POST",
+										allowedHeaders: rn48AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						case 'g': // Prefix: "generations"
+
+							if l := len("generations"); len(elem) >= l && elem[0:l] == "generations" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "POST":
+									s.handleProxyImageGenerationsRequest([0]string{}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "POST",
+										allowedHeaders: rn50AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						}
+
+					case 'm': // Prefix: "m"
+
+						if l := len("m"); len(elem) >= l && elem[0:l] == "m" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							break
+						}
+						switch elem[0] {
+						case 'e': // Prefix: "essages"
+
+							if l := len("essages"); len(elem) >= l && elem[0:l] == "essages" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								switch r.Method {
+								case "POST":
+									s.handleProxyMessagesRequest([0]string{}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "POST",
+										allowedHeaders: rn51AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+							switch elem[0] {
+							case '/': // Prefix: "/count_tokens"
+
+								if l := len("/count_tokens"); len(elem) >= l && elem[0:l] == "/count_tokens" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch r.Method {
+									case "POST":
+										s.handleProxyMessagesCountTokensRequest([0]string{}, elemIsEscaped, w, r)
+									default:
+										s.notAllowed(w, r, notAllowedParams{
+											allowedMethods: "POST",
+											allowedHeaders: rn52AllowedHeaders,
+											acceptPost:     "",
+											acceptPatch:    "",
+										})
+									}
+
+									return
+								}
+
+							}
+
+						case 'o': // Prefix: "odels"
+
+							if l := len("odels"); len(elem) >= l && elem[0:l] == "odels" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "GET":
+									s.handleProxyModelsRequest([0]string{}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET",
+										allowedHeaders: rn54AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						}
+
+					case 'r': // Prefix: "responses"
+
+						if l := len("responses"); len(elem) >= l && elem[0:l] == "responses" {
 							elem = elem[l:]
 						} else {
 							break
@@ -927,11 +1376,261 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						if len(elem) == 0 {
 							switch r.Method {
 							case "GET":
-								s.handleProxyModelsRequest([0]string{}, elemIsEscaped, w, r)
+								s.handleProxyResponsesWebsocketRequest([0]string{}, elemIsEscaped, w, r)
+							case "POST":
+								s.handleProxyResponsesRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "GET,POST",
+									allowedHeaders: rn60AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/compact"
+
+							if l := len("/compact"); len(elem) >= l && elem[0:l] == "/compact" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "POST":
+									s.handleProxyResponsesCompactRequest([0]string{}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "POST",
+										allowedHeaders: rn61AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						}
+
+					case 'v': // Prefix: "videos"
+
+						if l := len("videos"); len(elem) >= l && elem[0:l] == "videos" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							switch r.Method {
+							case "POST":
+								s.handleProxyXAIVideosRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "POST",
+									allowedHeaders: rn68AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/"
+
+							if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								break
+							}
+							switch elem[0] {
+							case 'e': // Prefix: "e"
+								origElem := elem
+								if l := len("e"); len(elem) >= l && elem[0:l] == "e" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									break
+								}
+								switch elem[0] {
+								case 'd': // Prefix: "dits"
+
+									if l := len("dits"); len(elem) >= l && elem[0:l] == "dits" {
+										elem = elem[l:]
+									} else {
+										break
+									}
+
+									if len(elem) == 0 {
+										// Leaf node.
+										switch r.Method {
+										case "POST":
+											s.handleProxyXAIVideoEditsRequest([0]string{}, elemIsEscaped, w, r)
+										default:
+											s.notAllowed(w, r, notAllowedParams{
+												allowedMethods: "POST",
+												allowedHeaders: rn62AllowedHeaders,
+												acceptPost:     "",
+												acceptPatch:    "",
+											})
+										}
+
+										return
+									}
+
+								case 'x': // Prefix: "xtensions"
+
+									if l := len("xtensions"); len(elem) >= l && elem[0:l] == "xtensions" {
+										elem = elem[l:]
+									} else {
+										break
+									}
+
+									if len(elem) == 0 {
+										// Leaf node.
+										switch r.Method {
+										case "POST":
+											s.handleProxyXAIVideoExtensionsRequest([0]string{}, elemIsEscaped, w, r)
+										default:
+											s.notAllowed(w, r, notAllowedParams{
+												allowedMethods: "POST",
+												allowedHeaders: rn64AllowedHeaders,
+												acceptPost:     "",
+												acceptPatch:    "",
+											})
+										}
+
+										return
+									}
+
+								}
+
+								elem = origElem
+							case 'g': // Prefix: "generations"
+								origElem := elem
+								if l := len("generations"); len(elem) >= l && elem[0:l] == "generations" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch r.Method {
+									case "POST":
+										s.handleProxyXAIVideoGenerationsRequest([0]string{}, elemIsEscaped, w, r)
+									default:
+										s.notAllowed(w, r, notAllowedParams{
+											allowedMethods: "POST",
+											allowedHeaders: rn66AllowedHeaders,
+											acceptPost:     "",
+											acceptPatch:    "",
+										})
+									}
+
+									return
+								}
+
+								elem = origElem
+							}
+							// Param: "request_id"
+							// Leaf parameter, slashes are prohibited
+							idx := strings.IndexByte(elem, '/')
+							if idx >= 0 {
+								break
+							}
+							args[0] = elem
+							elem = ""
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "GET":
+									s.handleProxyXAIVideoRetrieveRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET",
+										allowedHeaders: rn67AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						}
+
+					}
+
+				case 'b': // Prefix: "beta/"
+
+					if l := len("beta/"); len(elem) >= l && elem[0:l] == "beta/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						break
+					}
+					switch elem[0] {
+					case 'i': // Prefix: "interactions"
+
+						if l := len("interactions"); len(elem) >= l && elem[0:l] == "interactions" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "POST":
+								s.handleProxyGeminiInteractionsRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "POST",
+									allowedHeaders: rn41AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+
+					case 'm': // Prefix: "models"
+
+						if l := len("models"); len(elem) >= l && elem[0:l] == "models" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							switch r.Method {
+							case "GET":
+								s.handleProxyGeminiModelsRequest([0]string{}, elemIsEscaped, w, r)
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET",
-									allowedHeaders: rn38AllowedHeaders,
+									allowedHeaders: rn47AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -961,25 +1660,40 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								break
 							}
 							switch elem[0] {
-							case ':': // Prefix: ":generateContent"
+							case ':': // Prefix: ":"
 
-								if l := len(":generateContent"); len(elem) >= l && elem[0:l] == ":generateContent" {
+								if l := len(":"); len(elem) >= l && elem[0:l] == ":" {
 									elem = elem[l:]
 								} else {
 									break
 								}
 
+								// Param: "action"
+								// Leaf parameter, slashes are prohibited
+								idx := strings.IndexByte(elem, '/')
+								if idx >= 0 {
+									break
+								}
+								args[1] = elem
+								elem = ""
+
 								if len(elem) == 0 {
 									// Leaf node.
 									switch r.Method {
-									case "POST":
-										s.handleProxyGenerateContentRequest([1]string{
+									case "GET":
+										s.handleProxyGeminiModelActionGetRequest([2]string{
 											args[0],
+											args[1],
+										}, elemIsEscaped, w, r)
+									case "POST":
+										s.handleProxyGeminiModelActionPostRequest([2]string{
+											args[0],
+											args[1],
 										}, elemIsEscaped, w, r)
 									default:
 										s.notAllowed(w, r, notAllowedParams{
-											allowedMethods: "POST",
-											allowedHeaders: rn35AllowedHeaders,
+											allowedMethods: "GET,POST",
+											allowedHeaders: rn46AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -992,31 +1706,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 						}
 
-					}
-
-				case 'r': // Prefix: "responses"
-
-					if l := len("responses"); len(elem) >= l && elem[0:l] == "responses" {
-						elem = elem[l:]
-					} else {
-						break
-					}
-
-					if len(elem) == 0 {
-						// Leaf node.
-						switch r.Method {
-						case "POST":
-							s.handleProxyResponsesRequest([0]string{}, elemIsEscaped, w, r)
-						default:
-							s.notAllowed(w, r, notAllowedParams{
-								allowedMethods: "POST",
-								allowedHeaders: rn39AllowedHeaders,
-								acceptPost:     "",
-								acceptPatch:    "",
-							})
-						}
-
-						return
 					}
 
 				}
@@ -1036,7 +1725,7 @@ type Route struct {
 	operationGroup string
 	pathPattern    string
 	count          int
-	args           [1]string
+	args           [2]string
 }
 
 // Name returns ogen operation name.
@@ -1769,6 +2458,105 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 
 				}
 
+			case 'b': // Prefix: "backend-api/codex/"
+
+				if l := len("backend-api/codex/"); len(elem) >= l && elem[0:l] == "backend-api/codex/" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					break
+				}
+				switch elem[0] {
+				case 'a': // Prefix: "alpha/search"
+
+					if l := len("alpha/search"); len(elem) >= l && elem[0:l] == "alpha/search" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "POST":
+							r.name = ProxyCodexAlphaSearchOperation
+							r.summary = "Direct Codex alpha search"
+							r.operationID = "proxyCodexAlphaSearch"
+							r.operationGroup = ""
+							r.pathPattern = "/backend-api/codex/alpha/search"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
+				case 'r': // Prefix: "responses"
+
+					if l := len("responses"); len(elem) >= l && elem[0:l] == "responses" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						switch method {
+						case "GET":
+							r.name = ProxyCodexResponsesWebsocketOperation
+							r.summary = "Direct Codex Responses websocket"
+							r.operationID = "proxyCodexResponsesWebsocket"
+							r.operationGroup = ""
+							r.pathPattern = "/backend-api/codex/responses"
+							r.args = args
+							r.count = 0
+							return r, true
+						case "POST":
+							r.name = ProxyCodexResponsesOperation
+							r.summary = "Direct Codex Responses API request"
+							r.operationID = "proxyCodexResponses"
+							r.operationGroup = ""
+							r.pathPattern = "/backend-api/codex/responses"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/compact"
+
+						if l := len("/compact"); len(elem) >= l && elem[0:l] == "/compact" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "POST":
+								r.name = ProxyCodexResponsesCompactOperation
+								r.summary = "Direct Codex Responses compaction"
+								r.operationID = "proxyCodexResponsesCompact"
+								r.operationGroup = ""
+								r.pathPattern = "/backend-api/codex/responses/compact"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+
+					}
+
+				}
+
 			case 'h': // Prefix: "healthz"
 
 				if l := len("healthz"); len(elem) >= l && elem[0:l] == "healthz" {
@@ -1819,29 +2607,129 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 					}
 				}
 
-			case 'o': // Prefix: "openapi.json"
+			case 'o': // Prefix: "opena"
 
-				if l := len("openapi.json"); len(elem) >= l && elem[0:l] == "openapi.json" {
+				if l := len("opena"); len(elem) >= l && elem[0:l] == "opena" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
-					switch method {
-					case "GET":
-						r.name = OpenapiJsonOperation
-						r.summary = "OpenAPI спецификация"
-						r.operationID = "openapiJson"
-						r.operationGroup = ""
-						r.pathPattern = "/openapi.json"
-						r.args = args
-						r.count = 0
-						return r, true
-					default:
-						return
+					break
+				}
+				switch elem[0] {
+				case 'i': // Prefix: "i/v1/videos"
+
+					if l := len("i/v1/videos"); len(elem) >= l && elem[0:l] == "i/v1/videos" {
+						elem = elem[l:]
+					} else {
+						break
 					}
+
+					if len(elem) == 0 {
+						switch method {
+						case "POST":
+							r.name = ProxyOpenAIVideosCreateOperation
+							r.summary = "OpenAI video creation"
+							r.operationID = "proxyOpenAIVideosCreate"
+							r.operationGroup = ""
+							r.pathPattern = "/openai/v1/videos"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/"
+
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						// Param: "video_id"
+						// Match until "/"
+						idx := strings.IndexByte(elem, '/')
+						if idx < 0 {
+							idx = len(elem)
+						}
+						args[0] = elem[:idx]
+						elem = elem[idx:]
+
+						if len(elem) == 0 {
+							switch method {
+							case "GET":
+								r.name = ProxyOpenAIVideosRetrieveOperation
+								r.summary = "Получить OpenAI video request"
+								r.operationID = "proxyOpenAIVideosRetrieve"
+								r.operationGroup = ""
+								r.pathPattern = "/openai/v1/videos/{video_id}"
+								r.args = args
+								r.count = 1
+								return r, true
+							default:
+								return
+							}
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/content"
+
+							if l := len("/content"); len(elem) >= l && elem[0:l] == "/content" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "GET":
+									r.name = ProxyOpenAIVideosContentOperation
+									r.summary = "Получить OpenAI video content"
+									r.operationID = "proxyOpenAIVideosContent"
+									r.operationGroup = ""
+									r.pathPattern = "/openai/v1/videos/{video_id}/content"
+									r.args = args
+									r.count = 1
+									return r, true
+								default:
+									return
+								}
+							}
+
+						}
+
+					}
+
+				case 'p': // Prefix: "pi.json"
+
+					if l := len("pi.json"); len(elem) >= l && elem[0:l] == "pi.json" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "GET":
+							r.name = OpenapiJsonOperation
+							r.summary = "OpenAPI спецификация"
+							r.operationID = "openapiJson"
+							r.operationGroup = ""
+							r.pathPattern = "/openapi.json"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
 				}
 
 			case 'r': // Prefix: "readyz"
@@ -1869,9 +2757,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 					}
 				}
 
-			case 'v': // Prefix: "v1/"
+			case 'v': // Prefix: "v1"
 
-				if l := len("v1/"); len(elem) >= l && elem[0:l] == "v1/" {
+				if l := len("v1"); len(elem) >= l && elem[0:l] == "v1" {
 					elem = elem[l:]
 				} else {
 					break
@@ -1881,34 +2769,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 					break
 				}
 				switch elem[0] {
-				case 'c': // Prefix: "chat/completions"
+				case '/': // Prefix: "/"
 
-					if l := len("chat/completions"); len(elem) >= l && elem[0:l] == "chat/completions" {
-						elem = elem[l:]
-					} else {
-						break
-					}
-
-					if len(elem) == 0 {
-						// Leaf node.
-						switch method {
-						case "POST":
-							r.name = ProxyChatCompletionsOperation
-							r.summary = "OpenAI-compatible chat completion"
-							r.operationID = "proxyChatCompletions"
-							r.operationGroup = ""
-							r.pathPattern = "/v1/chat/completions"
-							r.args = args
-							r.count = 0
-							return r, true
-						default:
-							return
-						}
-					}
-
-				case 'm': // Prefix: "m"
-
-					if l := len("m"); len(elem) >= l && elem[0:l] == "m" {
+					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 						elem = elem[l:]
 					} else {
 						break
@@ -1918,9 +2781,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						break
 					}
 					switch elem[0] {
-					case 'e': // Prefix: "essages"
+					case 'a': // Prefix: "alpha/search"
 
-						if l := len("essages"); len(elem) >= l && elem[0:l] == "essages" {
+						if l := len("alpha/search"); len(elem) >= l && elem[0:l] == "alpha/search" {
 							elem = elem[l:]
 						} else {
 							break
@@ -1930,11 +2793,11 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 							// Leaf node.
 							switch method {
 							case "POST":
-								r.name = ProxyMessagesOperation
-								r.summary = "Anthropic-compatible message"
-								r.operationID = "proxyMessages"
+								r.name = ProxyAlphaSearchOperation
+								r.summary = "Codex alpha search"
+								r.operationID = "proxyAlphaSearch"
 								r.operationGroup = ""
-								r.pathPattern = "/v1/messages"
+								r.pathPattern = "/v1/alpha/search"
 								r.args = args
 								r.count = 0
 								return r, true
@@ -1943,9 +2806,227 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 							}
 						}
 
-					case 'o': // Prefix: "odels"
+					case 'c': // Prefix: "c"
 
-						if l := len("odels"); len(elem) >= l && elem[0:l] == "odels" {
+						if l := len("c"); len(elem) >= l && elem[0:l] == "c" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							break
+						}
+						switch elem[0] {
+						case 'h': // Prefix: "hat/completions"
+
+							if l := len("hat/completions"); len(elem) >= l && elem[0:l] == "hat/completions" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "POST":
+									r.name = ProxyChatCompletionsOperation
+									r.summary = "OpenAI-compatible chat completion"
+									r.operationID = "proxyChatCompletions"
+									r.operationGroup = ""
+									r.pathPattern = "/v1/chat/completions"
+									r.args = args
+									r.count = 0
+									return r, true
+								default:
+									return
+								}
+							}
+
+						case 'o': // Prefix: "ompletions"
+
+							if l := len("ompletions"); len(elem) >= l && elem[0:l] == "ompletions" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "POST":
+									r.name = ProxyCompletionsOperation
+									r.summary = "OpenAI-compatible completion"
+									r.operationID = "proxyCompletions"
+									r.operationGroup = ""
+									r.pathPattern = "/v1/completions"
+									r.args = args
+									r.count = 0
+									return r, true
+								default:
+									return
+								}
+							}
+
+						}
+
+					case 'i': // Prefix: "images/"
+
+						if l := len("images/"); len(elem) >= l && elem[0:l] == "images/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							break
+						}
+						switch elem[0] {
+						case 'e': // Prefix: "edits"
+
+							if l := len("edits"); len(elem) >= l && elem[0:l] == "edits" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "POST":
+									r.name = ProxyImageEditsOperation
+									r.summary = "OpenAI-compatible image edit"
+									r.operationID = "proxyImageEdits"
+									r.operationGroup = ""
+									r.pathPattern = "/v1/images/edits"
+									r.args = args
+									r.count = 0
+									return r, true
+								default:
+									return
+								}
+							}
+
+						case 'g': // Prefix: "generations"
+
+							if l := len("generations"); len(elem) >= l && elem[0:l] == "generations" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "POST":
+									r.name = ProxyImageGenerationsOperation
+									r.summary = "OpenAI-compatible image generation"
+									r.operationID = "proxyImageGenerations"
+									r.operationGroup = ""
+									r.pathPattern = "/v1/images/generations"
+									r.args = args
+									r.count = 0
+									return r, true
+								default:
+									return
+								}
+							}
+
+						}
+
+					case 'm': // Prefix: "m"
+
+						if l := len("m"); len(elem) >= l && elem[0:l] == "m" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							break
+						}
+						switch elem[0] {
+						case 'e': // Prefix: "essages"
+
+							if l := len("essages"); len(elem) >= l && elem[0:l] == "essages" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								switch method {
+								case "POST":
+									r.name = ProxyMessagesOperation
+									r.summary = "Anthropic-compatible message"
+									r.operationID = "proxyMessages"
+									r.operationGroup = ""
+									r.pathPattern = "/v1/messages"
+									r.args = args
+									r.count = 0
+									return r, true
+								default:
+									return
+								}
+							}
+							switch elem[0] {
+							case '/': // Prefix: "/count_tokens"
+
+								if l := len("/count_tokens"); len(elem) >= l && elem[0:l] == "/count_tokens" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch method {
+									case "POST":
+										r.name = ProxyMessagesCountTokensOperation
+										r.summary = "Anthropic-compatible token count"
+										r.operationID = "proxyMessagesCountTokens"
+										r.operationGroup = ""
+										r.pathPattern = "/v1/messages/count_tokens"
+										r.args = args
+										r.count = 0
+										return r, true
+									default:
+										return
+									}
+								}
+
+							}
+
+						case 'o': // Prefix: "odels"
+
+							if l := len("odels"); len(elem) >= l && elem[0:l] == "odels" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "GET":
+									r.name = ProxyModelsOperation
+									r.summary = "List available models"
+									r.operationID = "proxyModels"
+									r.operationGroup = ""
+									r.pathPattern = "/v1/models"
+									r.args = args
+									r.count = 0
+									return r, true
+								default:
+									return
+								}
+							}
+
+						}
+
+					case 'r': // Prefix: "responses"
+
+						if l := len("responses"); len(elem) >= l && elem[0:l] == "responses" {
 							elem = elem[l:]
 						} else {
 							break
@@ -1954,11 +3035,266 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						if len(elem) == 0 {
 							switch method {
 							case "GET":
-								r.name = ProxyModelsOperation
-								r.summary = "List available models"
-								r.operationID = "proxyModels"
+								r.name = ProxyResponsesWebsocketOperation
+								r.summary = "OpenAI Responses websocket"
+								r.operationID = "proxyResponsesWebsocket"
 								r.operationGroup = ""
-								r.pathPattern = "/v1/models"
+								r.pathPattern = "/v1/responses"
+								r.args = args
+								r.count = 0
+								return r, true
+							case "POST":
+								r.name = ProxyResponsesOperation
+								r.summary = "OpenAI Responses API request"
+								r.operationID = "proxyResponses"
+								r.operationGroup = ""
+								r.pathPattern = "/v1/responses"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/compact"
+
+							if l := len("/compact"); len(elem) >= l && elem[0:l] == "/compact" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "POST":
+									r.name = ProxyResponsesCompactOperation
+									r.summary = "OpenAI Responses compaction"
+									r.operationID = "proxyResponsesCompact"
+									r.operationGroup = ""
+									r.pathPattern = "/v1/responses/compact"
+									r.args = args
+									r.count = 0
+									return r, true
+								default:
+									return
+								}
+							}
+
+						}
+
+					case 'v': // Prefix: "videos"
+
+						if l := len("videos"); len(elem) >= l && elem[0:l] == "videos" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							switch method {
+							case "POST":
+								r.name = ProxyXAIVideosOperation
+								r.summary = "xAI-compatible video generation"
+								r.operationID = "proxyXAIVideos"
+								r.operationGroup = ""
+								r.pathPattern = "/v1/videos"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/"
+
+							if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								break
+							}
+							switch elem[0] {
+							case 'e': // Prefix: "e"
+								origElem := elem
+								if l := len("e"); len(elem) >= l && elem[0:l] == "e" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									break
+								}
+								switch elem[0] {
+								case 'd': // Prefix: "dits"
+
+									if l := len("dits"); len(elem) >= l && elem[0:l] == "dits" {
+										elem = elem[l:]
+									} else {
+										break
+									}
+
+									if len(elem) == 0 {
+										// Leaf node.
+										switch method {
+										case "POST":
+											r.name = ProxyXAIVideoEditsOperation
+											r.summary = "xAI video edit"
+											r.operationID = "proxyXAIVideoEdits"
+											r.operationGroup = ""
+											r.pathPattern = "/v1/videos/edits"
+											r.args = args
+											r.count = 0
+											return r, true
+										default:
+											return
+										}
+									}
+
+								case 'x': // Prefix: "xtensions"
+
+									if l := len("xtensions"); len(elem) >= l && elem[0:l] == "xtensions" {
+										elem = elem[l:]
+									} else {
+										break
+									}
+
+									if len(elem) == 0 {
+										// Leaf node.
+										switch method {
+										case "POST":
+											r.name = ProxyXAIVideoExtensionsOperation
+											r.summary = "xAI video extension"
+											r.operationID = "proxyXAIVideoExtensions"
+											r.operationGroup = ""
+											r.pathPattern = "/v1/videos/extensions"
+											r.args = args
+											r.count = 0
+											return r, true
+										default:
+											return
+										}
+									}
+
+								}
+
+								elem = origElem
+							case 'g': // Prefix: "generations"
+								origElem := elem
+								if l := len("generations"); len(elem) >= l && elem[0:l] == "generations" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch method {
+									case "POST":
+										r.name = ProxyXAIVideoGenerationsOperation
+										r.summary = "xAI video generation"
+										r.operationID = "proxyXAIVideoGenerations"
+										r.operationGroup = ""
+										r.pathPattern = "/v1/videos/generations"
+										r.args = args
+										r.count = 0
+										return r, true
+									default:
+										return
+									}
+								}
+
+								elem = origElem
+							}
+							// Param: "request_id"
+							// Leaf parameter, slashes are prohibited
+							idx := strings.IndexByte(elem, '/')
+							if idx >= 0 {
+								break
+							}
+							args[0] = elem
+							elem = ""
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "GET":
+									r.name = ProxyXAIVideoRetrieveOperation
+									r.summary = "Получить результат xAI video request"
+									r.operationID = "proxyXAIVideoRetrieve"
+									r.operationGroup = ""
+									r.pathPattern = "/v1/videos/{request_id}"
+									r.args = args
+									r.count = 1
+									return r, true
+								default:
+									return
+								}
+							}
+
+						}
+
+					}
+
+				case 'b': // Prefix: "beta/"
+
+					if l := len("beta/"); len(elem) >= l && elem[0:l] == "beta/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						break
+					}
+					switch elem[0] {
+					case 'i': // Prefix: "interactions"
+
+						if l := len("interactions"); len(elem) >= l && elem[0:l] == "interactions" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "POST":
+								r.name = ProxyGeminiInteractionsOperation
+								r.summary = "Gemini-compatible interaction"
+								r.operationID = "proxyGeminiInteractions"
+								r.operationGroup = ""
+								r.pathPattern = "/v1beta/interactions"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+
+					case 'm': // Prefix: "models"
+
+						if l := len("models"); len(elem) >= l && elem[0:l] == "models" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							switch method {
+							case "GET":
+								r.name = ProxyGeminiModelsOperation
+								r.summary = "Gemini-compatible model list"
+								r.operationID = "proxyGeminiModels"
+								r.operationGroup = ""
+								r.pathPattern = "/v1beta/models"
 								r.args = args
 								r.count = 0
 								return r, true
@@ -1988,25 +3324,43 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 								break
 							}
 							switch elem[0] {
-							case ':': // Prefix: ":generateContent"
+							case ':': // Prefix: ":"
 
-								if l := len(":generateContent"); len(elem) >= l && elem[0:l] == ":generateContent" {
+								if l := len(":"); len(elem) >= l && elem[0:l] == ":" {
 									elem = elem[l:]
 								} else {
 									break
 								}
 
+								// Param: "action"
+								// Leaf parameter, slashes are prohibited
+								idx := strings.IndexByte(elem, '/')
+								if idx >= 0 {
+									break
+								}
+								args[1] = elem
+								elem = ""
+
 								if len(elem) == 0 {
 									// Leaf node.
 									switch method {
-									case "POST":
-										r.name = ProxyGenerateContentOperation
-										r.summary = "Gemini-compatible content generation"
-										r.operationID = "proxyGenerateContent"
+									case "GET":
+										r.name = ProxyGeminiModelActionGetOperation
+										r.summary = "Gemini-compatible model action via GET"
+										r.operationID = "proxyGeminiModelActionGet"
 										r.operationGroup = ""
-										r.pathPattern = "/v1/models/{model}:generateContent"
+										r.pathPattern = "/v1beta/models/{model}:{action}"
 										r.args = args
-										r.count = 1
+										r.count = 2
+										return r, true
+									case "POST":
+										r.name = ProxyGeminiModelActionPostOperation
+										r.summary = "Gemini-compatible model action via POST"
+										r.operationID = "proxyGeminiModelActionPost"
+										r.operationGroup = ""
+										r.pathPattern = "/v1beta/models/{model}:{action}"
+										r.args = args
+										r.count = 2
 										return r, true
 									default:
 										return
@@ -2017,31 +3371,6 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 
 						}
 
-					}
-
-				case 'r': // Prefix: "responses"
-
-					if l := len("responses"); len(elem) >= l && elem[0:l] == "responses" {
-						elem = elem[l:]
-					} else {
-						break
-					}
-
-					if len(elem) == 0 {
-						// Leaf node.
-						switch method {
-						case "POST":
-							r.name = ProxyResponsesOperation
-							r.summary = "OpenAI Responses API request"
-							r.operationID = "proxyResponses"
-							r.operationGroup = ""
-							r.pathPattern = "/v1/responses"
-							r.args = args
-							r.count = 0
-							return r, true
-						default:
-							return
-						}
 					}
 
 				}

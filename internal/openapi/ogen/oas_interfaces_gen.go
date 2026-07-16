@@ -57,12 +57,60 @@ type LoginRes interface {
 	loginRes()
 }
 
+type ProxyAlphaSearchRes interface {
+	proxyAlphaSearchRes()
+}
+
 type ProxyChatCompletionsRes interface {
 	proxyChatCompletionsRes()
 }
 
-type ProxyGenerateContentRes interface {
-	proxyGenerateContentRes()
+type ProxyCodexAlphaSearchRes interface {
+	proxyCodexAlphaSearchRes()
+}
+
+type ProxyCodexResponsesCompactRes interface {
+	proxyCodexResponsesCompactRes()
+}
+
+type ProxyCodexResponsesRes interface {
+	proxyCodexResponsesRes()
+}
+
+type ProxyCodexResponsesWebsocketRes interface {
+	proxyCodexResponsesWebsocketRes()
+}
+
+type ProxyCompletionsRes interface {
+	proxyCompletionsRes()
+}
+
+type ProxyGeminiInteractionsRes interface {
+	proxyGeminiInteractionsRes()
+}
+
+type ProxyGeminiModelActionGetRes interface {
+	proxyGeminiModelActionGetRes()
+}
+
+type ProxyGeminiModelActionPostRes interface {
+	proxyGeminiModelActionPostRes()
+}
+
+type ProxyGeminiModelsRes interface {
+	proxyGeminiModelsRes()
+}
+
+type ProxyImageEditsRes interface {
+	proxyImageEditsRes()
+}
+
+type ProxyImageGenerationsRes interface {
+	proxyImageGenerationsRes()
+}
+
+type ProxyMessagesCountTokensRes interface {
+	proxyMessagesCountTokensRes()
 }
 
 type ProxyMessagesRes interface {
@@ -73,8 +121,48 @@ type ProxyModelsRes interface {
 	proxyModelsRes()
 }
 
+type ProxyOpenAIVideosContentRes interface {
+	proxyOpenAIVideosContentRes()
+}
+
+type ProxyOpenAIVideosCreateRes interface {
+	proxyOpenAIVideosCreateRes()
+}
+
+type ProxyOpenAIVideosRetrieveRes interface {
+	proxyOpenAIVideosRetrieveRes()
+}
+
+type ProxyResponsesCompactRes interface {
+	proxyResponsesCompactRes()
+}
+
 type ProxyResponsesRes interface {
 	proxyResponsesRes()
+}
+
+type ProxyResponsesWebsocketRes interface {
+	proxyResponsesWebsocketRes()
+}
+
+type ProxyXAIVideoEditsRes interface {
+	proxyXAIVideoEditsRes()
+}
+
+type ProxyXAIVideoExtensionsRes interface {
+	proxyXAIVideoExtensionsRes()
+}
+
+type ProxyXAIVideoGenerationsRes interface {
+	proxyXAIVideoGenerationsRes()
+}
+
+type ProxyXAIVideoRetrieveRes interface {
+	proxyXAIVideoRetrieveRes()
+}
+
+type ProxyXAIVideosRes interface {
+	proxyXAIVideosRes()
 }
 
 type ReadyzRes interface {
