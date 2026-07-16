@@ -42,3 +42,25 @@ func TestTTLCacheRejectsNonPositiveTTL(t *testing.T) {
 		t.Fatal("Get() returned value for disabled cache")
 	}
 }
+
+func TestTTLCacheReportsHitAndMissCounts(t *testing.T) {
+	now := time.Date(2026, time.July, 16, 12, 0, 0, 0, time.UTC)
+	cache := NewTTL[string, int](time.Second, func() time.Time { return now })
+	cache.Set("cached", 1)
+
+	if _, ok := cache.Get("cached"); !ok {
+		t.Fatal("Get(cached) did not return cached entry")
+	}
+	if _, ok := cache.Get("unknown"); ok {
+		t.Fatal("Get(unknown) returned an entry")
+	}
+	now = now.Add(time.Second)
+	if _, ok := cache.Get("cached"); ok {
+		t.Fatal("Get(cached) returned expired entry")
+	}
+
+	stats := cache.Stats()
+	if stats.Hits != 1 || stats.Misses != 2 {
+		t.Fatalf("Stats() = %+v, want hits=1 misses=2", stats)
+	}
+}

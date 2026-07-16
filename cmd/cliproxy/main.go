@@ -104,9 +104,10 @@ func run() error {
 		return fmt.Errorf("create encryption keyring: %w", err)
 	}
 	authStore := store.NewCoreAuthStore(dbPool, keyring)
+	apiKeyStore := store.NewAPIKeyRepository(dbPool)
 	sdkauth.RegisterTokenStore(authStore)
 	cliproxy.SetGlobalModelRegistryHook(modelregistry.New(store.NewModelRegistrySnapshotRepository(dbPool)))
-	apiKeyProvider := businessaccess.NewProvider(store.NewAPIKeyRepository(dbPool), cfg.Auth.Mode)
+	apiKeyProvider := businessaccess.NewProvider(apiKeyStore, cfg.Auth.Mode)
 	sdkaccess.RegisterProvider(businessaccess.ProviderIdentifier, apiKeyProvider)
 	sdkaccess.SetExclusiveProvider(businessaccess.ProviderIdentifier)
 	revisionPoller := watcher.NewRevisionPoller(
@@ -141,13 +142,13 @@ func run() error {
 			slog.Error("flush usage events", "error", err)
 		}
 	}()
-	metricsRegistry := metrics.NewRegistry(dbPool, resultHook, usagePlugin)
+	metricsRegistry := metrics.NewRegistry(dbPool, resultHook, usagePlugin, apiKeyStore)
 	service, err := cliproxy.NewBuilder().
 		WithConfig(sdkCfg).
 		WithConfigPath(configPath).
 		WithCoreAuthManager(coreManager).
 		WithWatcherFactory(watcher.NoopFactory).
-		WithServerOptions(sdkapi.WithMiddleware(httpapi.RequestIDMiddleware(), httpapi.NewCORSMiddleware(cfg.Server.CORSAllowedOrigins), metricsRegistry.Middleware()), sdkapi.WithRouterConfigurator(httpapi.SystemRouterConfigurator(dbPool)), sdkapi.WithRouterConfigurator(httpapi.MetricsRouterConfigurator(metricsRegistry.Handler())), sdkapi.WithRouterConfigurator(httpapi.OpenAPIRouterConfigurator(openapidoc.Document())), sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction), sessionAuthenticator, httpapi.LogoutHandler(sessions, cfg.Auth.Mode), httpapi.NewAPIKeyHandler(store.NewAPIKeyRepository(dbPool)), httpapi.NewUsageHandler(store.NewUsageEventRepository(dbPool)), httpapi.NewAdminUserHandler(store.NewAdminUserRepository(dbPool)), httpapi.NewAdminAPIKeyHandler(store.NewAPIKeyRepository(dbPool)), httpapi.NewAdminOAuthSessionHandler(store.NewOAuthSessionRepository(dbPool)), httpapi.NewAdminProviderKeyHandler(coreManager), httpapi.NewAdminAccountTestHandler(authtesting.NewChecker(coreManager)), httpapi.NewAdminQuotaHandler(coreManager), httpapi.NewAdminOAuthCredentialHandler(coreManager, store.NewAdminAuditLogRepository(dbPool)), httpapi.NewAdminModelHandler(store.NewAdminModelRepository(dbPool))))).
+		WithServerOptions(sdkapi.WithMiddleware(httpapi.RequestIDMiddleware(), httpapi.NewCORSMiddleware(cfg.Server.CORSAllowedOrigins), metricsRegistry.Middleware()), sdkapi.WithRouterConfigurator(httpapi.SystemRouterConfigurator(dbPool)), sdkapi.WithRouterConfigurator(httpapi.MetricsRouterConfigurator(metricsRegistry.Handler())), sdkapi.WithRouterConfigurator(httpapi.OpenAPIRouterConfigurator(openapidoc.Document())), sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction), sessionAuthenticator, httpapi.LogoutHandler(sessions, cfg.Auth.Mode), httpapi.NewAPIKeyHandler(apiKeyStore), httpapi.NewUsageHandler(store.NewUsageEventRepository(dbPool)), httpapi.NewAdminUserHandler(store.NewAdminUserRepository(dbPool)), httpapi.NewAdminAPIKeyHandler(apiKeyStore), httpapi.NewAdminOAuthSessionHandler(store.NewOAuthSessionRepository(dbPool)), httpapi.NewAdminProviderKeyHandler(coreManager), httpapi.NewAdminAccountTestHandler(authtesting.NewChecker(coreManager)), httpapi.NewAdminQuotaHandler(coreManager), httpapi.NewAdminOAuthCredentialHandler(coreManager, store.NewAdminAuditLogRepository(dbPool)), httpapi.NewAdminModelHandler(store.NewAdminModelRepository(dbPool))))).
 		Build()
 	if err != nil {
 		return fmt.Errorf("build SDK service: %w", err)

@@ -40,6 +40,14 @@ func NewAPIKeyRepository(db dbgen.DBTX) *APIKeyRepository {
 	}
 }
 
+// CacheStats возвращает snapshot candidate cache для observability.
+func (r *APIKeyRepository) CacheStats() cache.Stats {
+	if r == nil || r.candidatesCache == nil {
+		return cache.Stats{}
+	}
+	return r.candidatesCache.Stats()
+}
+
 // Create хэширует и сохраняет API-ключ, не сохраняя plaintext.
 func (r *APIKeyRepository) Create(ctx context.Context, params CreateAPIKeyParams) (APIKey, error) {
 	if params.UserID <= 0 || len(params.Plaintext) < APIKeyPrefixLength {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ilyast91/CLIProxyNew/internal/cache"
 	"github.com/ilyast91/CLIProxyNew/internal/usage"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,8 +20,12 @@ type Registry struct {
 	latency  *prometheus.HistogramVec
 }
 
-// NewRegistry создаёт registry для HTTP, upstream, usage и PostgreSQL pool метрик.
-func NewRegistry(pool *pgxpool.Pool, hook *usage.Hook, queue *usage.BufferedPlugin) *Registry {
+type cacheStatsProvider interface {
+	CacheStats() cache.Stats
+}
+
+// NewRegistry создаёт registry для HTTP, upstream, usage, cache и PostgreSQL pool метрик.
+func NewRegistry(pool *pgxpool.Pool, hook *usage.Hook, queue *usage.BufferedPlugin, cacheStats ...cacheStatsProvider) *Registry {
 	requests := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "cliproxy",
 		Name:      "http_requests_total",
@@ -33,7 +38,11 @@ func NewRegistry(pool *pgxpool.Pool, hook *usage.Hook, queue *usage.BufferedPlug
 		Buckets:   prometheus.DefBuckets,
 	}, []string{"method", "path"})
 	registry := prometheus.NewRegistry()
-	registry.MustRegister(requests, latency, newUpstreamCollector(hook))
+	var statsProvider cacheStatsProvider
+	if len(cacheStats) > 0 {
+		statsProvider = cacheStats[0]
+	}
+	registry.MustRegister(requests, latency, newUpstreamCollector(hook), newCacheCollector(statsProvider))
 	registry.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
 		Namespace: "cliproxy",
 		Name:      "usage_queue_depth",
@@ -48,6 +57,31 @@ func NewRegistry(pool *pgxpool.Pool, hook *usage.Hook, queue *usage.BufferedPlug
 		registry.MustRegister(newDBPoolCollector(pool))
 	}
 	return &Registry{registry: registry, requests: requests, latency: latency}
+}
+
+type cacheCollector struct {
+	stats   cacheStatsProvider
+	lookups *prometheus.Desc
+}
+
+func newCacheCollector(stats cacheStatsProvider) *cacheCollector {
+	return &cacheCollector{
+		stats:   stats,
+		lookups: prometheus.NewDesc("cliproxy_cache_lookups_total", "Количество обращений к in-process кэшу.", []string{"cache", "outcome"}, nil),
+	}
+}
+
+func (c *cacheCollector) Describe(ch chan<- *prometheus.Desc) {
+	ch <- c.lookups
+}
+
+func (c *cacheCollector) Collect(ch chan<- prometheus.Metric) {
+	var stats cache.Stats
+	if c.stats != nil {
+		stats = c.stats.CacheStats()
+	}
+	ch <- prometheus.MustNewConstMetric(c.lookups, prometheus.CounterValue, float64(stats.Hits), "api_key_candidates", "hit")
+	ch <- prometheus.MustNewConstMetric(c.lookups, prometheus.CounterValue, float64(stats.Misses), "api_key_candidates", "miss")
 }
 
 // Handler возвращает HTTP handler Prometheus exposition format.

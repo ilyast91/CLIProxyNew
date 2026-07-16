@@ -10,12 +10,20 @@ type ttlEntry[V any] struct {
 	expiresAt time.Time
 }
 
+// Stats содержит накопленные результаты чтения из кэша.
+type Stats struct {
+	Hits   uint64
+	Misses uint64
+}
+
 // TTL хранит значения в памяти ограниченное время.
 type TTL[K comparable, V any] struct {
 	mu      sync.Mutex
 	ttl     time.Duration
 	now     func() time.Time
 	entries map[K]ttlEntry[V]
+	hits    uint64
+	misses  uint64
 }
 
 // NewTTL создаёт потокобезопасный TTL-кэш. Неположительный TTL отключает хранение.
@@ -43,14 +51,27 @@ func (c *TTL[K, V]) Get(key K) (V, bool) {
 
 	entry, ok := c.entries[key]
 	if !ok {
+		c.misses++
 		return zero, false
 	}
 	if !c.now().Before(entry.expiresAt) {
 		delete(c.entries, key)
+		c.misses++
 		return zero, false
 	}
 
+	c.hits++
 	return entry.value, true
+}
+
+// Stats возвращает согласованный snapshot hit/miss счётчиков.
+func (c *TTL[K, V]) Stats() Stats {
+	if c == nil {
+		return Stats{}
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return Stats{Hits: c.hits, Misses: c.misses}
 }
 
 // Set сохраняет значение по ключу до истечения TTL.
