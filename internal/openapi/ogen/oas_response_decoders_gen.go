@@ -382,6 +382,31 @@ func decodeDeleteModelOverrideResponse(resp *http.Response) (res *DeleteModelOve
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
+func decodeDocsResponse(resp *http.Response) (res DocsOK, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		if err != nil {
+			return res, errors.Wrap(err, "parse media type")
+		}
+		switch {
+		case ct == "text/html":
+			reader := resp.Body
+			b, err := io.ReadAll(reader)
+			if err != nil {
+				return res, err
+			}
+
+			response := DocsOK{Data: bytes.NewReader(b)}
+			return response, nil
+		default:
+			return res, validate.InvalidContentType(ct)
+		}
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
 func decodeExportOAuthCredentialResponse(resp *http.Response) (res ExportOAuthCredentialRes, _ error) {
 	switch resp.StatusCode {
 	case 200:

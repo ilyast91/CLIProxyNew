@@ -1656,6 +1656,7 @@
     },
     "/api/v1/me": {
       "get": {
+        "description": "Возвращает идентификатор и роль текущей management-сессии без раскрытия session cookie или token.",
         "operationId": "getCurrentUser",
         "responses": {
           "200": {
@@ -1981,6 +1982,30 @@
         "summary": "Direct Codex Responses compaction",
         "tags": [
           "Proxy"
+        ]
+      }
+    },
+    "/docs": {
+      "get": {
+        "description": "Redoc UI загружает актуальную спецификацию из `/openapi.json` (R11.4).",
+        "operationId": "docs",
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "description": "Redoc HTML shell",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "HTML-страница Redoc"
+          }
+        },
+        "security": [],
+        "summary": "Интерактивная документация API",
+        "tags": [
+          "System"
         ]
       }
     },

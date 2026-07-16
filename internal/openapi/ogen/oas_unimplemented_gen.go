@@ -53,6 +53,16 @@ func (UnimplementedHandler) DeleteModelOverride(ctx context.Context, params Dele
 	return ht.ErrNotImplemented
 }
 
+// Docs implements docs operation.
+//
+// Redoc UI загружает актуальную спецификацию из `/openapi.json`
+// (R11.4).
+//
+// GET /docs
+func (UnimplementedHandler) Docs(ctx context.Context) (r DocsOK, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ExportOAuthCredential implements exportOAuthCredential operation.
 //
 // Отдаёт attachment с полным OAuth credential JSON. Файл содержит
@@ -66,7 +76,8 @@ func (UnimplementedHandler) ExportOAuthCredential(ctx context.Context, params Ex
 
 // GetCurrentUser implements getCurrentUser operation.
 //
-// Текущий principal management-сессии.
+// Возвращает идентификатор и роль текущей management-сессии
+// без раскрытия session cookie или token.
 //
 // GET /api/v1/me
 func (UnimplementedHandler) GetCurrentUser(ctx context.Context) (r GetCurrentUserRes, _ error) {

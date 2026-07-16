@@ -10,6 +10,7 @@ const (
 	CreateMyAPIKeyOperation               OperationName = "CreateMyAPIKey"
 	CreateProviderAPIKeysOperation        OperationName = "CreateProviderAPIKeys"
 	DeleteModelOverrideOperation          OperationName = "DeleteModelOverride"
+	DocsOperation                         OperationName = "Docs"
 	ExportOAuthCredentialOperation        OperationName = "ExportOAuthCredential"
 	GetCurrentUserOperation               OperationName = "GetCurrentUser"
 	GetMyUsageOperation                   OperationName = "GetMyUsage"

@@ -38,6 +38,33 @@ func TestDocumentDescribesSessionLifecycleEndpoints(t *testing.T) {
 	}
 }
 
+func TestOpenAPIDocumentDescribesDocsAndCurrentUser(t *testing.T) {
+	type response struct {
+		Content map[string]json.RawMessage `json:"content"`
+	}
+	type operation struct {
+		Description string              `json:"description"`
+		Responses   map[string]response `json:"responses"`
+	}
+	var document struct {
+		Paths map[string]map[string]operation `json:"paths"`
+	}
+	if err := json.Unmarshal(Document(), &document); err != nil {
+		t.Fatalf("unmarshal document: %v", err)
+	}
+
+	docs, ok := document.Paths["/docs"]["get"]
+	if !ok {
+		t.Fatal("GET /docs is not documented")
+	}
+	if _, ok := docs.Responses["200"].Content["text/html"]; !ok {
+		t.Fatal("GET /docs does not describe text/html response")
+	}
+	if description := document.Paths["/api/v1/me"]["get"].Description; description == "" {
+		t.Fatal("GET /api/v1/me description is empty")
+	}
+}
+
 func TestDocumentDescribesProxyEndpointsWithBearerAuthentication(t *testing.T) {
 	type operation struct {
 		Security   []map[string][]string `json:"security"`

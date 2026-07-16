@@ -36,6 +36,13 @@ type Handler interface {
 	//
 	// DELETE /api/v1/admin/models/{modelAlias}
 	DeleteModelOverride(ctx context.Context, params DeleteModelOverrideParams) error
+	// Docs implements docs operation.
+	//
+	// Redoc UI загружает актуальную спецификацию из `/openapi.json`
+	// (R11.4).
+	//
+	// GET /docs
+	Docs(ctx context.Context) (DocsOK, error)
 	// ExportOAuthCredential implements exportOAuthCredential operation.
 	//
 	// Отдаёт attachment с полным OAuth credential JSON. Файл содержит
@@ -46,7 +53,8 @@ type Handler interface {
 	ExportOAuthCredential(ctx context.Context, params ExportOAuthCredentialParams) (ExportOAuthCredentialRes, error)
 	// GetCurrentUser implements getCurrentUser operation.
 	//
-	// Текущий principal management-сессии.
+	// Возвращает идентификатор и роль текущей management-сессии
+	// без раскрытия session cookie или token.
 	//
 	// GET /api/v1/me
 	GetCurrentUser(ctx context.Context) (GetCurrentUserRes, error)

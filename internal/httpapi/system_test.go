@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -64,6 +65,30 @@ func TestOpenAPIRouterConfiguratorServesEmbeddedDocument(t *testing.T) {
 	}
 	if got := response.Body.String(); got != string(document) {
 		t.Fatalf("document=%q, want %q", got, document)
+	}
+}
+
+func TestOpenAPIRouterConfiguratorServesDocumentationUI(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	OpenAPIRouterConfigurator([]byte(`{"openapi":"3.1.0"}`))(router, nil, nil)
+
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/docs", nil))
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("docs status=%d body=%q", response.Code, response.Body.String())
+	}
+	if contentType := response.Header().Get("Content-Type"); contentType != "text/html; charset=utf-8" {
+		t.Fatalf("content type=%q", contentType)
+	}
+	for _, fragment := range []string{
+		`<redoc spec-url="/openapi.json"></redoc>`,
+		`https://cdn.jsdelivr.net/npm/redoc@2.5.0/bundles/redoc.standalone.js`,
+	} {
+		if !strings.Contains(response.Body.String(), fragment) {
+			t.Fatalf("docs body does not contain %q: %s", fragment, response.Body.String())
+		}
 	}
 }
 

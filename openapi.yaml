@@ -643,6 +643,22 @@ paths:
                 type: object
                 description: OpenAPI 3.1 document
 
+  /docs:
+    get:
+      tags: [System]
+      summary: Интерактивная документация API
+      description: Redoc UI загружает актуальную спецификацию из `/openapi.json` (R11.4).
+      operationId: docs
+      security: []
+      responses:
+        "200":
+          description: HTML-страница Redoc
+          content:
+            text/html:
+              schema:
+                type: string
+                description: Redoc HTML shell
+
   # ─────────────────────────────────────────────────────────────────────────
   # Proxy routes (R8, R11). Payload schemas intentionally stay in upstream SDK.
   # ─────────────────────────────────────────────────────────────────────────
@@ -1239,6 +1255,7 @@ paths:
     get:
       tags: [User]
       summary: Текущий principal management-сессии
+      description: Возвращает идентификатор и роль текущей management-сессии без раскрытия session cookie или token.
       operationId: getCurrentUser
       security:
         - SessionCookie: []

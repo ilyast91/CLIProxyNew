@@ -55,6 +55,14 @@ docs/            — требования, ADR, дизайн
 
 ## Документация
 
+После запуска сервиса HTTP-контракт доступен в двух представлениях:
+
+- `/openapi.json` — встроенный OpenAPI 3.1 JSON, сгенерированный из
+  `openapi.yaml`;
+- `/docs` — Redoc UI поверх `/openapi.json`; frontend bundle Redoc 2.5.0
+  загружается с jsDelivr, поэтому машинная спецификация остаётся доступной и
+  без CDN.
+
 - [`docs/requirements.md`](docs/requirements.md) — требования R1–R12 (зафиксированы)
 - [`docs/architecture-principles.md`](docs/architecture-principles.md) — требования к архитектуре (принципы, quality attributes, SLA, тестирование)
 - [`docs/architecture.md`](docs/architecture.md) — архитектурный дизайн (components, потоки, deployment)

@@ -3,7 +3,7 @@
 //
 // - Прокси-эндпоинты (/v1/*) — роутит ядро (Gin); бизнес-слой не пишет хендлеры.
 // - Management-API (/api/v1/*) — через api.WithRouterConfigurator.
-// - Системные: /healthz, /readyz, /metrics, /openapi.json (R11), /docs (опц.).
+// - Системные: /healthz, /readyz, /metrics, /openapi.json и /docs (R11).
 // - Типы/хендлеры генерируются из openapi.yaml (spec-first, R11).
 //
 // Имплементация: Фазы 4 (Management API) и 6 (system probes, metrics, logging).

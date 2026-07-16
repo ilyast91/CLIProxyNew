@@ -492,8 +492,8 @@
   - **Системные роуты:** `/healthz`, `/readyz`, `/metrics` — описание без схем.
 - **R11.4** **Доступ к спецификации:** `/openapi.json` отдаёт JSON, встроенный
   в бинарник и сгенерированный из `openapi.yaml`; CI проверяет, что производный
-  документ не устарел. `/docs` (опционально) — Swagger UI / Redoc для
-  интерактивной документации.
+  документ не устарел. `/docs` отдаёт Redoc UI поверх `/openapi.json`; HTML
+  встроен в бинарник, pinned frontend bundle Redoc 2.5.0 загружается с jsDelivr.
 - **R11.5** **CI-валидация:** спецификация валидируется на:
   - синтаксис OpenAPI 3.1 (lint: `spectral` или `vacuum`);
   - согласованность с Go-кодом (сгенерированные типы соответствуют спеке);
@@ -673,3 +673,6 @@
 - 2026-07-16 — **dependency refresh:** SDK обновлён v7.2.71 → v7.2.80 без
   breaking changes используемых контрактов ADR-9; `sdk-reference.md` сверён
   по public API diff и upstream compare/release commits.
+- 2026-07-17 — **R11:** добавлен публичный `/docs` с Redoc 2.5.0 поверх
+  встроенного `/openapi.json`; системный endpoint и описание `GET /api/v1/me`
+  добавлены в source specification и generated artifacts.

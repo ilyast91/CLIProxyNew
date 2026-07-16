@@ -1382,6 +1382,21 @@ func (s *CurrentUserResponseRole) UnmarshalText(data []byte) error {
 // DeleteModelOverrideNoContent is response for DeleteModelOverride operation.
 type DeleteModelOverrideNoContent struct{}
 
+// Redoc HTML shell.
+type DocsOK struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s DocsOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
 // Ref: #/components/schemas/Error
 type Error struct {
 	Error ErrorError `json:"error"`

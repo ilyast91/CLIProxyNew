@@ -159,7 +159,7 @@ graph TB
 | **Логирование** | structured `slog`; уровни Debug/Info/Warn/Error; **никогда** не логируем секреты |
 | **Контекст** | `context.Context` первым параметром во всех публичных методах; cancellation уважируется; для стриминга principal копируется в Record, не из ctx |
 | **Миграции** | `golang-migrate`, `YYYYMMDDHHMMSS_<name>.up.sql` + `.down.sql`; идемпотентные |
-| **API-контракт** | OpenAPI 3.1; spec-first (`openapi.yaml`); генерация типов из спеки; ручные правки кода не допускаются (R11) |
+| **API-контракт** | OpenAPI 3.1; spec-first (`openapi.yaml`); генерация типов из спеки; `/openapi.json` + Redoc `/docs`; ручные правки generated-кода не допускаются (R11) |
 | **SDK-зависимость** | Только публичные `sdk/*` импорты; версия pinned в `go.mod`; обновление проходит R12 compatibility gate |
 
 ## 6. Cross-cutting concerns
@@ -171,7 +171,7 @@ graph TB
 | **Observability** | middleware + плагины | Сквозная инструментация; trace context через все слои |
 | **Security** | `internal/security`, `internal/access`, identity middleware | Шифрование за интерфейсом; проверка статуса и identity source на каждый запрос |
 | **Multi-tenancy** | плоская (R4) | `user_id` во всех таблицах; role guard в middleware |
-| **API-контракт (Swagger)** | `openapi.yaml` spec-first | OpenAPI 3.1; код генерируется из спеки; CI lint + drift-check (R11) |
+| **API-контракт (Swagger)** | `openapi.yaml` spec-first | OpenAPI 3.1; `/openapi.json` и Redoc `/docs`; код генерируется из спеки; CI lint + drift-check (R11) |
 | **SDK compatibility** | `go.mod`, `docs/sdk-reference.md`, 7 контрактов ADR-9 | Обновляемая внешняя зависимость без fork/internal-импортов (R12) |
 
 ## 7. Эволюция архитектуры
@@ -206,3 +206,6 @@ graph TB
 - 2026-07-16 — Ф7 SLA profile зафиксирован как 4 worker / 200 steady-state
   запросов; verified API-key cache устраняет повторный bcrypt, CI проверяет
   business p95 access+selector ≤5мс и cache hit ratio ≥95%.
+- 2026-07-17 — R11 serving завершён: `/openapi.json` остаётся машинным
+  контрактом, `/docs` предоставляет Redoc UI; оба маршрута описаны source spec
+  и защищены generation drift/HTTP tests.

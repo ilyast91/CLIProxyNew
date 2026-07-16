@@ -57,6 +57,13 @@ type Invoker interface {
 	//
 	// DELETE /api/v1/admin/models/{modelAlias}
 	DeleteModelOverride(ctx context.Context, params DeleteModelOverrideParams) error
+	// Docs invokes docs operation.
+	//
+	// Redoc UI загружает актуальную спецификацию из `/openapi.json`
+	// (R11.4).
+	//
+	// GET /docs
+	Docs(ctx context.Context) (DocsOK, error)
 	// ExportOAuthCredential invokes exportOAuthCredential operation.
 	//
 	// Отдаёт attachment с полным OAuth credential JSON. Файл содержит
@@ -67,7 +74,8 @@ type Invoker interface {
 	ExportOAuthCredential(ctx context.Context, params ExportOAuthCredentialParams) (ExportOAuthCredentialRes, error)
 	// GetCurrentUser invokes getCurrentUser operation.
 	//
-	// Текущий principal management-сессии.
+	// Возвращает идентификатор и роль текущей management-сессии
+	// без раскрытия session cookie или token.
 	//
 	// GET /api/v1/me
 	GetCurrentUser(ctx context.Context) (GetCurrentUserRes, error)
@@ -933,6 +941,87 @@ func (c *Client) sendDeleteModelOverride(ctx context.Context, params DeleteModel
 	return result, nil
 }
 
+// Docs invokes docs operation.
+//
+// Redoc UI загружает актуальную спецификацию из `/openapi.json`
+// (R11.4).
+//
+// GET /docs
+func (c *Client) Docs(ctx context.Context) (DocsOK, error) {
+	res, err := c.sendDocs(ctx)
+	return res, err
+}
+
+func (c *Client) sendDocs(ctx context.Context) (res DocsOK, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("docs"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/docs"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, DocsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/docs"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeDocsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // ExportOAuthCredential invokes exportOAuthCredential operation.
 //
 // Отдаёт attachment с полным OAuth credential JSON. Файл содержит
@@ -1069,7 +1158,8 @@ func (c *Client) sendExportOAuthCredential(ctx context.Context, params ExportOAu
 
 // GetCurrentUser invokes getCurrentUser operation.
 //
-// Текущий principal management-сессии.
+// Возвращает идентификатор и роль текущей management-сессии
+// без раскрытия session cookie или token.
 //
 // GET /api/v1/me
 func (c *Client) GetCurrentUser(ctx context.Context) (GetCurrentUserRes, error) {

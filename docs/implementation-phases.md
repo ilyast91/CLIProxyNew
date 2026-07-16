@@ -1,11 +1,11 @@
 # План имплементации CLIProxyNew по фазам
 
-> **Статус:** Ф0–Ф5 закрыты; Ф6 и Ф7 частично закрыты,
+> **Статус:** Ф0–Ф6 закрыты в доступном SDK scope; Ф7 частично закрыта,
 > оставшиеся работы классифицированы ниже по наличию внешних блокеров.
 > **Текущий scope:** бизнес-слой R1–R12 и автоматизированный release hardening.
 > Provider-specific OAuth flows и другие SDK-зависимые расширения не реализуются
-> до появления подходящих публичных контрактов; chaos, `/docs` и
-> operational runbooks доступны для следующего внутреннего инкремента.
+> до появления подходящих публичных контрактов; chaos и operational runbooks
+> доступны для следующего внутреннего инкремента.
 > **Связанные:** [requirements.md](requirements.md), [architecture-principles.md](architecture-principles.md),
 > [architecture.md](architecture.md), [database-schema.md](database-schema.md).
 
@@ -159,7 +159,7 @@ hit/miss и invalidation покрыты тестами. SLA hit ratio прове
 - [x] `openapi.yaml` — management-эндпоинты и полный proxy HTTP surface SDK
   v7.2.80 (27 method/path operations для `/v1`, `/openai/v1`,
   `/backend-api/codex`, `/v1beta`) описаны без дублирования upstream body-схем;
-  route matrix защищена embedded contract test. Опциональный `/docs` остаётся Ф6
+  route matrix защищена embedded contract test; Redoc `/docs` закрыт в Ф6
 - [x] Генерация typed bindings из `openapi.yaml`: `ogen` v1.23.0 через
   compatibility projection (ADR-11); контракт покрывает lifecycle management-сессии
   (`/api/v1/me`, `/api/v1/logout`); adapter существующих handlers — отдельный шаг
@@ -244,7 +244,8 @@ OpenAPI спецификация валидируется, drift-check с код
   и не раскрывает ошибку БД в ответе
 - [x] `/openapi.json`: встроенный JSON генерируется из `openapi.yaml` через
   `go generate ./internal/openapi`; CI пересоздаёт документ и проверяет drift
-- [ ] `/docs` (опц. Swagger UI / Redoc)
+- [x] `/docs`: встроенный Redoc HTML-shell поверх `/openapi.json`, pinned
+  frontend bundle Redoc 2.5.0 загружается с jsDelivr
 - [x] Dockerfile (multi-stage: build → distroless non-root runtime)
 - [x] k8s manifests: Deployment (≥2 replicas, HPA), ConfigMap (config.yaml),
   Secret reference (env), Service, Ingress, PDB и probes
@@ -255,7 +256,9 @@ OpenAPI спецификация валидируется, drift-check с код
 - [x] Liveness/readiness probes в k8s
 - [x] Configuration: config.example.yaml, .env.example, deployment README
 
-**Acceptance:** деплоится в k8s (≥2 replicas), `/metrics` отдаёт метрики, traces идут в Jaeger/Tempo, graceful shutdown работает, `/openapi.json` доступен.
+**Acceptance:** деплоится в k8s (≥2 replicas), `/metrics` отдаёт метрики,
+traces идут в Jaeger/Tempo, graceful shutdown работает, `/openapi.json` и
+`/docs` доступны.
 
 ---
 
@@ -299,38 +302,42 @@ runbooks. До их закрытия документ не объявляет pr
 
 ### Без внешних блокеров
 
-- **Ф6:** добавить опциональный `/docs` с Swagger UI или Redoc поверх уже
-  доступного `/openapi.json`.
-- **Ф7:** добавить chaos/failover проверки: kill leader с подтверждением
-  handoff и kill replica с подтверждением доступности сервиса.
-- **Ф7 / R12:** оформить runbook обновления SDK: release notes, отдельная
-  upgrade-ветка, актуализация `sdk-reference.md`, contract/integration/race
-  gates и откат версии.
-- **Ф7:** завершить godoc и README, добавить operational runbooks для restore
-  backup, ротации AES-ключа, API-key и LDAP bind-password.
-- **Опциональный cleanup:** убрать текущий Spectral warning
-  `operation-description`, добавив `description` для `GET /api/v1/me`.
+#### Release-gates для production v1
 
-Эти задачи не требуют изменения публичного SDK-контракта. Chaos и операционные
-runbooks являются release-operations gates для production v1;
-`/docs` и Spectral warning остаются опциональными улучшениями.
+- [ ] **Ф7 / Chaos:** автоматизировать failover advisory leader: остановить
+  текущего leader, подтвердить захват lock второй репликой и продолжение
+  cleanup job без одновременного выполнения двумя репликами.
+- [ ] **Ф7 / Chaos:** остановить одну runtime-реплику и подтвердить доступность
+  inference и management health через оставшуюся реплику.
+- [ ] **Ф7 / R12:** оформить runbook обновления SDK: анализ release notes,
+  отдельная upgrade-ветка, актуализация `sdk-reference.md`, обязательные
+  compatibility/contract/integration/race/SLA gates и откат версии.
+- [ ] **Ф7 / Operations:** завершить godoc и README; добавить runbooks для
+  restore backup, ротации AES master-key с previous versions, клиентского
+  API-key и LDAP bind-password.
+
+Эти release-gates выполняются внутри бизнес-слоя и не требуют изменения
+публичного SDK-контракта. После их закрытия Ф7 может быть объявлена завершённой.
 
 ### С внешними блокерами
 
-- **Ф3 / R9.A.6:** runtime rewrite `model_overrides.upstream_model` ждёт
+- [ ] **Ф3 / R9.A.6:** runtime rewrite `model_overrides.upstream_model` ждёт
   публичный SDK hook для преобразования downstream/upstream model.
-- **Ф3 / R7:** прямой DB-push `AuthUpdate` в watcher queue ждёт публичный SDK
-  тип обновления; сейчас используется controlled restart по DB revision.
-- **Ф4 / R9.A.1:** provider-specific OAuth callback/device flows ждут
+- [ ] **Ф3 / R7:** прямой DB-push `AuthUpdate` в watcher queue ждёт публичный
+  SDK тип обновления; сейчас используется controlled restart по DB revision.
+- [ ] **Ф4 / R9.A.1:** provider-specific OAuth callback/device flows ждут
   публичный асинхронный SDK flow с внешним PostgreSQL session store.
-- **Ф6 / R7.3:** специализированные refresh success/failure metrics ждут
+- [ ] **Ф6 / R7.3:** специализированные refresh success/failure metrics ждут
   публичный business lifecycle hook для refresh.
-- **Ф6:** вложенный OpenTelemetry span вокруг SDK Execute ждёт публичную точку
-  расширения execution lifecycle.
+- [ ] **Ф6 / Tracing:** вложенный OpenTelemetry span вокруг SDK Execute ждёт
+  публичную точку расширения execution lifecycle.
 
 Эти пункты нельзя закрывать импортом upstream `internal/*`, fork/patch ядра или
 reflection-обходами: такие решения нарушают R12 и ADR-9. После появления
 публичных extension points требуется отдельное reviewable обновление SDK.
+Они не блокируют завершение текущего production v1 scope: для них уже работают
+зафиксированные fallback-механизмы либо функция явно вынесена за доступный SDK
+scope.
 
 ---
 
@@ -344,7 +351,7 @@ reflection-обходами: такие решения нарушают R12 и A
 | Ф3 Contracts ADR-9 | Закрыта в доступном SDK scope | 2 нед | Ф1 | 7 контрактов + запуск; 2 SDK-blocked расширения |
 | Ф4 Management API | Закрыта в текущем scope | 3–4 нед | Ф2, Ф3 | R9 + OpenAPI; provider OAuth SDK-blocked |
 | Ф5 R10 system proxy | Закрыта | 1 нед | Ф3 | Proxy policy через окружение процесса |
-| Ф6 Observability + k8s | Частично закрыта | 2 нед | Ф4, Ф5 | Prod deployment; `/docs` без блокера, 2 SDK-blocked пункта |
+| Ф6 Observability + k8s | Закрыта в доступном SDK scope | 2 нед | Ф4, Ф5 | Prod deployment + metrics/traces/OpenAPI docs; 2 SDK-blocked расширения |
 | Ф7 Testing + Hardening | Частично закрыта | 2 нед | Ф6 | Automated gates и load/SLA закрыты; chaos/runbooks остаются |
 | **Итого** | | **~16–19 нед** (1 dev) / **~8–10 нед** (2–3 dev) | | |
 
@@ -421,3 +428,6 @@ reflection-обходами: такие решения нарушают R12 и A
 - 2026-07-16 — Ф7 progress: verified API-key cache по SHA-256 отпечатку
   устраняет повторный bcrypt; добавлен обязательный non-race E2E SLA gate на
   4 worker / 200 запросов с business p95 ≤5мс и cache hit ratio ≥95%.
+- 2026-07-17 — Ф6 закрыта в доступном SDK scope: добавлен `/docs` с Redoc
+  поверх `/openapi.json`; Ф4 OpenAPI cleanup закрыт описанием `GET /api/v1/me`,
+  Spectral warning `operation-description` устранён.

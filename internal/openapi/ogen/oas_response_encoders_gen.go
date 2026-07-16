@@ -161,6 +161,21 @@ func encodeDeleteModelOverrideResponse(response *DeleteModelOverrideNoContent, w
 	return nil
 }
 
+func encodeDocsResponse(response DocsOK, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(200)
+
+	writer := w
+	if closer, ok := response.Data.(io.Closer); ok {
+		defer closer.Close()
+	}
+	if _, err := io.Copy(writer, response); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeExportOAuthCredentialResponse(response ExportOAuthCredentialRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *OAuthCredentialHeaders:
