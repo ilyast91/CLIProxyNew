@@ -215,8 +215,10 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   snapshot candidate cache клиентских API-keys с outcome `hit|miss`
 - [ ] Prometheus: специализированные refresh success/failure
   после появления соответствующих business hooks
-- [ ] OpenTelemetry traces: HTTP server span и trace-context propagation готовы;
-  вложенные spans для access.Provider, Selector и SDK Execute остаются
+- [x] OpenTelemetry traces: HTTP server span и trace-context propagation,
+  вложенные spans для `access.Provider` и `Selector` с безопасными атрибутами
+- [ ] OpenTelemetry: вложенный span для SDK Execute после появления подходящей
+  публичной точки расширения без импорта upstream `internal/*`
 - [x] Structured request logging: middleware пишет только method, route template,
   status, duration, request ID и principal без headers, query или body
 - [x] `slog` structured JSON + redaction: глобальный handler скрывает attrs с
@@ -330,3 +332,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - 2026-07-16 — progress: OpenAPI пополнен основными proxy compatibility URLs
   с Bearer API-key и общими errors без дублирования upstream payload schemas;
   embedded JSON и ogen bindings пересозданы.
+- 2026-07-16 — progress: добавлены дочерние OpenTelemetry spans для
+  `access.Provider` и `Selector` с trace-context propagation, error status и
+  тестами, запрещающими попадание API-key, credential metadata и boundary-error
+  messages в attributes, status description и span events.

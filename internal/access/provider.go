@@ -9,12 +9,16 @@ import (
 
 	"github.com/ilyast91/CLIProxyNew/internal/store"
 	sdkaccess "github.com/router-for-me/CLIProxyAPI/v7/sdk/access"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 const (
 	// ProviderIdentifier — стабильный идентификатор DB-backed API-key provider.
 	ProviderIdentifier = "db-apikey"
 	metadataAPIKeyID   = "api_key_id"
+	tracingName        = "github.com/ilyast91/CLIProxyNew/internal/access"
 )
 
 // APIKeyRepository определяет source-aware lookup клиентского API-key.
@@ -40,13 +44,26 @@ func (p *Provider) Identifier() string {
 
 // Authenticate проверяет API-key из заголовков или query-параметров запроса.
 func (p *Provider) Authenticate(ctx context.Context, request *http.Request) (*sdkaccess.Result, *sdkaccess.AuthError) {
+	ctx, span := otel.Tracer(tracingName).Start(ctx, "access.Provider.Authenticate")
+	defer span.End()
+	span.SetAttributes(attribute.String("auth.provider", ProviderIdentifier))
+	if p != nil {
+		span.SetAttributes(attribute.String("auth.identity_source", p.identitySource))
+	}
+
 	if p == nil || p.repository == nil {
-		return nil, sdkaccess.NewInternalAuthError("API key authentication is unavailable", nil)
+		authErr := sdkaccess.NewInternalAuthError("API key authentication is unavailable", nil)
+		span.SetAttributes(attribute.String("auth.outcome", "unavailable"))
+		span.SetStatus(codes.Error, "authentication unavailable")
+		return nil, authErr
 	}
 
 	credentials, supplied := requestCredentials(request)
 	if !supplied {
-		return nil, sdkaccess.NewNoCredentialsError()
+		authErr := sdkaccess.NewNoCredentialsError()
+		span.SetAttributes(attribute.String("auth.outcome", "no_credentials"))
+		span.SetStatus(codes.Error, "credentials not supplied")
+		return nil, authErr
 	}
 	for _, credential := range credentials {
 		if credential == "" {
@@ -54,6 +71,11 @@ func (p *Provider) Authenticate(ctx context.Context, request *http.Request) (*sd
 		}
 		principal, err := p.repository.AuthenticateForSource(ctx, credential, p.identitySource)
 		if err == nil {
+			span.SetAttributes(
+				attribute.String("auth.outcome", "success"),
+				attribute.Int64("user.id", principal.UserID),
+				attribute.Int64("api_key.id", principal.APIKeyID),
+			)
 			return &sdkaccess.Result{
 				Provider:  p.Identifier(),
 				Principal: EncodePrincipal(principal.UserID, principal.APIKeyID),
@@ -61,11 +83,17 @@ func (p *Provider) Authenticate(ctx context.Context, request *http.Request) (*sd
 			}, nil
 		}
 		if !errors.Is(err, store.ErrInvalidCredential) {
-			return nil, sdkaccess.NewInternalAuthError("API key authentication failed", err)
+			authErr := sdkaccess.NewInternalAuthError("API key authentication failed", err)
+			span.SetAttributes(attribute.String("auth.outcome", "internal_error"))
+			span.SetStatus(codes.Error, "authentication failed")
+			return nil, authErr
 		}
 	}
 
-	return nil, sdkaccess.NewInvalidCredentialError()
+	authErr := sdkaccess.NewInvalidCredentialError()
+	span.SetAttributes(attribute.String("auth.outcome", "invalid_credentials"))
+	span.SetStatus(codes.Error, "invalid credentials")
+	return nil, authErr
 }
 
 func requestCredentials(request *http.Request) ([]string, bool) {

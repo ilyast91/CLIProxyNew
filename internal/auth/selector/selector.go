@@ -9,9 +9,15 @@ import (
 	"github.com/ilyast91/CLIProxyNew/internal/store"
 	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
-const overrideCacheTTL = 5 * time.Second
+const (
+	overrideCacheTTL = 5 * time.Second
+	tracingName      = "github.com/ilyast91/CLIProxyNew/internal/auth/selector"
+)
 
 // OverrideLister возвращает актуальный allow-list model overrides.
 type OverrideLister interface {
@@ -39,16 +45,44 @@ func (s *Selector) Pick(
 	opts executor.Options,
 	auths []*coreauth.Auth,
 ) (*coreauth.Auth, error) {
+	ctx, span := otel.Tracer(tracingName).Start(ctx, "selector.Pick")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("selector.provider.requested", provider),
+		attribute.String("selector.model", model),
+		attribute.Int("selector.candidate.count", len(auths)),
+	)
+
 	targetProvider, err := s.providerForModel(ctx, provider, model)
 	if err != nil {
+		span.SetAttributes(attribute.String("selector.outcome", "error"))
+		span.SetStatus(codes.Error, "provider selection failed")
 		return nil, err
 	}
+	span.SetAttributes(attribute.String("selector.provider.resolved", targetProvider))
 
 	candidates := filterByProvider(auths, targetProvider)
+	span.SetAttributes(attribute.Int("selector.candidate.filtered_count", len(candidates)))
 	if len(candidates) == 0 {
-		return nil, fmt.Errorf("pick auth for provider %q: no candidates", targetProvider)
+		err = fmt.Errorf("pick auth for provider %q: no candidates", targetProvider)
+		span.SetAttributes(attribute.String("selector.outcome", "error"))
+		span.SetStatus(codes.Error, "no authentication candidates")
+		return nil, err
 	}
-	return s.fallback.Pick(ctx, targetProvider, model, opts, candidates)
+	selected, err := s.fallback.Pick(ctx, targetProvider, model, opts, candidates)
+	if err != nil {
+		span.SetAttributes(attribute.String("selector.outcome", "error"))
+		span.SetStatus(codes.Error, "credential selection failed")
+		return nil, err
+	}
+	span.SetAttributes(attribute.String("selector.outcome", "success"))
+	if selected != nil {
+		span.SetAttributes(
+			attribute.String("selector.auth.id", selected.ID),
+			attribute.String("selector.auth.provider", selected.Provider),
+		)
+	}
+	return selected, nil
 }
 
 func (s *Selector) providerForModel(ctx context.Context, provider, model string) (string, error) {
