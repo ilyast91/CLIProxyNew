@@ -1,10 +1,11 @@
 # План имплементации CLIProxyNew по фазам
 
-> **Статус:** Принят.
+> **Статус:** Ф0–Ф5 закрыты; Ф6 и Ф7 частично закрыты,
+> оставшиеся работы классифицированы ниже по наличию внешних блокеров.
 > **Текущий scope:** бизнес-слой R1–R12 и автоматизированный release hardening.
-> Provider-specific OAuth flows не реализуются до появления подходящего
-> публичного SDK-контракта; load/chaos и operational runbooks остаются следующим
-> release-operations инкрементом.
+> Provider-specific OAuth flows и другие SDK-зависимые расширения не реализуются
+> до появления подходящих публичных контрактов; load/chaos, `/docs` и
+> operational runbooks доступны для следующего внутреннего инкремента.
 > **Связанные:** [requirements.md](requirements.md), [architecture-principles.md](architecture-principles.md),
 > [architecture.md](architecture.md), [database-schema.md](database-schema.md).
 
@@ -290,19 +291,62 @@ integration, static regression, coverage ≥ 70%, security audit и full race
 
 ---
 
+## Осталось сделать
+
+### Без внешних блокеров
+
+- **Ф6:** добавить опциональный `/docs` с Swagger UI или Redoc поверх уже
+  доступного `/openapi.json`.
+- **Ф7:** добавить load/SLA harness на vegeta или k6 и подтвердить overhead
+  бизнес-слоя ≤ 5мс p95 и cache hit ratio ≥ 95%.
+- **Ф7:** после появления load harness включить SLA-метрики в CI как
+  regression gate.
+- **Ф7:** добавить chaos/failover проверки: kill leader с подтверждением
+  handoff и kill replica с подтверждением доступности сервиса.
+- **Ф7 / R12:** оформить runbook обновления SDK: release notes, отдельная
+  upgrade-ветка, актуализация `sdk-reference.md`, contract/integration/race
+  gates и откат версии.
+- **Ф7:** завершить godoc и README, добавить operational runbooks для restore
+  backup, ротации AES-ключа, API-key и LDAP bind-password.
+- **Опциональный cleanup:** убрать текущий Spectral warning
+  `operation-description`, добавив `description` для `GET /api/v1/me`.
+
+Эти задачи не требуют изменения публичного SDK-контракта. Load/SLA, chaos и
+операционные runbooks являются release-operations gates для production v1;
+`/docs` и Spectral warning остаются опциональными улучшениями.
+
+### С внешними блокерами
+
+- **Ф3 / R9.A.6:** runtime rewrite `model_overrides.upstream_model` ждёт
+  публичный SDK hook для преобразования downstream/upstream model.
+- **Ф3 / R7:** прямой DB-push `AuthUpdate` в watcher queue ждёт публичный SDK
+  тип обновления; сейчас используется controlled restart по DB revision.
+- **Ф4 / R9.A.1:** provider-specific OAuth callback/device flows ждут
+  публичный асинхронный SDK flow с внешним PostgreSQL session store.
+- **Ф6 / R7.3:** специализированные refresh success/failure metrics ждут
+  публичный business lifecycle hook для refresh.
+- **Ф6:** вложенный OpenTelemetry span вокруг SDK Execute ждёт публичную точку
+  расширения execution lifecycle.
+
+Эти пункты нельзя закрывать импортом upstream `internal/*`, fork/patch ядра или
+reflection-обходами: такие решения нарушают R12 и ADR-9. После появления
+публичных extension points требуется отдельное reviewable обновление SDK.
+
+---
+
 ## Сводка
 
-| Фаза | Длительность | Зависимости | Deliverable |
-|------|--------------|-------------|-------------|
-| Ф0 Foundation | 1–2 нед | — | Компилируемый проект + CI |
-| Ф1 Persistence | 1–2 нед | Ф0 | БД + Store + шифрование |
-| Ф2 Auth | 2 нед | Ф1 | LDAP + session + API-keys |
-| Ф3 Contracts ADR-9 | 2 нед | Ф1 | 7 контрактов + запуск |
-| Ф4 Management API | 3–4 нед | Ф2, Ф3 | R9 + OpenAPI |
-| Ф5 R10 system proxy | 1 нед | Ф3 | Proxy policy через окружение процесса |
-| Ф6 Observability + k8s | 2 нед | Ф4, Ф5 | Prod deployment |
-| Ф7 Testing + Hardening | 2 нед | Ф6 | Automated gates; release ops pending |
-| **Итого** | **~16–19 нед** (1 dev) / **~8–10 нед** (2–3 dev) | | |
+| Фаза | Статус | Длительность | Зависимости | Deliverable |
+|------|--------|--------------|-------------|-------------|
+| Ф0 Foundation | Закрыта | 1–2 нед | — | Компилируемый проект + CI |
+| Ф1 Persistence | Закрыта | 1–2 нед | Ф0 | БД + Store + шифрование |
+| Ф2 Auth | Закрыта | 2 нед | Ф1 | LDAP + session + API-keys |
+| Ф3 Contracts ADR-9 | Закрыта в доступном SDK scope | 2 нед | Ф1 | 7 контрактов + запуск; 2 SDK-blocked расширения |
+| Ф4 Management API | Закрыта в текущем scope | 3–4 нед | Ф2, Ф3 | R9 + OpenAPI; provider OAuth SDK-blocked |
+| Ф5 R10 system proxy | Закрыта | 1 нед | Ф3 | Proxy policy через окружение процесса |
+| Ф6 Observability + k8s | Частично закрыта | 2 нед | Ф4, Ф5 | Prod deployment; `/docs` без блокера, 2 SDK-blocked пункта |
+| Ф7 Testing + Hardening | Частично закрыта | 2 нед | Ф6 | Automated gates закрыты; release ops без внешних блокеров |
+| **Итого** | | **~16–19 нед** (1 dev) / **~8–10 нед** (2–3 dev) | | |
 
 ## Что НЕ в плане v1 (явные ограничения)
 
@@ -371,3 +415,6 @@ integration, static regression, coverage ≥ 70%, security audit и full race
   добавлены behavioral ADR-9 gate, runtime E2E, aggregate coverage 70%, source
   security audit, PostgreSQL integration и full-race CI jobs перед build;
   OAuth provider flows и release-operations gates вынесены из текущего scope.
+- 2026-07-16 — актуализирован статус фаз: Ф0–Ф5 закрыты, Ф6–Ф7 разделены на
+  выполнимые release-operations задачи и пять расширений, заблокированных
+  отсутствующими публичными SDK-контрактами.
