@@ -39,9 +39,10 @@ func TestAdminUserHandlerListReturnsUsers(t *testing.T) {
 func TestAdminUserHandlerSetStatusWritesActorAndTarget(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	store := &fakeAdminUserStore{}
+	invalidator := &fakeSessionInvalidator{}
 	router := gin.New()
 	router.Use(func(c *gin.Context) { c.Set(ContextUserID, int64(42)) })
-	router.PATCH("/api/v1/admin/users/:userID", NewAdminUserHandler(store).SetStatus)
+	router.PATCH("/api/v1/admin/users/:userID", NewAdminUserHandler(store, invalidator).SetStatus)
 
 	request := httptest.NewRequest(http.MethodPatch, "/api/v1/admin/users/7", strings.NewReader(`{"status":"blocked"}`))
 	request.Header.Set("Content-Type", "application/json")
@@ -55,7 +56,14 @@ func TestAdminUserHandlerSetStatusWritesActorAndTarget(t *testing.T) {
 	if store.actorUserID != 42 || store.targetUserID != 7 || store.status != "blocked" {
 		t.Fatalf("arguments = actor %d target %d status %q", store.actorUserID, store.targetUserID, store.status)
 	}
+	if invalidator.userID != 7 {
+		t.Fatalf("InvalidateUser() user ID = %d, want 7", invalidator.userID)
+	}
 }
+
+type fakeSessionInvalidator struct{ userID int64 }
+
+func (i *fakeSessionInvalidator) InvalidateUser(userID int64) { i.userID = userID }
 
 func TestAdminUserHandlerSetStatusMapsNotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)

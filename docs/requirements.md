@@ -154,6 +154,9 @@
 - ✅ **Решено:** `access.Provider` и session middleware дополнительно сверяют
   `users.identity_source` с текущим `auth.mode`; static API-key/cookie не
   действуют в LDAP/prod режиме.
+- ✅ **Решено:** session middleware использует in-process TTL cache (10с) для
+  успешных lookup. Блокировка пользователя и logout сразу invalidates cache
+  текущей реплики; на других репликах риск-окно ограничено TTL (R6.1, без Redis).
 - ✅ **Решено:** бизнес-слой **полностью заменяет** встроенный `config-api-key`
   ядром inline-провайдер через `access.SetExclusiveProvider("db-apikey")` —
   inline `cfg.APIKeys` ядра **не используются** (все клиентские API-keys живут

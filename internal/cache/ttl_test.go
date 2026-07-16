@@ -64,3 +64,22 @@ func TestTTLCacheReportsHitAndMissCounts(t *testing.T) {
 		t.Fatalf("Stats() = %+v, want hits=1 misses=2", stats)
 	}
 }
+
+func TestTTLCacheDeletesMatchingEntries(t *testing.T) {
+	cache := NewTTL[string, int](time.Minute, time.Now)
+	cache.Set("first", 1)
+	cache.Set("second", 2)
+	cache.Set("third", 1)
+
+	cache.DeleteWhere(func(_ string, value int) bool { return value == 1 })
+
+	if _, ok := cache.Get("first"); ok {
+		t.Fatal("Get(first) returned a matching entry after DeleteWhere")
+	}
+	if value, ok := cache.Get("second"); !ok || value != 2 {
+		t.Fatalf("Get(second) = %d, %t", value, ok)
+	}
+	if _, ok := cache.Get("third"); ok {
+		t.Fatal("Get(third) returned a matching entry after DeleteWhere")
+	}
+}

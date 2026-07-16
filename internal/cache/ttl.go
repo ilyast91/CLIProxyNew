@@ -101,6 +101,22 @@ func (c *TTL[K, V]) Delete(key K) {
 	delete(c.entries, key)
 }
 
+// DeleteWhere удаляет все записи, для которых match возвращает true.
+func (c *TTL[K, V]) DeleteWhere(match func(K, V) bool) {
+	if c == nil || match == nil {
+		return
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for key, entry := range c.entries {
+		if match(key, entry.value) {
+			delete(c.entries, key)
+		}
+	}
+}
+
 // Clear удаляет все значения кэша.
 func (c *TTL[K, V]) Clear() {
 	if c == nil {

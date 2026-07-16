@@ -17,8 +17,15 @@ type adminUserStore interface {
 	SetStatusWithAudit(context.Context, int64, int64, string, *netip.Addr) error
 }
 
+type sessionUserInvalidator interface {
+	InvalidateUser(int64)
+}
+
 // AdminUserHandler обслуживает admin-операции с пользователями.
-type AdminUserHandler struct{ store adminUserStore }
+type AdminUserHandler struct {
+	store       adminUserStore
+	invalidator sessionUserInvalidator
+}
 
 type adminUserResponse struct {
 	ID             int64     `json:"id"`
@@ -36,8 +43,12 @@ type setUserStatusRequest struct {
 }
 
 // NewAdminUserHandler создаёт handler admin-операций с пользователями.
-func NewAdminUserHandler(userStore adminUserStore) *AdminUserHandler {
-	return &AdminUserHandler{store: userStore}
+func NewAdminUserHandler(userStore adminUserStore, invalidators ...sessionUserInvalidator) *AdminUserHandler {
+	var invalidator sessionUserInvalidator
+	if len(invalidators) > 0 {
+		invalidator = invalidators[0]
+	}
+	return &AdminUserHandler{store: userStore, invalidator: invalidator}
 }
 
 // List возвращает пользователей для администратора.
@@ -93,6 +104,9 @@ func (h *AdminUserHandler) SetStatus(c *gin.Context) {
 		}
 		writeError(c, http.StatusInternalServerError, "set user status failed")
 		return
+	}
+	if h.invalidator != nil {
+		h.invalidator.InvalidateUser(targetUserID)
 	}
 	c.Status(http.StatusNoContent)
 }

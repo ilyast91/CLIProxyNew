@@ -133,7 +133,7 @@ func run() error {
 	)
 	go sessionLeader.Run(ctx, sessionCleanup.Run)
 	loginService := identity.NewLoginService(identityProvider, cfg.Auth.Mode, users, sessions)
-	sessionAuthenticator := identity.NewSessionAuthenticator(sessions, cfg.Auth.Mode)
+	sessionAuthenticator := identity.NewCachedSessionAuthenticator(sessions, cfg.Auth.Mode, 10*time.Second)
 	sdkCfg, err := cfg.SDKConfig()
 	if err != nil {
 		return fmt.Errorf("build SDK config: %w", err)
@@ -154,7 +154,7 @@ func run() error {
 		WithConfigPath(configPath).
 		WithCoreAuthManager(coreManager).
 		WithWatcherFactory(watcher.NoopFactory).
-		WithServerOptions(sdkapi.WithMiddleware(httpapi.RequestIDMiddleware(), httpapi.TracingMiddleware(), httpapi.RequestLogger(logger), httpapi.NewCORSMiddleware(cfg.Server.CORSAllowedOrigins), metricsRegistry.Middleware()), sdkapi.WithRouterConfigurator(httpapi.SystemRouterConfigurator(dbPool)), sdkapi.WithRouterConfigurator(httpapi.MetricsRouterConfigurator(metricsRegistry.Handler())), sdkapi.WithRouterConfigurator(httpapi.OpenAPIRouterConfigurator(openapidoc.Document())), sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction), sessionAuthenticator, httpapi.LogoutHandler(sessions, cfg.Auth.Mode), httpapi.NewAPIKeyHandler(apiKeyStore), httpapi.NewUsageHandler(store.NewUsageEventRepository(dbPool)), httpapi.NewAdminUserHandler(store.NewAdminUserRepository(dbPool)), httpapi.NewAdminAPIKeyHandler(apiKeyStore), httpapi.NewAdminOAuthSessionHandler(store.NewOAuthSessionRepository(dbPool)), httpapi.NewAdminProviderKeyHandler(coreManager), httpapi.NewAdminAccountTestHandler(authtesting.NewChecker(coreManager)), httpapi.NewAdminQuotaHandler(coreManager), httpapi.NewAdminOAuthCredentialHandler(coreManager, store.NewAdminAuditLogRepository(dbPool)), httpapi.NewAdminModelHandler(store.NewAdminModelRepository(dbPool))))).
+		WithServerOptions(sdkapi.WithMiddleware(httpapi.RequestIDMiddleware(), httpapi.TracingMiddleware(), httpapi.RequestLogger(logger), httpapi.NewCORSMiddleware(cfg.Server.CORSAllowedOrigins), metricsRegistry.Middleware()), sdkapi.WithRouterConfigurator(httpapi.SystemRouterConfigurator(dbPool)), sdkapi.WithRouterConfigurator(httpapi.MetricsRouterConfigurator(metricsRegistry.Handler())), sdkapi.WithRouterConfigurator(httpapi.OpenAPIRouterConfigurator(openapidoc.Document())), sdkapi.WithRouterConfigurator(httpapi.RouterConfigurator(httpapi.NewLoginHandler(loginService, cfg.Server.Environment == config.EnvironmentProduction), sessionAuthenticator, httpapi.LogoutHandler(sessions, cfg.Auth.Mode, sessionAuthenticator), httpapi.NewAPIKeyHandler(apiKeyStore), httpapi.NewUsageHandler(store.NewUsageEventRepository(dbPool)), httpapi.NewAdminUserHandler(store.NewAdminUserRepository(dbPool), sessionAuthenticator), httpapi.NewAdminAPIKeyHandler(apiKeyStore), httpapi.NewAdminOAuthSessionHandler(store.NewOAuthSessionRepository(dbPool)), httpapi.NewAdminProviderKeyHandler(coreManager), httpapi.NewAdminAccountTestHandler(authtesting.NewChecker(coreManager)), httpapi.NewAdminQuotaHandler(coreManager), httpapi.NewAdminOAuthCredentialHandler(coreManager, store.NewAdminAuditLogRepository(dbPool)), httpapi.NewAdminModelHandler(store.NewAdminModelRepository(dbPool))))).
 		Build()
 	if err != nil {
 		return fmt.Errorf("build SDK service: %w", err)

@@ -95,8 +95,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [x] `internal/access` (R2) — lookup api_keys по prefix → bcrypt verify →
   check users.status → versioned Principal с user_id/api_key_id для analytics
 - [x] `access.RegisterProvider("db-apikey", ...)` + `access.SetExclusiveProvider("db-apikey")`
-- [ ] `internal/cache` — generic TTL и api_key_lookup готовы; session_lookup
-  требует общей invalidation при блокировке пользователя
+- [x] `internal/cache` — generic TTL, api_key_lookup и session_lookup готовы;
+  session cache использует TTL 10с, локально invalidates на admin block/logout,
+  а межрепличная согласованность ограничена TTL
 - [ ] Unit tests: ldap (mock LDAP), access (cache hit/miss, blocked user), session TTL
 - [ ] Unit/integration tests: запрет static в production, source isolation для
   session/API-key, non-rolling mode switch и guarded migration down
@@ -316,3 +317,6 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - 2026-07-16 — progress: добавлены проверяемый multi-stage Dockerfile и k8s
   baseline (Deployment/HPA/PDB/ConfigMap/Service/Ingress/probes), .env.example
   и runbook rollout; Secret остаётся операционным ресурсом вне Git.
+- 2026-07-16 — progress: session lookup cache включён в runtime с TTL 10с;
+  admin status mutation и logout немедленно инвалидируют local entries,
+  межрепличная согласованность остаётся bounded TTL без Redis.
