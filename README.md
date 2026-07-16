@@ -59,6 +59,7 @@ docs/            — требования, ADR, дизайн
 - [`docs/implementation-phases.md`](docs/implementation-phases.md) — план имплементации по фазам (Ф0–Ф7)
 - [`docs/adr/ADR-9-sdk-contracts.md`](docs/adr/ADR-9-sdk-contracts.md) — контракты интеграции с ядром (7 интерфейсов)
 - [`docs/adr/ADR-10-per-call-type-proxy.md`](docs/adr/ADR-10-per-call-type-proxy.md) — system egress proxy через окружение процесса
+- [`deploy/kubernetes/README.md`](deploy/kubernetes/README.md) — production baseline, Secret, migration и rollout в Kubernetes
 - [`AGENTS.md`](AGENTS.md) — инструкция для агентов
 
 ## Статус

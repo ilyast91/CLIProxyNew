@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cliproxy-config
+  labels:
+    app.kubernetes.io/name: cliproxy
+    app.kubernetes.io/component: api
+data:
+  config.yaml: |
+    server:
+      addr: ":8080"
+      environment: "production"
+      cors_allowed_origins: []
+    auth:
+      mode: "ldap"
+    db: {}
+    ldap:
+      url: "ldaps://ldap.example.com"
+      bind_dn: "CN=svc-cliproxy,OU=Service,DC=example,DC=com"
+      user_base: "OU=Users,DC=example,DC=com"
+      user_filter: "(sAMAccountName={username})"
+      user_group_dn: "CN=cliproxy-users,OU=Groups,DC=example,DC=com"
+      admin_group_dn: "CN=cliproxy-admins,OU=Groups,DC=example,DC=com"
+    logging:
+      level: "info"
+      format: "json"
+    encryption:
+      key_version: 1

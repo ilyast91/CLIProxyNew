@@ -223,14 +223,15 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [x] `/openapi.json`: встроенный JSON генерируется из `openapi.yaml` через
   `go generate ./internal/openapi`; CI пересоздаёт документ и проверяет drift
 - [ ] `/docs` (опц. Swagger UI / Redoc)
-- [ ] Dockerfile (multi-stage: build → scratch/distroless)
-- [ ] k8s manifests: Deployment (≥2 replicas, HPA), ConfigMap (config.yaml), Secret (env), Service, Ingress
-- [ ] Runbook dev/test: переключение `auth.mode` только через scale-to-zero /
+- [x] Dockerfile (multi-stage: build → distroless non-root runtime)
+- [x] k8s manifests: Deployment (≥2 replicas, HPA), ConfigMap (config.yaml),
+  Secret reference (env), Service, Ingress, PDB и probes
+- [x] Runbook dev/test: переключение `auth.mode` только через scale-to-zero /
   recreate; production всегда `auth.mode=ldap`
 - [x] Graceful shutdown: после завершения `Service.Run` вызывается публичный
   `Service.Shutdown(ctx)` с отдельным timeout 30с для drain in-flight запросов
-- [ ] Liveness/readiness probes в k8s
-- [ ] Configuration: config.yaml.example, .env.example, deployment README
+- [x] Liveness/readiness probes в k8s
+- [x] Configuration: config.example.yaml, .env.example, deployment README
 
 **Acceptance:** деплоится в k8s (≥2 replicas), `/metrics` отдаёт метрики, traces идут в Jaeger/Tempo, graceful shutdown работает, `/openapi.json` доступен.
 
@@ -312,3 +313,6 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   user API-key read/revoke и admin user-status mutation через session-cookie.
 - 2026-07-16 — progress: graceful shutdown вызывает публичный SDK
   `Service.Shutdown` с отдельным лимитом 30с; lifecycle helper покрыт unit-тестами.
+- 2026-07-16 — progress: добавлены проверяемый multi-stage Dockerfile и k8s
+  baseline (Deployment/HPA/PDB/ConfigMap/Service/Ingress/probes), .env.example
+  и runbook rollout; Secret остаётся операционным ресурсом вне Git.
