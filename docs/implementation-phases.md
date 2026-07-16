@@ -99,8 +99,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   session cache использует TTL 10с, локально invalidates на admin block/logout,
   а межрепличная согласованность ограничена TTL
 - [ ] Unit tests: ldap (mock LDAP), access (cache hit/miss, blocked user), session TTL
-- [ ] Unit/integration tests: запрет static в production, source isolation для
-  session/API-key, non-rolling mode switch и guarded migration down
+- [x] Regression tests: static запрещён в production; source isolation для
+  session/API-key подтверждён на Postgres; guarded migration down отказывает
+  при static users. Non-rolling switch зафиксирован в deployment runbook.
 
 **Acceptance:** логин по LDAP создаёт cookie, запрос с API-key авторизуется, заблокированный пользователь отвергается, кэш даёт ≥95% hit ratio в steady-state тесте.
 
@@ -320,3 +321,6 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - 2026-07-16 — progress: session lookup cache включён в runtime с TTL 10с;
   admin status mutation и logout немедленно инвалидируют local entries,
   межрепличная согласованность остаётся bounded TTL без Redis.
+- 2026-07-16 — progress: добавлен PostgreSQL regression для guarded rollback
+  identity_source migration при static user; static/prod и source-isolation
+  проверки сведены в закрытый security regression набор Ф2.
