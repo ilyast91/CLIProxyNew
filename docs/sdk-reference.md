@@ -1,8 +1,9 @@
 # Референс публичного API SDK CLIProxyAPI v7
 
 > **Назначение:** полный справочник экспортируемых сущностей ядра
-> `github.com/router-for-me/CLIProxyAPI/v7` (ветка `main`), которые использует
-> бизнес-слой CLIProxyNew. Основан на анализе исходников.
+> `github.com/router-for-me/CLIProxyAPI/v7` версии **v7.2.80**, которые использует
+> бизнес-слой CLIProxyNew. Сверен по исходникам и public API diff
+> `v7.2.71...v7.2.80` 2026-07-16.
 > **Связанные:** [ADR-9](adr/ADR-9-sdk-contracts.md), [architecture.md](architecture.md).
 >
 > Путь импорта: `github.com/router-for-me/CLIProxyAPI/v7/sdk/...`
@@ -17,6 +18,28 @@
 - [sdk/access](#sdkaccess—проверка-клиентских-api-keys) — `Provider`, `Manager`
 - [sdk/api](#sdkapi—http-server-options--handlers) — `ServerOption`, `BaseAPIHandler`
 - [sdk/config](#sdkconfig—конфигурация) — `Config`, `LoadConfig`
+
+## Сверка обновления v7.2.71 → v7.2.80
+
+Используемые контракты ADR-9 сохранили сигнатуры; удалённых или несовместимо
+изменённых публичных сущностей, от которых зависит CLIProxyNew, не обнаружено.
+Публичная поверхность расширена:
+
+- `coreauth.Manager.SelectAuthByKind` и `coreauth.Error.IsRequestScoped`;
+- `executor.RequestScopedError` и metadata key `GenerateMetadataKey`;
+- `usage.Record.Generate`, `AutoServiceTier` и generate context helpers;
+- `APIKeyClientResult.XAIKeyCount`, `config.XAIKey` и `config.XAIModel`;
+- `pluginapi.UsageRecord.Generate`.
+
+Поведенческие изменения upstream: request-scoped ошибки больше не портят
+состояние credential, добавлена native xAI API-key/model routing, OpenAI
+`service_tier` по умолчанию нормализуется в `auto`, а `generate=false`
+передаётся в usage pipeline. `Builder.Build` нормализует plugin config и при
+включённых plugins валидирует каталог plugins.
+
+Ограничения проекта не сняты: публичного async OAuth flow с внешним session
+store, общего downstream model-rewrite hook, доступного business-типу
+`Watcher AuthUpdate` и Execute tracing hook в v7.2.80 не добавлено.
 
 ---
 
@@ -64,7 +87,7 @@ func (b *Builder) Build() (*Service, error)   // ошибки если cfg==nil 
 
 `Build()` применяет дефолты: `NewFileTokenClientProvider()`,
 `NewAPIKeyClientProvider()`, `defaultWatcherFactory`, `newDefaultAuthManager()`,
-`sdkaccess.NewManager()`, `pluginhost.New()`,
+`sdkaccess.NewManager()`, `pluginhost.New()`, нормализацию/проверку plugin dir,
 `coreManager.SetRoundTripperProvider(newDefaultRoundTripperProvider())`.
 
 ### `Hooks` (`builder.go`)
@@ -90,7 +113,7 @@ type APIKeyClientProvider interface {
 }
 type APIKeyClientResult struct {
     GeminiKeyCount, VertexCompatKeyCount, ClaudeKeyCount int
-    CodexKeyCount, OpenAICompatCount                      int
+    CodexKeyCount, XAIKeyCount, OpenAICompatCount         int
 }
 
 // Watcher
@@ -222,6 +245,7 @@ type Error struct {
 }
 func (e *Error) Error() string
 func (e *Error) StatusCode() int
+func (e *Error) IsRequestScoped() bool
 
 type QuotaState struct {
     Exceeded      bool      `json:"exceeded"`
@@ -291,6 +315,7 @@ func (m *Manager) UnregisterExecutor(provider string)
 func (m *Manager) Executor(provider string) (ProviderExecutor, bool)
 func (m *Manager) HasProviderAuth(provider string) bool
 func (m *Manager) AvailableProviders() []string
+func (m *Manager) SelectAuthByKind(ctx context.Context, provider, model, requiredKind string, opts cliproxyexecutor.Options) (*Auth, error)
 ```
 
 #### Auto-refresh
@@ -468,6 +493,11 @@ type StatusError interface {
     error
     StatusCode() int
 }
+
+type RequestScopedError interface {
+    error
+    IsRequestScoped() bool
+}
 ```
 
 ### Константы метадата-ключей
@@ -479,6 +509,7 @@ const DisallowFreeAuthMetadataKey   = "disallow_free_auth"
 const AuthSelectionModelMetadataKey = "auth_selection_model"
 const ReasoningEffortMetadataKey    = "reasoning_effort"
 const ServiceTierMetadataKey        = "service_tier"
+const GenerateMetadataKey           = "generate"
 const PinnedAuthMetadataKey         = "pinned_auth_id"
 const SelectedAuthMetadataKey       = "selected_auth_id"
 const ExecutionSessionMetadataKey   = "execution_session_id"
@@ -530,6 +561,7 @@ type Record struct {
     ServiceTier         string
     RequestServiceTier  string
     ResponseServiceTier string
+    Generate            *bool
     RequestedAt         time.Time
     Latency             time.Duration
     TTFT                time.Duration
@@ -538,6 +570,9 @@ type Record struct {
     Detail              Detail
     ResponseHeaders     http.Header
 }
+
+const DefaultServiceTier = "default"
+const AutoServiceTier    = "auto"
 
 type Failure struct {
     StatusCode int
@@ -586,12 +621,20 @@ func WithReasoningEffort(ctx context.Context, effort string) context.Context
 func ReasoningEffortFromContext(ctx context.Context) string
 func WithServiceTier(ctx context.Context, tier string) context.Context
 func ServiceTierFromContext(ctx context.Context) string
+func WithGenerate(ctx context.Context, generate bool) context.Context
+func GenerateFromContext(ctx context.Context) bool
+func GenerateFlag(generate bool) *bool
+func GenerateEnabled(generate *bool) bool
 ```
+
+`RequestServiceTier` в v7.2.80 оставлен как deprecated input-only alias;
+нормализованное значение находится в `ServiceTier`. `Record.Generate == nil`
+означает историческое поведение `true`; только явный `false` отключает generation.
 
 ⚠️ **R3 стриминг:** `HandleUsage` может вызываться асинхронно после отмены context.
 Principal/user_id копируется ядром в `Record.APIKey` при старте запроса, не из context в момент `HandleUsage`.
 
-**Совместимость (SDK v7.2.71):** публичный `usage.Record` не содержит отдельного
+**Совместимость (SDK v7.2.80):** публичный `usage.Record` не содержит отдельного
 поля API-key ID, но переносит `Record.APIKey` из access principal. Бизнес-слой
 кодирует в нём versioned пару `user_id/api_key_id` и декодирует её в
 `usage.Plugin`; это не требует upstream `internal/*` или reflect-обходов (R12).
@@ -935,6 +978,8 @@ type Config       = internalconfig.Config       // главный тип
 type SDKConfig    = internalconfig.SDKConfig    // встраивается в Config
 type StreamingConfig = internalconfig.StreamingConfig
 type TLSConfig    = internalconfig.TLSConfig
+type XAIKey       = internalconfig.XAIKey
+type XAIModel     = internalconfig.XAIModel
 ```
 
 ### Ключевые поля `Config` (важные для бизнес-слоя)
@@ -954,6 +999,7 @@ type TLSConfig    = internalconfig.TLSConfig
 | `RemoteManagement` | RemoteManagement | `remote-management` | AllowRemote, SecretKey |
 | `OAuthExcludedModels` | map[string][]string | `oauth-excluded-models` | per-provider исключения |
 | `OAuthModelAlias` | map[string][]OAuthModelAlias | `oauth-model-alias` | алиасы моделей |
+| `XAIKey` | []XAIKey | `xai-api-key` | native xAI API-key credentials и model mappings |
 
 ```go
 type RoutingConfig struct {

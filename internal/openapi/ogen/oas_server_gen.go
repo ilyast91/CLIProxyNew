@@ -24,9 +24,9 @@ type Handler interface {
 	CreateMyAPIKey(ctx context.Context, req *CreateAPIKeyRequest) (CreateMyAPIKeyRes, error)
 	// CreateProviderAPIKeys implements createProviderAPIKeys operation.
 	//
-	// Регистрирует до 100 статических upstream credentials через public
-	// SDK manager. Каждый credential шифруется в Store и записывается в
-	// admin audit log; ключи не возвращаются.
+	// Регистрирует до 100 статических upstream credentials через public SDK
+	// manager. Каждый credential шифруется в Store и записывается в admin
+	// audit log; ключи не возвращаются.
 	//
 	// POST /api/v1/admin/providers/keys
 	CreateProviderAPIKeys(ctx context.Context, req *CreateProviderKeysRequest) (CreateProviderAPIKeysRes, error)
@@ -125,16 +125,16 @@ type Handler interface {
 	// Login implements login operation.
 	//
 	// Проверяет credentials через LDAP либо static source согласно `auth.mode`.
-	// В ответ устанавливает opaque cookie; session-token не
-	// возвращается в JSON.
+	// В ответ устанавливает opaque cookie; session-token не возвращается
+	// в JSON.
 	//
 	// POST /api/v1/login
 	Login(ctx context.Context, req *LoginRequest) (LoginRes, error)
 	// Logout implements logout operation.
 	//
 	// Удаляет session-cookie, если она была передана, и всегда
-	// возвращает
-	// успешный ответ с инструкцией удалить cookie на клиенте.
+	// возвращает успешный ответ с инструкцией удалить cookie
+	// на клиенте.
 	//
 	// POST /api/v1/logout
 	Logout(ctx context.Context) (*LogoutNoContent, error)
@@ -147,8 +147,7 @@ type Handler interface {
 	// OpenapiJson implements openapiJson operation.
 	//
 	// Отдаёт текущую OpenAPI 3.1 спецификацию сервиса (R11.4).
-	// Генерируется из openapi.yaml (может быть embed-нута в
-	// бинарник).
+	// Генерируется из openapi.yaml (может быть embed-нута в бинарник).
 	//
 	// GET /openapi.json
 	OpenapiJson(ctx context.Context) error
@@ -189,9 +188,8 @@ type Handler interface {
 	ProxyResponses(ctx context.Context) (ProxyResponsesRes, error)
 	// Readyz implements readyz operation.
 	//
-	// Возвращает 200, если сервис готов принимать трафик (DB
-	// ping успешен).
-	// Используется k8s readiness-probe (R6.3).
+	// Возвращает 200, если сервис готов принимать трафик (DB ping
+	// успешен). Используется k8s readiness-probe (R6.3).
 	//
 	// GET /readyz
 	Readyz(ctx context.Context) (ReadyzRes, error)

@@ -200,3 +200,5 @@ graph TB
   source-isolation и тестовые требования для static/LDAP credentials.
 - 2026-07-14 — **R12 SDK compatibility:** закреплены публичная граница
   `sdk/*`, compatibility gate для обновлений v7 и ADR-процесс для major.
+- 2026-07-16 — compatibility gate подтверждён на CLIProxyAPI v7.2.80;
+  обновлены Go/tooling dependencies и public SDK reference.

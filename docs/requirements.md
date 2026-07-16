@@ -496,7 +496,7 @@
   - все management-эндпоинты имеют response-схемы (no `Any` для управляемых
     роутов).
 - ✅ **Решено:** spec-first, OpenAPI 3.1, все роуты (прокси без body-схем).
-- ✅ **Решено:** генератор typed bindings — `ogen` v1.20.3; OpenAPI 3.1
+- ✅ **Решено:** генератор typed bindings — `ogen` v1.23.0; OpenAPI 3.1
   compatibility projection описана в ADR-11.
 - ❓ **Открыто:** версия URL (`/api/v1` confirmed; нужен ли `/api/v2`
   механизм версионирования с самого начала).
@@ -508,7 +508,8 @@
   запрещены.
 - R12.2 Версия SDK фиксируется в `go.mod`. Обновления выполняются отдельным
   reviewable изменением с release notes и перечнем breaking changes upstream;
-  автоматическое обновление на новый major запрещено.
+  автоматическое обновление на новый major запрещено. Текущая проверенная
+  версия — `CLIProxyAPI/v7` **v7.2.80** (2026-07-16).
 - R12.3 Перед merge обновления SDK обязательны `go mod tidy`, `go vet`, build,
   unit/race/integration тесты и `go test -race ./internal/sdkcontract` для
   публичных extension points ADR-9.
@@ -665,3 +666,6 @@
 - 2026-07-14 — **R12:** добавлен compatibility gate для обновления внешнего
   SDK: публичные `sdk/*` контракты, фиксированная версия, contract/integration
   проверки и отдельный ADR для нового major.
+- 2026-07-16 — **dependency refresh:** SDK обновлён v7.2.71 → v7.2.80 без
+  breaking changes используемых контрактов ADR-9; `sdk-reference.md` сверён
+  по public API diff и upstream compare/release commits.

@@ -124,7 +124,8 @@ func (*APIKeyListResponse) listMyAPIKeysRes() {}
 
 // APIKeyScope represents sum type.
 type APIKeyScope struct {
-	Type         APIKeyScopeType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type         APIKeyScopeType
 	APIKeyScope0 APIKeyScope0
 	AnyArray     []jx.Raw
 }
@@ -301,8 +302,7 @@ func (*AccountQuotaResponse) getUpstreamAccountQuotaRes() {}
 
 // Ref: #/components/schemas/AccountTestResponse
 type AccountTestResponse struct {
-	// Безопасное описание невалидной credential без upstream response
-	// body.
+	// Безопасное описание невалидной credential без upstream response body.
 	Error           OptString                 `json:"error"`
 	ExpiresAt       OptDateTime               `json:"expires_at"`
 	LastRefreshedAt OptDateTime               `json:"last_refreshed_at"`
@@ -665,7 +665,8 @@ func (s *AdminAPIKeyOwnerStatus) UnmarshalText(data []byte) error {
 
 // AdminAPIKeyScope represents sum type.
 type AdminAPIKeyScope struct {
-	Type              AdminAPIKeyScopeType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type              AdminAPIKeyScopeType
 	AdminAPIKeyScope0 AdminAPIKeyScope0
 	AnyArray          []jx.Raw
 }
@@ -1158,7 +1159,8 @@ func (s *CreateAPIKeyRequest) SetScope(val OptNilCreateAPIKeyRequestScope) {
 
 // CreateAPIKeyRequestScope represents sum type.
 type CreateAPIKeyRequestScope struct {
-	Type                      CreateAPIKeyRequestScopeType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type                      CreateAPIKeyRequestScopeType
 	CreateAPIKeyRequestScope0 CreateAPIKeyRequestScope0
 	AnyArray                  []jx.Raw
 }
@@ -2561,6 +2563,11 @@ func (o *OptNilAPIKeyScope) SetToNull() {
 	o.Value = v
 }
 
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilAPIKeyScope) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
 // Get returns value and boolean that denotes whether value was set.
 func (o OptNilAPIKeyScope) Get() (v APIKeyScope, ok bool) {
 	if o.Null {
@@ -2622,6 +2629,11 @@ func (o *OptNilAdminAPIKeyScope) SetToNull() {
 	o.Null = true
 	var v AdminAPIKeyScope
 	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilAdminAPIKeyScope) IsEmpty() bool {
+	return !o.Set && !o.Null
 }
 
 // Get returns value and boolean that denotes whether value was set.
@@ -2687,6 +2699,11 @@ func (o *OptNilCreateAPIKeyRequestScope) SetToNull() {
 	o.Value = v
 }
 
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilCreateAPIKeyRequestScope) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
 // Get returns value and boolean that denotes whether value was set.
 func (o OptNilCreateAPIKeyRequestScope) Get() (v CreateAPIKeyRequestScope, ok bool) {
 	if o.Null {
@@ -2748,6 +2765,11 @@ func (o *OptNilDateTime) SetToNull() {
 	o.Null = true
 	var v time.Time
 	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilDateTime) IsEmpty() bool {
+	return !o.Set && !o.Null
 }
 
 // Get returns value and boolean that denotes whether value was set.

@@ -2,4 +2,4 @@
 package ogen
 
 //go:generate go run ../../../cmd/openapiogen -in ../../../openapi.yaml -out openapi.compat.yaml
-//go:generate go run github.com/ogen-go/ogen/cmd/ogen@v1.20.3 --target . --package ogen openapi.compat.yaml
+//go:generate go run github.com/ogen-go/ogen/cmd/ogen@v1.23.0 --target . --package ogen openapi.compat.yaml

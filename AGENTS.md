@@ -10,14 +10,14 @@
 [`CLIProxyAPIBusiness`](https://github.com/router-for-me/CLIProxyAPIBusiness)
 (бизнес-слой).
 
-- **Go module:** `github.com/ilyast91/CLIProxyNew` (go 1.26)
+- **Go module:** `github.com/ilyast91/CLIProxyNew` (go 1.26.5)
 - **Ветка:** `main` (tracking `origin/main`).
 - **Remote:** `origin` → `https://github.com/ilyast91/CLIProxyNew.git`
 
 ## Критически важно: модель интеграции
 
 **Ядро upstream relay — внешняя Go-зависимость**
-(`github.com/router-for-me/CLIProxyAPI/v7`, как `CLIProxyAPI/v6` в референсе).
+(`github.com/router-for-me/CLIProxyAPI/v7` v7.2.80, как `CLIProxyAPI/v6` в референсе).
 В этом репозитории мы пишем ТОЛЬКО бизнес-слой.
 
 - ❌ **Не пишем здесь:** refresh-протоколы провайдеров, transport, стриминг,
@@ -183,3 +183,5 @@ go test ./...           # тесты
   контракты, compatibility gate и ADR для major-версий.
 - 2026-07-15 — R10 переделан на system proxy через HTTP_PROXY/HTTPS_PROXY/
   NO_PROXY; `proxy.*` и per-account ProxyURL overrides удалены.
+- 2026-07-16 — dependency baseline обновлён: Go 1.26.5, CLIProxyAPI v7.2.80,
+  ogen v1.23.0, pgx v5.10.0, Gin v1.12.0, testcontainers v0.43.0.

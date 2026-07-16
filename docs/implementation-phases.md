@@ -46,7 +46,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   Builder → `Service.Run` с public SDK contracts
 - [x] CI pipeline (GitHub Actions): `go vet`, `gofmt -l`, `go build`,
   `go test -short -race`, Spectral и SDK compatibility gate
-- [x] OpenAPI generator spike: выбран `ogen` v1.20.3; OAS 3.1 compatibility
+- [x] OpenAPI generator spike: выбран `ogen` v1.23.0; OAS 3.1 compatibility
   projection и typed bindings генерируются и проверяются на drift в CI (ADR-11)
 - [x] Базовый `openapi.yaml` (OpenAPI 3.1) + spectral lint в CI
 - [x] R12: SDK compatibility gate — `internal/sdkcontract` компилирует все
@@ -151,7 +151,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   основные proxy compatibility URLs (`chat/completions`, `messages`,
   `generateContent`, `responses`, `models`) описаны без body-схем; остаётся
   сверка полного proxy surface SDK и опциональный `/docs`
-- [x] Генерация typed bindings из `openapi.yaml`: `ogen` v1.20.3 через
+- [x] Генерация typed bindings из `openapi.yaml`: `ogen` v1.23.0 через
   compatibility projection (ADR-11); контракт покрывает lifecycle management-сессии
   (`/api/v1/me`, `/api/v1/logout`); adapter существующих handlers — отдельный шаг
 - [ ] `internal/httpapi` — management routes через `api.WithRouterConfigurator`:
@@ -336,3 +336,6 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   `access.Provider` и `Selector` с trace-context propagation, error status и
   тестами, запрещающими попадание API-key, credential metadata и boundary-error
   messages в attributes, status description и span events.
+- 2026-07-16 — dependency refresh: Go 1.26.5, CLIProxyAPI v7.2.80, ogen
+  v1.23.0, Gin v1.12.0, pgx v5.10.0, testcontainers v0.43.0, OTel 1.44;
+  CI actions обновлены до v7, public SDK diff задокументирован.

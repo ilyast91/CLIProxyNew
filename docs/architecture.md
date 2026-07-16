@@ -6,7 +6,7 @@
 ## 1. Обзор
 
 `CLIProxyNew` — бизнес-обвязка над upstream relay-движком
-`github.com/router-for-me/CLIProxyAPI/v7` (далее «ядро»). Бизнес-слой
+`github.com/router-for-me/CLIProxyAPI/v7` v7.2.80 (далее «ядро»). Бизнес-слой
 реализует **7 контрактов расширения** ядра (ADR-9) и добавляет: identity auth
 (LDAP в production, static в development/test), аналитику, management-API,
 system egress proxy, observability, multi-replica в k8s.
@@ -92,6 +92,11 @@ graph TB
 тестами и интеграциями.
 Переход на новый major — отдельное архитектурное изменение с ADR и
 миграционным планом.
+
+Последняя compatibility-сверка выполнена 2026-07-16 для v7.2.80: семь
+контрактов ADR-9 сохранили сигнатуры. Новые `SelectAuthByKind`,
+request-scoped errors, usage `Generate` и native xAI API-key config остаются
+публичными возможностями ядра и не требуют изменения слойности бизнес-кода.
 
 ## 2. Запуск приложения (cmd/cliproxy/main.go)
 

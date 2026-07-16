@@ -71,7 +71,7 @@ func (s *Server) handleCancelOAuthSessionRequest(args [1]string, argsEscaped boo
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -260,7 +260,7 @@ func (s *Server) handleCreateMyAPIKeyRequest(args [0]string, argsEscaped bool, w
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -411,9 +411,9 @@ func (s *Server) handleCreateMyAPIKeyRequest(args [0]string, argsEscaped bool, w
 
 // handleCreateProviderAPIKeysRequest handles createProviderAPIKeys operation.
 //
-// Регистрирует до 100 статических upstream credentials через public
-// SDK manager. Каждый credential шифруется в Store и записывается в
-// admin audit log; ключи не возвращаются.
+// Регистрирует до 100 статических upstream credentials через public SDK
+// manager. Каждый credential шифруется в Store и записывается в admin
+// audit log; ключи не возвращаются.
 //
 // POST /api/v1/admin/providers/keys
 func (s *Server) handleCreateProviderAPIKeysRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -449,7 +449,7 @@ func (s *Server) handleCreateProviderAPIKeysRequest(args [0]string, argsEscaped 
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -636,7 +636,7 @@ func (s *Server) handleDeleteModelOverrideRequest(args [1]string, argsEscaped bo
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -825,7 +825,7 @@ func (s *Server) handleExportOAuthCredentialRequest(args [1]string, argsEscaped 
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -1012,7 +1012,7 @@ func (s *Server) handleGetCurrentUserRequest(args [0]string, argsEscaped bool, w
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -1186,7 +1186,7 @@ func (s *Server) handleGetMyUsageRequest(args [0]string, argsEscaped bool, w htt
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -1377,7 +1377,7 @@ func (s *Server) handleGetOAuthSessionRequest(args [1]string, argsEscaped bool, 
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -1566,7 +1566,7 @@ func (s *Server) handleGetUpstreamAccountQuotaRequest(args [1]string, argsEscape
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -1753,7 +1753,7 @@ func (s *Server) handleHealthzRequest(args [0]string, argsEscaped bool, w http.R
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -1880,7 +1880,7 @@ func (s *Server) handleImportOAuthCredentialRequest(args [0]string, argsEscaped 
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -2068,7 +2068,7 @@ func (s *Server) handleListAllAPIKeysRequest(args [0]string, argsEscaped bool, w
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -2242,7 +2242,7 @@ func (s *Server) handleListModelOverridesRequest(args [0]string, argsEscaped boo
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -2416,7 +2416,7 @@ func (s *Server) handleListMyAPIKeysRequest(args [0]string, argsEscaped bool, w 
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -2588,7 +2588,7 @@ func (s *Server) handleListPendingOAuthSessionsRequest(args [0]string, argsEscap
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -2760,7 +2760,7 @@ func (s *Server) handleListUsersRequest(args [0]string, argsEscaped bool, w http
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -2897,8 +2897,8 @@ func (s *Server) handleListUsersRequest(args [0]string, argsEscaped bool, w http
 // handleLoginRequest handles login operation.
 //
 // Проверяет credentials через LDAP либо static source согласно `auth.mode`.
-// В ответ устанавливает opaque cookie; session-token не
-// возвращается в JSON.
+// В ответ устанавливает opaque cookie; session-token не возвращается
+// в JSON.
 //
 // POST /api/v1/login
 func (s *Server) handleLoginRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -2934,7 +2934,7 @@ func (s *Server) handleLoginRequest(args [0]string, argsEscaped bool, w http.Res
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -3042,8 +3042,8 @@ func (s *Server) handleLoginRequest(args [0]string, argsEscaped bool, w http.Res
 // handleLogoutRequest handles logout operation.
 //
 // Удаляет session-cookie, если она была передана, и всегда
-// возвращает
-// успешный ответ с инструкцией удалить cookie на клиенте.
+// возвращает успешный ответ с инструкцией удалить cookie
+// на клиенте.
 //
 // POST /api/v1/logout
 func (s *Server) handleLogoutRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -3079,7 +3079,7 @@ func (s *Server) handleLogoutRequest(args [0]string, argsEscaped bool, w http.Re
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -3203,7 +3203,7 @@ func (s *Server) handleMetricsRequest(args [0]string, argsEscaped bool, w http.R
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -3292,8 +3292,7 @@ func (s *Server) handleMetricsRequest(args [0]string, argsEscaped bool, w http.R
 // handleOpenapiJsonRequest handles openapiJson operation.
 //
 // Отдаёт текущую OpenAPI 3.1 спецификацию сервиса (R11.4).
-// Генерируется из openapi.yaml (может быть embed-нута в
-// бинарник).
+// Генерируется из openapi.yaml (может быть embed-нута в бинарник).
 //
 // GET /openapi.json
 func (s *Server) handleOpenapiJsonRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -3329,7 +3328,7 @@ func (s *Server) handleOpenapiJsonRequest(args [0]string, argsEscaped bool, w ht
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -3454,7 +3453,7 @@ func (s *Server) handleProxyChatCompletionsRequest(args [0]string, argsEscaped b
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -3627,7 +3626,7 @@ func (s *Server) handleProxyGenerateContentRequest(args [1]string, argsEscaped b
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -3815,7 +3814,7 @@ func (s *Server) handleProxyMessagesRequest(args [0]string, argsEscaped bool, w 
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -3988,7 +3987,7 @@ func (s *Server) handleProxyModelsRequest(args [0]string, argsEscaped bool, w ht
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -4161,7 +4160,7 @@ func (s *Server) handleProxyResponsesRequest(args [0]string, argsEscaped bool, w
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -4297,9 +4296,8 @@ func (s *Server) handleProxyResponsesRequest(args [0]string, argsEscaped bool, w
 
 // handleReadyzRequest handles readyz operation.
 //
-// Возвращает 200, если сервис готов принимать трафик (DB
-// ping успешен).
-// Используется k8s readiness-probe (R6.3).
+// Возвращает 200, если сервис готов принимать трафик (DB ping
+// успешен). Используется k8s readiness-probe (R6.3).
 //
 // GET /readyz
 func (s *Server) handleReadyzRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -4335,7 +4333,7 @@ func (s *Server) handleReadyzRequest(args [0]string, argsEscaped bool, w http.Re
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -4459,7 +4457,7 @@ func (s *Server) handleRevokeMyAPIKeyRequest(args [1]string, argsEscaped bool, w
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -4647,7 +4645,7 @@ func (s *Server) handleSetUserStatusRequest(args [1]string, argsEscaped bool, w 
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -4851,7 +4849,7 @@ func (s *Server) handleTestUpstreamAccountRequest(args [1]string, argsEscaped bo
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -5038,7 +5036,7 @@ func (s *Server) handleUpsertModelOverrideRequest(args [1]string, argsEscaped bo
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 

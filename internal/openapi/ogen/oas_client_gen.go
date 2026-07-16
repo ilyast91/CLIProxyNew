@@ -4,6 +4,7 @@ package ogen
 
 import (
 	"context"
+	"io"
 	"net/url"
 	"strings"
 	"time"
@@ -44,9 +45,9 @@ type Invoker interface {
 	CreateMyAPIKey(ctx context.Context, request *CreateAPIKeyRequest) (CreateMyAPIKeyRes, error)
 	// CreateProviderAPIKeys invokes createProviderAPIKeys operation.
 	//
-	// Регистрирует до 100 статических upstream credentials через public
-	// SDK manager. Каждый credential шифруется в Store и записывается в
-	// admin audit log; ключи не возвращаются.
+	// Регистрирует до 100 статических upstream credentials через public SDK
+	// manager. Каждый credential шифруется в Store и записывается в admin
+	// audit log; ключи не возвращаются.
 	//
 	// POST /api/v1/admin/providers/keys
 	CreateProviderAPIKeys(ctx context.Context, request *CreateProviderKeysRequest) (CreateProviderAPIKeysRes, error)
@@ -145,16 +146,16 @@ type Invoker interface {
 	// Login invokes login operation.
 	//
 	// Проверяет credentials через LDAP либо static source согласно `auth.mode`.
-	// В ответ устанавливает opaque cookie; session-token не
-	// возвращается в JSON.
+	// В ответ устанавливает opaque cookie; session-token не возвращается
+	// в JSON.
 	//
 	// POST /api/v1/login
 	Login(ctx context.Context, request *LoginRequest) (LoginRes, error)
 	// Logout invokes logout operation.
 	//
 	// Удаляет session-cookie, если она была передана, и всегда
-	// возвращает
-	// успешный ответ с инструкцией удалить cookie на клиенте.
+	// возвращает успешный ответ с инструкцией удалить cookie
+	// на клиенте.
 	//
 	// POST /api/v1/logout
 	Logout(ctx context.Context) (*LogoutNoContent, error)
@@ -167,8 +168,7 @@ type Invoker interface {
 	// OpenapiJson invokes openapiJson operation.
 	//
 	// Отдаёт текущую OpenAPI 3.1 спецификацию сервиса (R11.4).
-	// Генерируется из openapi.yaml (может быть embed-нута в
-	// бинарник).
+	// Генерируется из openapi.yaml (может быть embed-нута в бинарник).
 	//
 	// GET /openapi.json
 	OpenapiJson(ctx context.Context) error
@@ -209,9 +209,8 @@ type Invoker interface {
 	ProxyResponses(ctx context.Context) (ProxyResponsesRes, error)
 	// Readyz invokes readyz operation.
 	//
-	// Возвращает 200, если сервис готов принимать трафик (DB
-	// ping успешен).
-	// Используется k8s readiness-probe (R6.3).
+	// Возвращает 200, если сервис готов принимать трафик (DB ping
+	// успешен). Используется k8s readiness-probe (R6.3).
 	//
 	// GET /readyz
 	Readyz(ctx context.Context) (ReadyzRes, error)
@@ -399,7 +398,13 @@ func (c *Client) sendCancelOAuthSession(ctx context.Context, params CancelOAuthS
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeCancelOAuthSessionResponse(resp)
@@ -511,7 +516,13 @@ func (c *Client) sendCreateMyAPIKey(ctx context.Context, request *CreateAPIKeyRe
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeCreateMyAPIKeyResponse(resp)
@@ -524,9 +535,9 @@ func (c *Client) sendCreateMyAPIKey(ctx context.Context, request *CreateAPIKeyRe
 
 // CreateProviderAPIKeys invokes createProviderAPIKeys operation.
 //
-// Регистрирует до 100 статических upstream credentials через public
-// SDK manager. Каждый credential шифруется в Store и записывается в
-// admin audit log; ключи не возвращаются.
+// Регистрирует до 100 статических upstream credentials через public SDK
+// manager. Каждый credential шифруется в Store и записывается в admin
+// audit log; ключи не возвращаются.
 //
 // POST /api/v1/admin/providers/keys
 func (c *Client) CreateProviderAPIKeys(ctx context.Context, request *CreateProviderKeysRequest) (CreateProviderAPIKeysRes, error) {
@@ -623,7 +634,13 @@ func (c *Client) sendCreateProviderAPIKeys(ctx context.Context, request *CreateP
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeCreateProviderAPIKeysResponse(resp)
@@ -748,7 +765,13 @@ func (c *Client) sendDeleteModelOverride(ctx context.Context, params DeleteModel
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeDeleteModelOverrideResponse(resp)
@@ -876,7 +899,13 @@ func (c *Client) sendExportOAuthCredential(ctx context.Context, params ExportOAu
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeExportOAuthCredentialResponse(resp)
@@ -983,7 +1012,13 @@ func (c *Client) sendGetCurrentUser(ctx context.Context) (res GetCurrentUserRes,
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetCurrentUserResponse(resp)
@@ -1130,7 +1165,13 @@ func (c *Client) sendGetMyUsage(ctx context.Context, params GetMyUsageParams) (r
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetMyUsageResponse(resp)
@@ -1255,7 +1296,13 @@ func (c *Client) sendGetOAuthSession(ctx context.Context, params GetOAuthSession
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetOAuthSessionResponse(resp)
@@ -1383,7 +1430,13 @@ func (c *Client) sendGetUpstreamAccountQuota(ctx context.Context, params GetUpst
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetUpstreamAccountQuotaResponse(resp)
@@ -1457,7 +1510,13 @@ func (c *Client) sendHealthz(ctx context.Context) (res HealthzOK, err error) {
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeHealthzResponse(resp)
@@ -1570,7 +1629,13 @@ func (c *Client) sendImportOAuthCredential(ctx context.Context, request *OAuthCr
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeImportOAuthCredentialResponse(resp)
@@ -1678,7 +1743,13 @@ func (c *Client) sendListAllAPIKeys(ctx context.Context) (res ListAllAPIKeysRes,
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeListAllAPIKeysResponse(resp)
@@ -1787,7 +1858,13 @@ func (c *Client) sendListModelOverrides(ctx context.Context) (res *ModelOverride
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeListModelOverridesResponse(resp)
@@ -1896,7 +1973,13 @@ func (c *Client) sendListMyAPIKeys(ctx context.Context) (res ListMyAPIKeysRes, e
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeListMyAPIKeysResponse(resp)
@@ -2003,7 +2086,13 @@ func (c *Client) sendListPendingOAuthSessions(ctx context.Context) (res ListPend
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeListPendingOAuthSessionsResponse(resp)
@@ -2110,7 +2199,13 @@ func (c *Client) sendListUsers(ctx context.Context) (res ListUsersRes, err error
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeListUsersResponse(resp)
@@ -2124,8 +2219,8 @@ func (c *Client) sendListUsers(ctx context.Context) (res ListUsersRes, err error
 // Login invokes login operation.
 //
 // Проверяет credentials через LDAP либо static source согласно `auth.mode`.
-// В ответ устанавливает opaque cookie; session-token не
-// возвращается в JSON.
+// В ответ устанавливает opaque cookie; session-token не возвращается
+// в JSON.
 //
 // POST /api/v1/login
 func (c *Client) Login(ctx context.Context, request *LoginRequest) (LoginRes, error) {
@@ -2189,7 +2284,13 @@ func (c *Client) sendLogin(ctx context.Context, request *LoginRequest) (res Logi
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeLoginResponse(resp)
@@ -2203,8 +2304,8 @@ func (c *Client) sendLogin(ctx context.Context, request *LoginRequest) (res Logi
 // Logout invokes logout operation.
 //
 // Удаляет session-cookie, если она была передана, и всегда
-// возвращает
-// успешный ответ с инструкцией удалить cookie на клиенте.
+// возвращает успешный ответ с инструкцией удалить cookie
+// на клиенте.
 //
 // POST /api/v1/logout
 func (c *Client) Logout(ctx context.Context) (*LogoutNoContent, error) {
@@ -2265,7 +2366,13 @@ func (c *Client) sendLogout(ctx context.Context) (res *LogoutNoContent, err erro
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeLogoutResponse(resp)
@@ -2339,7 +2446,13 @@ func (c *Client) sendMetrics(ctx context.Context) (res MetricsOK, err error) {
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeMetricsResponse(resp)
@@ -2353,8 +2466,7 @@ func (c *Client) sendMetrics(ctx context.Context) (res MetricsOK, err error) {
 // OpenapiJson invokes openapiJson operation.
 //
 // Отдаёт текущую OpenAPI 3.1 спецификацию сервиса (R11.4).
-// Генерируется из openapi.yaml (может быть embed-нута в
-// бинарник).
+// Генерируется из openapi.yaml (может быть embed-нута в бинарник).
 //
 // GET /openapi.json
 func (c *Client) OpenapiJson(ctx context.Context) error {
@@ -2415,7 +2527,13 @@ func (c *Client) sendOpenapiJson(ctx context.Context) (res *OpenapiJsonOK, err e
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeOpenapiJsonResponse(resp)
@@ -2523,7 +2641,13 @@ func (c *Client) sendProxyChatCompletions(ctx context.Context) (res ProxyChatCom
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeProxyChatCompletionsResponse(resp)
@@ -2650,7 +2774,13 @@ func (c *Client) sendProxyGenerateContent(ctx context.Context, params ProxyGener
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeProxyGenerateContentResponse(resp)
@@ -2758,7 +2888,13 @@ func (c *Client) sendProxyMessages(ctx context.Context) (res ProxyMessagesRes, e
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeProxyMessagesResponse(resp)
@@ -2866,7 +3002,13 @@ func (c *Client) sendProxyModels(ctx context.Context) (res ProxyModelsRes, err e
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeProxyModelsResponse(resp)
@@ -2974,7 +3116,13 @@ func (c *Client) sendProxyResponses(ctx context.Context) (res ProxyResponsesRes,
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeProxyResponsesResponse(resp)
@@ -2987,9 +3135,8 @@ func (c *Client) sendProxyResponses(ctx context.Context) (res ProxyResponsesRes,
 
 // Readyz invokes readyz operation.
 //
-// Возвращает 200, если сервис готов принимать трафик (DB
-// ping успешен).
-// Используется k8s readiness-probe (R6.3).
+// Возвращает 200, если сервис готов принимать трафик (DB ping
+// успешен). Используется k8s readiness-probe (R6.3).
 //
 // GET /readyz
 func (c *Client) Readyz(ctx context.Context) (ReadyzRes, error) {
@@ -3050,7 +3197,13 @@ func (c *Client) sendReadyz(ctx context.Context) (res ReadyzRes, err error) {
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeReadyzResponse(resp)
@@ -3175,7 +3328,13 @@ func (c *Client) sendRevokeMyAPIKey(ctx context.Context, params RevokeMyAPIKeyPa
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeRevokeMyAPIKeyResponse(resp)
@@ -3304,7 +3463,13 @@ func (c *Client) sendSetUserStatus(ctx context.Context, request *SetUserStatusRe
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeSetUserStatusResponse(resp)
@@ -3432,7 +3597,13 @@ func (c *Client) sendTestUpstreamAccount(ctx context.Context, params TestUpstrea
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeTestUpstreamAccountResponse(resp)
@@ -3560,7 +3731,13 @@ func (c *Client) sendUpsertModelOverride(ctx context.Context, request *UpsertMod
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeUpsertModelOverrideResponse(resp)

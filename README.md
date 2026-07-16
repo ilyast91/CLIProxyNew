@@ -19,15 +19,20 @@
 
 ## Стек
 
-- **Go 1.26**
+- **Go 1.26.5**
+- **Upstream SDK:** `github.com/router-for-me/CLIProxyAPI/v7` **v7.2.80**
 - **БД:** Postgres + `pgx/v5` + `sqlc` + `golang-migrate` (без ORM)
 - **Аналитика:** Postgres (партиционирование по дню + материализованные агрегаты; задел под ClickHouse)
 - **Auth:** LDAP (bind/search, live-lookup групп), opaque session-токены (cookie) + long-lived API-keys (bcrypt)
 - **Шифрование at-rest:** bcrypt (API-keys) + AES-256-GCM (upstream credentials); LDAP bind-password остаётся только в env/k8s Secret, key-versioning поддерживает ротацию
 - **Scheduler/watcher:** ядро делает auto-refresh, бизнес-слой оркеструет (Postgres advisory lock для leader election)
 - **Egress-прокси:** единая policy процесса через `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` (R10)
-- **Observability:** Prometheus, OpenTelemetry, `slog`
+- **Observability:** Prometheus 1.23.2, OpenTelemetry 1.44, `slog`
 - **Деплой:** k8s, multi-replica, stateless (без Redis на первой версии)
+
+Ключевые build-зависимости зафиксированы в `go.mod`: Gin 1.12.0, pgx 5.10.0,
+ogen 1.23.0, testcontainers 0.43.0. CI использует Go 1.26.5, GitHub Actions v7,
+Node.js 24 и Spectral CLI 6.16.1.
 
 ## Структура
 
@@ -54,7 +59,7 @@ docs/            — требования, ADR, дизайн
 - [`docs/architecture-principles.md`](docs/architecture-principles.md) — требования к архитектуре (принципы, quality attributes, SLA, тестирование)
 - [`docs/architecture.md`](docs/architecture.md) — архитектурный дизайн (components, потоки, deployment)
 - [`docs/database-schema.md`](docs/database-schema.md) — схема БД (ER, таблицы, индексы, миграции)
-- [`docs/sdk-reference.md`](docs/sdk-reference.md) — референс публичного API SDK ядра (типы, интерфейсы, сигнатуры)
+- [`docs/sdk-reference.md`](docs/sdk-reference.md) — референс публичного API CLIProxyAPI v7.2.80 и результат compatibility-сверки
 - [`docs/design/r9-oauth-and-testing.md`](docs/design/r9-oauth-and-testing.md) — дизайн OAuth login-flow и тестирования аккаунтов (R9.A.1, R9.A.5)
 - [`docs/implementation-phases.md`](docs/implementation-phases.md) — план имплементации по фазам (Ф0–Ф7)
 - [`docs/adr/ADR-9-sdk-contracts.md`](docs/adr/ADR-9-sdk-contracts.md) — контракты интеграции с ядром (7 интерфейсов)
