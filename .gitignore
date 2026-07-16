@@ -15,6 +15,7 @@
 
 # Go workspace
 /vendor/
+/.worktrees/
 
 # IDE / editor
 /.idea/
