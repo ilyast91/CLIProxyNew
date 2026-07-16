@@ -1,8 +1,10 @@
 # План имплементации CLIProxyNew по фазам
 
 > **Статус:** Принят.
-> **Scope v1:** ВСЁ из R1–R12 (кроме явных «не делаем» — квоты/rate-limit, UI,
-> плагины, Redis, fork ядра). Откладываний нет.
+> **Текущий scope:** бизнес-слой R1–R12 и автоматизированный release hardening.
+> Provider-specific OAuth flows не реализуются до появления подходящего
+> публичного SDK-контракта; load/chaos и operational runbooks остаются следующим
+> release-operations инкрементом.
 > **Связанные:** [requirements.md](requirements.md), [architecture-principles.md](architecture-principles.md),
 > [architecture.md](architecture.md), [database-schema.md](database-schema.md).
 
@@ -69,13 +71,14 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   6. oauth_sessions
 - [x] Миграция `users.identity_source`: source/namespace CHECK, совместимый
   default `ldap` и guarded down (R1.5)
-- [ ] sqlc config + сгенерированные запросы для всех таблиц; готовы users,
-  api_keys, sessions, upstream_accounts, model_overrides, usage_events и runtime_revisions
-- [x] Partition management SQL-функция (create future + drop old); cron-job
-  wiring остаётся задачей Ф6 deployment
+- [x] sqlc config + сгенерированные запросы для всех таблиц, включая
+  admin_audit_log, oauth_sessions, model_registry_snapshots и runtime_revisions
+- [x] Отдельный cron/scheduler для `usage_events` не требуется и не планируется;
+  существующая схема и миграции этим инкрементом не меняются
 - [x] `internal/security` — bcrypt cost 12 + AES-256-GCM с key-version prefix (R5)
-- [ ] `internal/store` — готовы users, api_keys, sessions, model_overrides,
-  usage_events и runtime_revisions; остаются admin_audit_log и oauth_sessions
+- [x] `internal/store` — repositories для users, api_keys, sessions,
+  model_overrides, usage_events, runtime_revisions, admin_audit_log,
+  oauth_sessions и model_registry_snapshots
 - [x] `internal/store` — реализация `coreauth.Store` (List/Save/Delete) с transparent AES-шифрованием credentials
 - [x] Integration tests с testcontainers PG (миграции up/down идемпотентны)
 
@@ -98,12 +101,16 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - [x] `internal/cache` — generic TTL, api_key_lookup и session_lookup готовы;
   session cache использует TTL 10с, локально invalidates на admin block/logout,
   а межрепличная согласованность ограничена TTL
-- [ ] Unit tests: ldap (mock LDAP), access (cache hit/miss, blocked user), session TTL
+- [x] Unit tests: LDAP через fake connection, access cache hit/miss и blocked
+  user, фиксированные user/admin session TTL и cache invalidation
 - [x] Regression tests: static запрещён в production; source isolation для
   session/API-key подтверждён на Postgres; guarded migration down отказывает
   при static users. Non-rolling switch зафиксирован в deployment runbook.
 
-**Acceptance:** логин по LDAP создаёт cookie, запрос с API-key авторизуется, заблокированный пользователь отвергается, кэш даёт ≥95% hit ratio в steady-state тесте.
+**Acceptance текущего scope:** login создаёт cookie с фиксированным TTL, запрос
+с API-key авторизуется, заблокированный пользователь отвергается, cache
+hit/miss и invalidation покрыты тестами. SLA hit ratio проверяется будущим
+load-gate Ф7.
 
 ---
 
@@ -136,9 +143,9 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   → RegisterUsagePlugin → Service.Run
 - [x] `internal/config` — минимальный SDK config bridge для listener; file-backed
   auth/watcher намеренно не bridge'ится, источник credentials — Postgres Store
-- [x] Contract compile-tests для публичных extension points ADR-9 в
-  `internal/sdkcontract`; behavioral contract/integration coverage остаётся
-  в пакетах реализаций и расширяется на Ф7
+- [x] Compile-contracts публичных extension points в `internal/sdkcontract` и
+  явный behavioral gate `scripts/verify-adr9-contracts.sh` для всех семи ролей
+  ADR-9, включая PostgreSQL `coreauth.Store`
 
 **Acceptance:** сервис запускается и проксирует inference-запрос (с тестовым auth), auto-refresh работает (mock провайдера), usage_events записываются, leader election переключается при падении реплики (multi-instance тест).
 
@@ -147,19 +154,22 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 ## Фаза 4 — Management API (R9)
 **Цель:** полный management-API, OpenAPI-first.
 
-- [ ] `openapi.yaml` — management-эндпоинты (R9.U, R9.A, oauth/sessions) и
-  основные proxy compatibility URLs (`chat/completions`, `messages`,
-  `generateContent`, `responses`, `models`) описаны без body-схем; остаётся
-  сверка полного proxy surface SDK и опциональный `/docs`
+- [x] `openapi.yaml` — management-эндпоинты и полный proxy HTTP surface SDK
+  v7.2.80 (27 method/path operations для `/v1`, `/openai/v1`,
+  `/backend-api/codex`, `/v1beta`) описаны без дублирования upstream body-схем;
+  route matrix защищена embedded contract test. Опциональный `/docs` остаётся Ф6
 - [x] Генерация typed bindings из `openapi.yaml`: `ogen` v1.23.0 через
   compatibility projection (ADR-11); контракт покрывает lifecycle management-сессии
   (`/api/v1/me`, `/api/v1/logout`); adapter существующих handlers — отдельный шаг
-- [ ] `internal/httpapi` — management routes через `api.WithRouterConfigurator`:
+- [x] `internal/httpapi` — management routes через `api.WithRouterConfigurator`:
   - [x] `/api/v1/login`, `/api/v1/logout`, `/api/v1/me` (R1, session-cookie middleware)
   - [x] `/api/v1/me/keys` CRUD (R9.U.2; create/list/revoke)
   - [x] `/api/v1/me/usage` (R9.U.3; totals, модели и API-ключи за период)
   - [x] `/api/v1/admin/users`, `/api/v1/admin/keys` (R9.A.3; users list/status + all-keys)
-- [ ] R9.A.1 OAuth flow: `internal/auth/oauth` (FlowManager) — callback-flow (Codex/Claude/Antigravity) + device-flow (Kimi/xAI), сессии в oauth_sessions, `Store.Save` после exchange (Postgres lifecycle, typed admin list/get/cancel и tests готовы; provider adapters blocked: public SDK не отдает async flow с внешним session store, а импорт `internal/*` запрещен R12)
+- **Вне текущего scope / SDK-blocked:** provider-specific R9.A.1 callback/device
+  OAuth flows. PostgreSQL lifecycle и typed admin list/get/cancel готовы, но
+  public SDK v7.2.80 не предоставляет async flow с внешним session store;
+  импорт upstream `internal/*` запрещён R12
 - [x] R9.A.5 testing: `internal/auth/testing` (Checker) — OAuth через
   `Refresh` с persistence обновлённого Auth, API-key через `HttpRequest` к
   provider metadata endpoint; `POST /api/v1/admin/accounts/{accountID}/test`
@@ -187,7 +197,10 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
   и usage, admin users/keys, provider keys/models, OAuth sessions/import/export,
   account test/quota
 
-**Acceptance:** все R9-функции работают через REST, OpenAPI спецификация валидируется, drift-check с кодом проходит, `admin_audit_log` покрывает 100% mutating actions.
+**Acceptance текущего scope:** реализованные R9-функции работают через REST,
+OpenAPI спецификация валидируется, drift-check с кодом проходит,
+`admin_audit_log` покрывает mutating actions. Provider OAuth flows не являются
+блокером этого инкремента.
 
 ---
 
@@ -245,24 +258,35 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 ---
 
 ## Фаза 7 — Testing & Hardening
-**Цель:** валидация SLA, security, v1 ready.
+**Цель:** автоматизированный release hardening и последующая валидация
+операционных SLA перед production v1.
 
 - [ ] Load-тесты по SLA ([architecture-principles.md](architecture-principles.md) §2.1): vegeta/k6 — overhead бизнес-слоя ≤ 5мс p95, cache hit ≥ 95%
-- [ ] E2E тесты: login → API-key → inference → analytics → admin operations
-- [ ] Contract test suite: все 7 контрактов ADR-9 (mock ядра) — 100% покрытие
-- [ ] Integration tests: testcontainers PG + mock OAuth-провайдер
-- [ ] Regression: static identity не проходит в LDAP/prod режиме даже с
+- [x] E2E: реальный SDK runtime + PostgreSQL, login → API-key → inference →
+  analytics → user/admin operations
+- [x] Behavioral contract gate: все 7 контрактов ADR-9 с race-проверками и
+  PostgreSQL contract для `coreauth.Store`
+- [x] Integration tests: testcontainers PostgreSQL для store, migrations,
+  watcher/leader election и persistence-контрактов
+- [x] Regression: static identity не проходит в LDAP/prod режиме даже с
   активными session/API-key
-- [ ] Coverage report + CI gate (≥ 70% для internal/*)
-- [ ] Security audit: grep секретов в логах/тестах, no plaintext credentials, no `fmt.Println` с секретами
-- [ ] Race detection: `go test -race` зелёный во всём
+- [x] Aggregate coverage report + CI gate ≥ 70% для handwritten `internal/*`
+  (generated ogen/sqlc packages исключены; baseline 73.9%)
+- [x] Security gate: tracked secret/key/binary scan, private-key markers,
+  unstructured runtime printing, sensitive slog patterns и `govulncheck`
+- [x] Full race gate: `go test -race -timeout 15m ./...` до build
 - [ ] R12: runbook обновления SDK (release notes → upgrade branch →
   `sdk-reference.md` → contract/integration/race gates → rollback version)
 - [ ] Documentation: godoc для всех пакетов, README update, runbook (restore backup, rotate AES key, rotate API-key, rotate LDAP bind)
 - [ ] Regression suite: SLA-метрики как CI gate (не regress'ить)
 - [ ] Chaos: kill leader → проверка failover; kill replica → сервис жив
 
-**Acceptance:** все SLA из architecture-principles.md соблюдены, coverage ≥ 70%, security audit чист, race detector зелёный, v1 ready to release.
+**Automated hardening acceptance:** E2E, ADR-9 contracts, PostgreSQL
+integration, static regression, coverage ≥ 70%, security audit и full race
+являются независимыми CI jobs; build зависит от каждого gate.
+
+**Оставшиеся release-operations gates:** load/SLA, chaos/failover и
+операционные runbooks. До их закрытия документ не объявляет production v1 ready.
 
 ---
 
@@ -277,7 +301,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 | Ф4 Management API | 3–4 нед | Ф2, Ф3 | R9 + OpenAPI |
 | Ф5 R10 system proxy | 1 нед | Ф3 | Proxy policy через окружение процесса |
 | Ф6 Observability + k8s | 2 нед | Ф4, Ф5 | Prod deployment |
-| Ф7 Testing + Hardening | 2 нед | Ф6 | v1 ready |
+| Ф7 Testing + Hardening | 2 нед | Ф6 | Automated gates; release ops pending |
 | **Итого** | **~16–19 нед** (1 dev) / **~8–10 нед** (2–3 dev) | | |
 
 ## Что НЕ в плане v1 (явные ограничения)
@@ -288,6 +312,8 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - Redis (ADR-8 — Postgres достаточно на v1)
 - Fork/patch ядра (ADR-1)
 - Поддержка Home-режима ядра (не наш use-case)
+- Provider-specific OAuth callback/device flows до появления публичного SDK
+  контракта для внешнего session store
 
 ## История
 - 2026-07-12 — план зафиксирован; scope v1 = всё из R1–R12 (кроме явных «не делаем»).
@@ -339,3 +365,7 @@ parallelizable Ф2/Ф3 и Ф4/Ф5) — ~8–10 недель. Оценки пре
 - 2026-07-16 — dependency refresh: Go 1.26.5, CLIProxyAPI v7.2.80, ogen
   v1.23.0, Gin v1.12.0, pgx v5.10.0, testcontainers v0.43.0, OTel 1.44;
   CI actions обновлены до v7, public SDK diff задокументирован.
+- 2026-07-16 — hardening: OpenAPI синхронизирован с 27 proxy operations SDK,
+  добавлены behavioral ADR-9 gate, runtime E2E, aggregate coverage 70%, source
+  security audit, PostgreSQL integration и full-race CI jobs перед build;
+  OAuth provider flows и release-operations gates вынесены из текущего scope.
