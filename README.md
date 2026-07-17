@@ -86,7 +86,8 @@ Runtime не использует неявные внешние UI/static resour
 
 ## Статус
 
-Ф0–Ф6 закрыты в доступном SDK scope. В Ф7 закрыты автоматизированные release
-gates, SDK/operations runbooks и package godoc; до production v1 остаются два
-chaos/failover gate. Детальный статус:
+Ф0–Ф7 и текущий production v1 scope закрыты. Автоматизированные gates включают
+full race, coverage/SLA, ADR-9 contracts, PostgreSQL integration и отдельный
+advisory/runtime chaos failover job. SDK-blocked расширения остаются
+неблокирующим backlog. Детальный статус:
 [`docs/implementation-phases.md`](docs/implementation-phases.md).

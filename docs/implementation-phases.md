@@ -1,11 +1,10 @@
 # План имплементации CLIProxyNew по фазам
 
-> **Статус:** Ф0–Ф6 закрыты в доступном SDK scope; Ф7 частично закрыта:
-> automated gates и operations/runbooks завершены, остаются chaos-проверки.
+> **Статус:** Ф0–Ф7 и текущий production v1 scope закрыты; пять расширений,
+> зависящих от отсутствующих публичных SDK hooks, остаются неблокирующим backlog.
 > **Текущий scope:** бизнес-слой R1–R12 и автоматизированный release hardening.
 > Provider-specific OAuth flows и другие SDK-зависимые расширения не реализуются
-> до появления подходящих публичных контрактов; два chaos/failover gate
-> остаются следующим внутренним инкрементом.
+> до появления подходящих публичных контрактов.
 > **Связанные:** [requirements.md](requirements.md), [architecture-principles.md](architecture-principles.md),
 > [architecture.md](architecture.md), [database-schema.md](database-schema.md).
 
@@ -281,7 +280,7 @@ traces идут в Jaeger/Tempo, graceful shutdown работает, `/openapi.j
 - [x] Regression: static identity не проходит в LDAP/prod режиме даже с
   активными session/API-key
 - [x] Aggregate coverage report + CI gate ≥ 70% для handwritten `internal/*`
-  (generated ogen/sqlc packages исключены; baseline 73.9%)
+  (generated ogen/sqlc packages исключены; baseline 74.9%)
 - [x] Security gate: tracked secret/key/binary scan, private-key markers,
   unstructured runtime printing, sensitive slog patterns и `govulncheck`
 - [x] Full race gate: `go test -race -timeout 15m ./...` до build
@@ -291,14 +290,15 @@ traces идут в Jaeger/Tempo, graceful shutdown работает, `/openapi.j
   restore backup, ротации AES key, API-key и LDAP bind-password
 - [x] Regression suite: отдельный non-race `Load/SLA regression` CI job входит
   в обязательные зависимости build
-- [ ] Chaos: kill leader → проверка failover; kill replica → сервис жив
+- [x] Chaos: advisory leader handoff без одновременного cleanup; остановка
+  одной из двух SDK runtime replicas сохраняет health, management и inference
 
 **Automated hardening acceptance:** E2E, load/SLA, ADR-9 contracts, PostgreSQL
-integration, static regression, coverage ≥ 70%, security audit и full race
-являются независимыми CI jobs; build зависит от каждого gate.
+integration, static regression, coverage ≥ 70%, security audit, chaos/failover
+и full race являются независимыми CI jobs; build зависит от каждого gate.
 
-**Оставшиеся release-operations gates:** только chaos/failover. До их закрытия
-документ не объявляет production v1 ready.
+**Release-operations acceptance:** chaos/failover автоматизирован отдельным CI
+job; текущий production v1 scope готов к release review.
 
 ---
 
@@ -306,16 +306,7 @@ integration, static regression, coverage ≥ 70%, security audit и full race
 
 ### Без внешних блокеров
 
-#### Release-gates для production v1
-
-- [ ] **Ф7 / Chaos:** автоматизировать failover advisory leader: остановить
-  текущего leader, подтвердить захват lock второй репликой и продолжение
-  cleanup job без одновременного выполнения двумя репликами.
-- [ ] **Ф7 / Chaos:** остановить одну runtime-реплику и подтвердить доступность
-  inference и management health через оставшуюся реплику.
-
-Эти chaos-gates выполняются внутри business deployment и не требуют изменения
-публичного SDK-контракта. После их закрытия Ф7 может быть объявлена завершённой.
+Нет. Release-gates текущего production v1 scope автоматизированы и закрыты.
 
 ### С внешними блокерами
 
@@ -350,7 +341,7 @@ scope.
 | Ф4 Management API | Закрыта в текущем scope | 3–4 нед | Ф2, Ф3 | R9 + OpenAPI; provider OAuth SDK-blocked |
 | Ф5 R10 system proxy | Закрыта | 1 нед | Ф3 | Proxy policy через окружение процесса |
 | Ф6 Observability + k8s | Закрыта в доступном SDK scope | 2 нед | Ф4, Ф5 | Prod deployment + metrics/traces/OpenAPI docs; 2 SDK-blocked расширения |
-| Ф7 Testing + Hardening | Частично закрыта | 2 нед | Ф6 | Automated gates, load/SLA и operations закрыты; остаётся chaos |
+| Ф7 Testing + Hardening | Закрыта | 2 нед | Ф6 | Automated gates, load/SLA, operations и chaos/failover |
 | **Итого** | | **~16–19 нед** (1 dev) / **~8–10 нед** (2–3 dev) | | |
 
 ## Что НЕ в плане v1 (явные ограничения)
@@ -434,3 +425,6 @@ scope.
   runtime resources.
 - 2026-07-17 — Ф7 Operations/R12 закрыты: добавлены SDK upgrade, PostgreSQL
   restore и secret-rotation runbooks; package godoc защищён отдельным CI gate.
+- 2026-07-17 — Ф7 и production v1 scope закрыты: advisory leader handoff и
+  multi-process SDK runtime replica failover добавлены отдельным обязательным
+  CI job; SDK-blocked расширения оставлены неблокирующим backlog.

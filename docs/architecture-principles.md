@@ -138,15 +138,17 @@ graph TB
 | **SDK compatibility** | Обновление `CLIProxyAPI/v7`: публичные `sdk/*` вызовы, `internal/sdkcontract` и wiring | `go test -race ./internal/sdkcontract`, `go vet`, `go build` | merge запрещён при incompatibility |
 | **Integration** | store ↔ реальная PG (testcontainers), static/LDAP source isolation, OAuth-flow ↔ mock провайдера, миграции `up`/`down` | `testcontainers-go`, `dockertest` | миграции идемпотентны |
 | **Functional / E2E** | HTTP API энд-ту-энд (login → API-key → inference → analytics), load-тесты по SLA §2.1 | `httptest`, `vegeta`/`k6` | SLA-метрики не regress'иты |
+| **Chaos / failover** | advisory leader handoff без double-run; остановка одной из двух SDK runtime replicas с общей PostgreSQL | test subprocesses, `testcontainers-go` | health, management session и inference остаются доступны |
 
 **Порядок запуска (CI pipeline):**
 1. `go vet ./...` + `gofmt -l` (static checks)
 2. `go test -short -race ./...` (unit + contract)
 3. `go test -run Integration ./...` (testcontainers — медленно)
 4. coverage report + gate (≥ 70%)
-5. `go build ./...` (только если 1–4 прошли)
-6. `docker build` + push (только если build прошёл)
-7. Для изменения версии SDK: `sdk-reference.md`, contract-тесты ADR-9 и
+5. `./scripts/verify-chaos-gates.sh` (leader + runtime replica failover)
+6. `go build ./...` (только если 1–5 прошли)
+7. `docker build` + push (только если build прошёл)
+8. Для изменения версии SDK: `sdk-reference.md`, contract-тесты ADR-9 и
    integration suite до merge.
 
 ## 5. Стандарты и conventions
@@ -214,3 +216,5 @@ graph TB
 - 2026-07-17 — принят self-contained runtime principle (R6.6): Swagger UI
   assets встроены в binary, source audit блокирует CDN/remote browser assets и
   CDN build tags.
+- 2026-07-17 — release hardening дополнен обязательным chaos/failover gate:
+  advisory leader handoff и остановка одной из двух SDK runtime replicas.

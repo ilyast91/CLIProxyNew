@@ -120,6 +120,7 @@ go vet ./...            # статический анализ (всегда пе
 go run ./cmd/cliproxy   # запуск
 go test ./...           # тесты
 ./scripts/check-package-docs.sh # package godoc для всех Go-пакетов
+./scripts/verify-chaos-gates.sh  # advisory leader + runtime replica failover
 # sqlc:     sqlc generate        (после правки *.sql)
 # OpenAPI:  go generate ./internal/openapi/...  (после правки openapi.yaml)
 # миграции: migrate -path db/migrations -database "$DSN" up

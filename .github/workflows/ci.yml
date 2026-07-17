@@ -120,6 +120,25 @@ jobs:
         run: go test -run '^TestIntegrationRuntimeLoginKeyInferenceUsageAdmin$' -timeout 10m ./internal/e2e -v
 
   # ─────────────────────────────────────────────────────────────────────────
+  # Multi-replica failover: advisory leader и runtime pod replacement.
+  # ─────────────────────────────────────────────────────────────────────────
+  chaos:
+    name: Chaos/failover
+    runs-on: ubuntu-latest
+    needs: static-checks
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run chaos gates
+        run: ./scripts/verify-chaos-gates.sh
+
+  # ─────────────────────────────────────────────────────────────────────────
   # Steady-state SLA бизнес-слоя без искажения race instrumentation.
   # ─────────────────────────────────────────────────────────────────────────
   sla:
@@ -243,6 +262,7 @@ jobs:
       - unit-contract
       - integration
       - e2e
+      - chaos
       - sla
       - coverage
       - security

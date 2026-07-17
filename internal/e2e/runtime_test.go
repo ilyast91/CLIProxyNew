@@ -463,6 +463,12 @@ func reserveLoopbackAddress(t *testing.T) string {
 
 func newPostgresPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
+	_, pool := newPostgresDatabase(t)
+	return pool
+}
+
+func newPostgresDatabase(t *testing.T) (string, *pgxpool.Pool) {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 
@@ -487,7 +493,7 @@ func newPostgresPool(t *testing.T) *pgxpool.Pool {
 		t.Fatalf("открыть E2E pool: %v", err)
 	}
 	t.Cleanup(pool.Close)
-	return pool
+	return dsn, pool
 }
 
 func applyMigrations(t *testing.T, dsn string) {
