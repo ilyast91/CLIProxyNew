@@ -1655,7 +1655,7 @@ paths:
     post:
       tags: [Admin]
       summary: Импортировать OAuth credential
-      description: Импортирует один полный OAuth credential JSON. Дубликат `provider+email` отклоняется; внешний ID игнорируется, новый ID назначает coreauth.Manager. Действие пишется в admin audit log без токенов.
+      description: Импортирует один полный OAuth credential размером до 1 MiB. Принимает JSON request body или JSON-файл в multipart-поле `file`. Дубликат `provider+email` отклоняется; внешний ID игнорируется, новый ID назначает coreauth.Manager. Действие пишется в admin audit log без токенов.
       operationId: importOAuthCredential
       security:
         - SessionCookie: []
@@ -1665,6 +1665,15 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/OAuthCredential"
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: JSON-файл с полным OAuth credential, максимум 1 MiB
       responses:
         "201":
           description: OAuth credential импортирован
@@ -1680,6 +1689,18 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           description: OAuth credential с таким provider и email уже существует
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: OAuth credential превышает лимит 1 MiB
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: Поддерживаются только application/json и multipart/form-data
           content:
             application/json:
               schema:

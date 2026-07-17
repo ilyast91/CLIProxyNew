@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-faster/errors"
 	"github.com/go-faster/jx"
+	ht "github.com/ogen-go/ogen/http"
 )
 
 // Ref: #/components/schemas/APIKey
@@ -1533,9 +1534,34 @@ type ImportOAuthCredentialInternalServerError Error
 
 func (*ImportOAuthCredentialInternalServerError) importOAuthCredentialRes() {}
 
+type ImportOAuthCredentialReqMultipartFormData struct {
+	// JSON-файл с полным OAuth credential, максимум 1 MiB.
+	File ht.MultipartFile `json:"file"`
+}
+
+// GetFile returns the value of File.
+func (s *ImportOAuthCredentialReqMultipartFormData) GetFile() ht.MultipartFile {
+	return s.File
+}
+
+// SetFile sets the value of File.
+func (s *ImportOAuthCredentialReqMultipartFormData) SetFile(val ht.MultipartFile) {
+	s.File = val
+}
+
+func (*ImportOAuthCredentialReqMultipartFormData) importOAuthCredentialReq() {}
+
+type ImportOAuthCredentialRequestEntityTooLarge Error
+
+func (*ImportOAuthCredentialRequestEntityTooLarge) importOAuthCredentialRes() {}
+
 type ImportOAuthCredentialUnauthorized Error
 
 func (*ImportOAuthCredentialUnauthorized) importOAuthCredentialRes() {}
+
+type ImportOAuthCredentialUnsupportedMediaType Error
+
+func (*ImportOAuthCredentialUnsupportedMediaType) importOAuthCredentialRes() {}
 
 // Ref: #/components/schemas/ImportedOAuthCredential
 type ImportedOAuthCredential struct {
@@ -2018,6 +2044,8 @@ func (s *OAuthCredential) SetStatus(val OptString) {
 func (s *OAuthCredential) SetUpdatedAt(val OptDateTime) {
 	s.UpdatedAt = val
 }
+
+func (*OAuthCredential) importOAuthCredentialReq() {}
 
 type OAuthCredentialAttributes map[string]string
 

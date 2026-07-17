@@ -1,10 +1,13 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"strings"
 
@@ -13,9 +16,16 @@ import (
 	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 )
 
-const maxOAuthCredentialImportBytes = 1 << 20
+const (
+	maxOAuthCredentialImportBytes    = 1 << 20
+	maxOAuthCredentialMultipartBytes = maxOAuthCredentialImportBytes + (64 << 10)
+)
 
-var errOAuthCredentialDuplicate = errors.New("OAuth credential already exists")
+var (
+	errOAuthCredentialDuplicate        = errors.New("OAuth credential already exists")
+	errOAuthCredentialTooLarge         = errors.New("OAuth credential is too large")
+	errOAuthCredentialUnsupportedMedia = errors.New("unsupported OAuth credential content type")
+)
 
 type oauthCredentialManager interface {
 	GetByID(string) (*coreauth.Auth, bool)
@@ -78,7 +88,8 @@ func (h *AdminOAuthCredentialHandler) Export(c *gin.Context) {
 	c.Data(http.StatusOK, "application/json", payload)
 }
 
-// Import принимает полный OAuth Auth JSON, отклоняет provider/email дубликаты и регистрирует credential.
+// Import принимает полный OAuth Auth как JSON body или multipart JSON-файл,
+// отклоняет provider/email дубликаты и регистрирует credential.
 func (h *AdminOAuthCredentialHandler) Import(c *gin.Context) {
 	actor, ok := currentUserID(c)
 	if !ok {
@@ -88,13 +99,16 @@ func (h *AdminOAuthCredentialHandler) Import(c *gin.Context) {
 		writeError(c, http.StatusInternalServerError, "OAuth credential service is unavailable")
 		return
 	}
-	var auth coreauth.Auth
-	decoder := json.NewDecoder(http.MaxBytesReader(c.Writer, c.Request.Body, maxOAuthCredentialImportBytes))
-	if err := decoder.Decode(&auth); err != nil {
-		writeError(c, http.StatusBadRequest, "invalid OAuth credential")
+	auth, err := decodeOAuthCredentialRequest(c)
+	if errors.Is(err, errOAuthCredentialTooLarge) {
+		writeError(c, http.StatusRequestEntityTooLarge, errOAuthCredentialTooLarge.Error())
 		return
 	}
-	if err := ensureOnlyOneJSONValue(decoder); err != nil {
+	if errors.Is(err, errOAuthCredentialUnsupportedMedia) {
+		writeError(c, http.StatusUnsupportedMediaType, errOAuthCredentialUnsupportedMedia.Error())
+		return
+	}
+	if err != nil {
 		writeError(c, http.StatusBadRequest, "invalid OAuth credential")
 		return
 	}
@@ -119,6 +133,102 @@ func (h *AdminOAuthCredentialHandler) Import(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, importedOAuthCredentialResponse{ID: registered.ID, Provider: registered.Provider, Email: email})
+}
+
+func decodeOAuthCredentialRequest(c *gin.Context) (coreauth.Auth, error) {
+	contentType := strings.TrimSpace(c.GetHeader("Content-Type"))
+	mediaType := ""
+	if contentType != "" {
+		parsed, _, err := mime.ParseMediaType(contentType)
+		if err != nil {
+			return coreauth.Auth{}, err
+		}
+		mediaType = parsed
+	}
+
+	switch mediaType {
+	case "", "application/json":
+		reader := http.MaxBytesReader(c.Writer, c.Request.Body, maxOAuthCredentialImportBytes)
+		auth, err := decodeOAuthCredential(reader)
+		var maxBytesError *http.MaxBytesError
+		if errors.As(err, &maxBytesError) {
+			return coreauth.Auth{}, errOAuthCredentialTooLarge
+		}
+		return auth, err
+	case "multipart/form-data":
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxOAuthCredentialMultipartBytes)
+		reader, err := c.Request.MultipartReader()
+		if err != nil {
+			return coreauth.Auth{}, err
+		}
+		payload, err := readOAuthCredentialFile(reader)
+		if err != nil {
+			var maxBytesError *http.MaxBytesError
+			if errors.As(err, &maxBytesError) {
+				return coreauth.Auth{}, errOAuthCredentialTooLarge
+			}
+			return coreauth.Auth{}, err
+		}
+		return decodeOAuthCredential(bytes.NewReader(payload))
+	default:
+		return coreauth.Auth{}, errOAuthCredentialUnsupportedMedia
+	}
+}
+
+func readOAuthCredentialFile(reader *multipart.Reader) ([]byte, error) {
+	var payload []byte
+	for {
+		part, err := reader.NextPart()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if part.FormName() != "file" {
+			_, copyErr := io.Copy(io.Discard, part)
+			closeErr := part.Close()
+			if copyErr != nil {
+				return nil, copyErr
+			}
+			if closeErr != nil {
+				return nil, closeErr
+			}
+			continue
+		}
+		if payload != nil {
+			_ = part.Close()
+			return nil, errors.New("multiple OAuth credential files")
+		}
+		data, readErr := io.ReadAll(io.LimitReader(part, maxOAuthCredentialImportBytes+1))
+		closeErr := part.Close()
+		if readErr != nil {
+			return nil, readErr
+		}
+		if closeErr != nil {
+			return nil, closeErr
+		}
+		if len(data) > maxOAuthCredentialImportBytes {
+			return nil, errOAuthCredentialTooLarge
+		}
+		payload = data
+	}
+	if payload == nil {
+		return nil, errors.New("OAuth credential file is missing")
+	}
+	return payload, nil
+}
+
+func decodeOAuthCredential(reader io.Reader) (coreauth.Auth, error) {
+	var auth coreauth.Auth
+	decoder := json.NewDecoder(reader)
+	if err := decoder.Decode(&auth); err != nil {
+		return coreauth.Auth{}, err
+	}
+	if err := ensureOnlyOneJSONValue(decoder); err != nil {
+		return coreauth.Auth{}, err
+	}
+	return auth, nil
 }
 
 func (h *AdminOAuthCredentialHandler) hasDuplicate(provider, email string) bool {

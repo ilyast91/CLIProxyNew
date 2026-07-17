@@ -1,8 +1,10 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -35,17 +37,76 @@ func TestAdminOAuthCredentialHandlerExportReturnsAttachmentAndAudits(t *testing.
 func TestAdminOAuthCredentialHandlerImportRegistersSDKManagedID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	manager := &fakeOAuthCredentialManager{}
-	audit := &fakeAdminAuditLogger{}
 	router := gin.New()
 	router.Use(func(c *gin.Context) { c.Set(ContextUserID, int64(42)) })
-	router.POST("/api/v1/admin/oauth/import", NewAdminOAuthCredentialHandler(manager, audit).Import)
+	router.POST("/api/v1/admin/oauth/import", NewAdminOAuthCredentialHandler(manager, &fakeAdminAuditLogger{}).Import)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/admin/oauth/import", strings.NewReader(`{"id":"foreign-id","provider":"claude","attributes":{"auth_kind":"oauth"},"metadata":{"email":"admin@example.com","refresh_token":"secret-refresh"}}`))
 	request.Header.Set("Content-Type", "application/json")
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, request)
 
 	if response.Code != http.StatusCreated || manager.registered == nil || manager.registered.ID != "" {
-		t.Fatalf("status=%d registered=%+v audit=%+v", response.Code, manager.registered, audit.entry)
+		t.Fatalf("status=%d registered=%+v", response.Code, manager.registered)
+	}
+}
+
+func TestAdminOAuthCredentialHandlerImportAcceptsMultipartJSONFile(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	manager := &fakeOAuthCredentialManager{}
+	audit := &fakeAdminAuditLogger{}
+	router := gin.New()
+	router.Use(func(c *gin.Context) { c.Set(ContextUserID, int64(42)) })
+	router.POST("/api/v1/admin/oauth/import", NewAdminOAuthCredentialHandler(manager, audit).Import)
+	request := multipartOAuthCredentialRequest(t, []byte(`{"provider":"claude","attributes":{"auth_kind":"oauth"},"metadata":{"email":"file@example.com","refresh_token":"secret-refresh"}}`), true)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusCreated || manager.registered == nil {
+		t.Fatalf("status=%d registered=%+v body=%s", response.Code, manager.registered, response.Body.String())
+	}
+}
+
+func TestAdminOAuthCredentialHandlerImportRejectsMultipartWithoutFile(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(func(c *gin.Context) { c.Set(ContextUserID, int64(42)) })
+	router.POST("/api/v1/admin/oauth/import", NewAdminOAuthCredentialHandler(&fakeOAuthCredentialManager{}, &fakeAdminAuditLogger{}).Import)
+	request := multipartOAuthCredentialRequest(t, nil, false)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d want=%d body=%s", response.Code, http.StatusBadRequest, response.Body.String())
+	}
+}
+
+func TestAdminOAuthCredentialHandlerImportRejectsOversizedMultipartFile(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(func(c *gin.Context) { c.Set(ContextUserID, int64(42)) })
+	router.POST("/api/v1/admin/oauth/import", NewAdminOAuthCredentialHandler(&fakeOAuthCredentialManager{}, &fakeAdminAuditLogger{}).Import)
+	payload := bytes.Repeat([]byte(" "), maxOAuthCredentialImportBytes+1)
+	request := multipartOAuthCredentialRequest(t, payload, true)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status=%d want=%d body=%s", response.Code, http.StatusRequestEntityTooLarge, response.Body.String())
+	}
+}
+
+func TestAdminOAuthCredentialHandlerImportRejectsUnsupportedMediaType(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(func(c *gin.Context) { c.Set(ContextUserID, int64(42)) })
+	router.POST("/api/v1/admin/oauth/import", NewAdminOAuthCredentialHandler(&fakeOAuthCredentialManager{}, &fakeAdminAuditLogger{}).Import)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/admin/oauth/import", strings.NewReader(`{"provider":"claude"}`))
+	request.Header.Set("Content-Type", "text/plain")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusUnsupportedMediaType {
+		t.Fatalf("status=%d want=%d body=%s", response.Code, http.StatusUnsupportedMediaType, response.Body.String())
 	}
 }
 
@@ -99,4 +160,27 @@ type fakeAdminAuditLogger struct{ entry store.AdminAuditLogEntry }
 func (l *fakeAdminAuditLogger) Insert(_ context.Context, entry store.AdminAuditLogEntry) error {
 	l.entry = entry
 	return nil
+}
+
+func multipartOAuthCredentialRequest(t *testing.T, payload []byte, includeFile bool) *http.Request {
+	t.Helper()
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	if includeFile {
+		part, err := writer.CreateFormFile("file", "oauth-credential.json")
+		if err != nil {
+			t.Fatalf("create multipart file: %v", err)
+		}
+		if _, err := part.Write(payload); err != nil {
+			t.Fatalf("write multipart file: %v", err)
+		}
+	} else if err := writer.WriteField("note", "missing file"); err != nil {
+		t.Fatalf("write multipart field: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close multipart writer: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/admin/oauth/import", &body)
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	return request
 }

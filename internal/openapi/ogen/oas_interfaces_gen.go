@@ -33,6 +33,10 @@ type GetUpstreamAccountQuotaRes interface {
 	getUpstreamAccountQuotaRes()
 }
 
+type ImportOAuthCredentialReq interface {
+	importOAuthCredentialReq()
+}
+
 type ImportOAuthCredentialRes interface {
 	importOAuthCredentialRes()
 }

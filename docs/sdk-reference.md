@@ -37,9 +37,12 @@
 передаётся в usage pipeline. `Builder.Build` нормализует plugin config и при
 включённых plugins валидирует каталог plugins.
 
-Ограничения проекта не сняты: публичного async OAuth flow с внешним session
-store, общего downstream model-rewrite hook, доступного business-типу
-`Watcher AuthUpdate` и Execute tracing hook в v7.2.80 не добавлено.
+Ограничения проекта не сняты: общего downstream model-rewrite hook, доступного
+business-типу `Watcher AuthUpdate`, refresh lifecycle hook и Execute tracing
+hook в v7.2.80 не добавлено. Публичного async OAuth flow с внешним session
+store также нет, но интерактивный provider login намеренно перенесён в post-v1
+scope и не считается блокером текущего релиза. V1 импортирует готовый OAuth
+credential через публичный `coreauth.Manager` и `coreauth.Store`.
 
 ---
 
@@ -837,6 +840,12 @@ func WithRequestLoggerFactory(factory func(*config.Config, string) logging.Reque
 `WithPostAuthHook` доступен только на `Builder` (см. [sdk/cliproxy](#sdkcliproxy—точка-входа)).
 
 ### Management (`management.go`) — OAuth-flow helpers (R9.A.1)
+
+Эти helpers перечислены как часть публичного SDK reference, но текущий runtime
+CLIProxyNew не подключает их для интерактивного login: session state ядра
+in-memory/файловый и не соответствует multi-replica требованиям. Возможный
+interactive flow отложен post-v1. Реализованный R9.A.7 JSON import/export
+использует публичный `coreauth.Manager`, а не provider login helpers.
 
 ```go
 type Handler = internalmanagement.Handler

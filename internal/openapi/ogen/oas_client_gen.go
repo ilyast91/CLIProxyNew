@@ -109,13 +109,14 @@ type Invoker interface {
 	Healthz(ctx context.Context) (HealthzOK, error)
 	// ImportOAuthCredential invokes importOAuthCredential operation.
 	//
-	// Импортирует один полный OAuth credential JSON. Дубликат
-	// `provider+email` отклоняется; внешний ID игнорируется, новый ID
-	// назначает coreauth.Manager. Действие пишется в admin audit log без
-	// токенов.
+	// Импортирует один полный OAuth credential размером до 1 MiB.
+	// Принимает JSON request body или JSON-файл в multipart-поле `file`.
+	// Дубликат `provider+email` отклоняется; внешний ID
+	// игнорируется, новый ID назначает coreauth.Manager. Действие
+	// пишется в admin audit log без токенов.
 	//
 	// POST /api/v1/admin/oauth/import
-	ImportOAuthCredential(ctx context.Context, request *OAuthCredential) (ImportOAuthCredentialRes, error)
+	ImportOAuthCredential(ctx context.Context, request ImportOAuthCredentialReq) (ImportOAuthCredentialRes, error)
 	// ListAllAPIKeys invokes listAllAPIKeys operation.
 	//
 	// Возвращает безопасные metadata ключей и их владельцев.
@@ -1770,18 +1771,19 @@ func (c *Client) sendHealthz(ctx context.Context) (res HealthzOK, err error) {
 
 // ImportOAuthCredential invokes importOAuthCredential operation.
 //
-// Импортирует один полный OAuth credential JSON. Дубликат
-// `provider+email` отклоняется; внешний ID игнорируется, новый ID
-// назначает coreauth.Manager. Действие пишется в admin audit log без
-// токенов.
+// Импортирует один полный OAuth credential размером до 1 MiB.
+// Принимает JSON request body или JSON-файл в multipart-поле `file`.
+// Дубликат `provider+email` отклоняется; внешний ID
+// игнорируется, новый ID назначает coreauth.Manager. Действие
+// пишется в admin audit log без токенов.
 //
 // POST /api/v1/admin/oauth/import
-func (c *Client) ImportOAuthCredential(ctx context.Context, request *OAuthCredential) (ImportOAuthCredentialRes, error) {
+func (c *Client) ImportOAuthCredential(ctx context.Context, request ImportOAuthCredentialReq) (ImportOAuthCredentialRes, error) {
 	res, err := c.sendImportOAuthCredential(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendImportOAuthCredential(ctx context.Context, request *OAuthCredential) (res ImportOAuthCredentialRes, err error) {
+func (c *Client) sendImportOAuthCredential(ctx context.Context, request ImportOAuthCredentialReq) (res ImportOAuthCredentialRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("importOAuthCredential"),
 		semconv.HTTPRequestMethodKey.String("POST"),

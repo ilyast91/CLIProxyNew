@@ -126,13 +126,14 @@ func (UnimplementedHandler) Healthz(ctx context.Context) (r HealthzOK, _ error) 
 
 // ImportOAuthCredential implements importOAuthCredential operation.
 //
-// Импортирует один полный OAuth credential JSON. Дубликат
-// `provider+email` отклоняется; внешний ID игнорируется, новый ID
-// назначает coreauth.Manager. Действие пишется в admin audit log без
-// токенов.
+// Импортирует один полный OAuth credential размером до 1 MiB.
+// Принимает JSON request body или JSON-файл в multipart-поле `file`.
+// Дубликат `provider+email` отклоняется; внешний ID
+// игнорируется, новый ID назначает coreauth.Manager. Действие
+// пишется в admin audit log без токенов.
 //
 // POST /api/v1/admin/oauth/import
-func (UnimplementedHandler) ImportOAuthCredential(ctx context.Context, req *OAuthCredential) (r ImportOAuthCredentialRes, _ error) {
+func (UnimplementedHandler) ImportOAuthCredential(ctx context.Context, req ImportOAuthCredentialReq) (r ImportOAuthCredentialRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

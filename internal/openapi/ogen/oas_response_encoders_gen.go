@@ -532,6 +532,30 @@ func encodeImportOAuthCredentialResponse(response ImportOAuthCredentialRes, w ht
 
 		return nil
 
+	case *ImportOAuthCredentialRequestEntityTooLarge:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(413)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImportOAuthCredentialUnsupportedMediaType:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(415)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
 	case *ImportOAuthCredentialInternalServerError:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(500)

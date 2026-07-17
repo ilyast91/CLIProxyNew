@@ -67,12 +67,18 @@ Runtime не использует неявные внешние UI/static resour
 ограничены явно настроенной инфраструктурой и upstream/provider endpoints,
 которые составляют основную функцию сервиса.
 
+OAuth credentials в production v1 добавляются через management API без
+интерактивного provider login: `POST /api/v1/admin/oauth/import` принимает
+полный credential как `application/json` body или JSON-файл в multipart-поле
+`file` (до 1 MiB). Экспорт доступен как JSON attachment. Callback/device login
+отложен в отдельный post-v1 scope.
+
 - [`docs/requirements.md`](docs/requirements.md) — требования R1–R12 (зафиксированы)
 - [`docs/architecture-principles.md`](docs/architecture-principles.md) — требования к архитектуре (принципы, quality attributes, SLA, тестирование)
 - [`docs/architecture.md`](docs/architecture.md) — архитектурный дизайн (components, потоки, deployment)
 - [`docs/database-schema.md`](docs/database-schema.md) — схема БД (ER, таблицы, индексы, миграции)
 - [`docs/sdk-reference.md`](docs/sdk-reference.md) — референс публичного API CLIProxyAPI v7.2.80 и результат compatibility-сверки
-- [`docs/design/r9-oauth-and-testing.md`](docs/design/r9-oauth-and-testing.md) — дизайн OAuth login-flow и тестирования аккаунтов (R9.A.1, R9.A.5)
+- [`docs/design/r9-oauth-and-testing.md`](docs/design/r9-oauth-and-testing.md) — отложенный post-v1 дизайн OAuth login-flow и дизайн тестирования аккаунтов (R9.A.1, R9.A.5)
 - [`docs/implementation-phases.md`](docs/implementation-phases.md) — план имплементации по фазам (Ф0–Ф7)
 - [`docs/runbooks/sdk-upgrade.md`](docs/runbooks/sdk-upgrade.md) — обновление и rollback upstream SDK по R12
 - [`docs/runbooks/postgres-restore.md`](docs/runbooks/postgres-restore.md) — проверка backup и восстановление PostgreSQL
@@ -88,6 +94,7 @@ Runtime не использует неявные внешние UI/static resour
 
 Ф0–Ф7 и текущий production v1 scope закрыты. Автоматизированные gates включают
 full race, coverage/SLA, ADR-9 contracts, PostgreSQL integration и отдельный
-advisory/runtime chaos failover job. SDK-blocked расширения остаются
-неблокирующим backlog. Детальный статус:
+advisory/runtime chaos failover job. Четыре SDK-blocked расширения остаются
+неблокирующим backlog; interactive OAuth login отдельно отложен post-v1.
+Детальный статус:
 [`docs/implementation-phases.md`](docs/implementation-phases.md).

@@ -442,7 +442,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
 										allowedHeaders: rn22AllowedHeaders,
-										acceptPost:     "application/json",
+										acceptPost:     "application/json,multipart/form-data",
 										acceptPatch:    "",
 									})
 								}

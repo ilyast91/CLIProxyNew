@@ -865,13 +865,23 @@ paths:
                 - Admin
     /api/v1/admin/oauth/import:
         post:
-            description: Импортирует один полный OAuth credential JSON. Дубликат `provider+email` отклоняется; внешний ID игнорируется, новый ID назначает coreauth.Manager. Действие пишется в admin audit log без токенов.
+            description: Импортирует один полный OAuth credential размером до 1 MiB. Принимает JSON request body или JSON-файл в multipart-поле `file`. Дубликат `provider+email` отклоняется; внешний ID игнорируется, новый ID назначает coreauth.Manager. Действие пишется в admin audit log без токенов.
             operationId: importOAuthCredential
             requestBody:
                 content:
                     application/json:
                         schema:
                             $ref: '#/components/schemas/OAuthCredential'
+                    multipart/form-data:
+                        schema:
+                            properties:
+                                file:
+                                    description: JSON-файл с полным OAuth credential, максимум 1 MiB
+                                    format: binary
+                                    type: string
+                            required:
+                                - file
+                            type: object
                 required: true
             responses:
                 "201":
@@ -892,6 +902,18 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/Error'
                     description: OAuth credential с таким provider и email уже существует
+                "413":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: OAuth credential превышает лимит 1 MiB
+                "415":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Поддерживаются только application/json и multipart/form-data
                 "500":
                     $ref: '#/components/responses/InternalError'
             security:

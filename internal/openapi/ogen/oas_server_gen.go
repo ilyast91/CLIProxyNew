@@ -88,13 +88,14 @@ type Handler interface {
 	Healthz(ctx context.Context) (HealthzOK, error)
 	// ImportOAuthCredential implements importOAuthCredential operation.
 	//
-	// Импортирует один полный OAuth credential JSON. Дубликат
-	// `provider+email` отклоняется; внешний ID игнорируется, новый ID
-	// назначает coreauth.Manager. Действие пишется в admin audit log без
-	// токенов.
+	// Импортирует один полный OAuth credential размером до 1 MiB.
+	// Принимает JSON request body или JSON-файл в multipart-поле `file`.
+	// Дубликат `provider+email` отклоняется; внешний ID
+	// игнорируется, новый ID назначает coreauth.Manager. Действие
+	// пишется в admin audit log без токенов.
 	//
 	// POST /api/v1/admin/oauth/import
-	ImportOAuthCredential(ctx context.Context, req *OAuthCredential) (ImportOAuthCredentialRes, error)
+	ImportOAuthCredential(ctx context.Context, req ImportOAuthCredentialReq) (ImportOAuthCredentialRes, error)
 	// ListAllAPIKeys implements listAllAPIKeys operation.
 	//
 	// Возвращает безопасные metadata ключей и их владельцев.

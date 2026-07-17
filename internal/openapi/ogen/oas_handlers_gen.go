@@ -1967,10 +1967,11 @@ func (s *Server) handleHealthzRequest(args [0]string, argsEscaped bool, w http.R
 
 // handleImportOAuthCredentialRequest handles importOAuthCredential operation.
 //
-// Импортирует один полный OAuth credential JSON. Дубликат
-// `provider+email` отклоняется; внешний ID игнорируется, новый ID
-// назначает coreauth.Manager. Действие пишется в admin audit log без
-// токенов.
+// Импортирует один полный OAuth credential размером до 1 MiB.
+// Принимает JSON request body или JSON-файл в multipart-поле `file`.
+// Дубликат `provider+email` отклоняется; внешний ID
+// игнорируется, новый ID назначает coreauth.Manager. Действие
+// пишется в admin audit log без токенов.
 //
 // POST /api/v1/admin/oauth/import
 func (s *Server) handleImportOAuthCredentialRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -2120,7 +2121,7 @@ func (s *Server) handleImportOAuthCredentialRequest(args [0]string, argsEscaped 
 		}
 
 		type (
-			Request  = *OAuthCredential
+			Request  = ImportOAuthCredentialReq
 			Params   = struct{}
 			Response = ImportOAuthCredentialRes
 		)

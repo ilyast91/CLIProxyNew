@@ -340,44 +340,21 @@
 
 ### R9.A — Функционал администратора
 - **R9.A.1** Настройка **OAuth для провайдеров с подписками** (Codex/Claude/
-  Gemini/Grok и т.д.). Запуск authorization-flow, хранение полученных
-  upstream-credentials в БД (зашифрованные, R5).
-  ✅ **Решено: собственная асинхронная реализация поверх `sdk/api/management.go`
-  хелперов, сессии в Postgres** (а НЕ через блокирующий `sdkAuth.Manager.Login`,
-  который не отдаёт URL наружу и не годится для API).
-  - `sdkAuth.Manager.Login()` — **блокирующий, синхронный**: URL печатается в
-    stdout (не возвращается), callback ловится локальным сервером на
-    `CallbackPort`, `LoginOptions.Prompt` срабатывает через 15с как CLI-fallback.
-    Непригоден для management-API.
-  - **Ядро уже содержит асинхронный flow** в `internal/api/handlers/management/`:
-    `GET /*-auth-url → {url, state}`, `POST /oauth-callback → файловый poller`,
-    `GET /get-auth-status`. Но OAuth-сессии там **in-memory в одной реплике** →
-    в multi-replica (R6.2) replica A стартует flow, replica B не может завершить.
-  - **Решение:** бизнес-слой переносит асинхронную логику (PKCE + state +
-    обмен) поверх `claude.NewClaudeAuth`/`codex.NewCodexAuth`/... (низкоуровневые
-    сервисы, без блокирующего `Login`), но **сессии хранит в Postgres**
-    (`oauth_sessions`) — любая реплика может завершить flow.
-  ✅ **API-flow (callback-провайдеры Codex/Claude/Antigravity):**
-  - `POST /api/v1/admin/oauth/{provider}/start` → создаёт PKCE+state, persist
-    в `oauth_sessions`, возвращает `{auth_url, state}`.
-  - админ открывает `auth_url` в браузере; провайдер редиректит на
-    `localhost:<CallbackPort>` (redirect_uri вшит у провайдера).
-  - админ копирует callback URL → `POST /api/v1/admin/oauth/{provider}/complete`
-    `{state, redirect_url}` → бизнес-слой обменивает code на токены, сохраняет
-    через `Store.Save` (AES-GCM, R5), пишет `admin_audit_log`.
-  ✅ **API-flow (device-провайдеры Kimi/xAI, и опц. Codex-device):**
-  - `POST /api/v1/admin/oauth/{provider}/start` → `StartDeviceFlow`, persist
-    session, возвращает `{auth_url, user_code, expires_in, flow: "device"}`.
-  - админ вводит `user_code` на странице провайдера; бизнес-слой poll-ит
-    завершение в goroutine.
-  - клиент poll-ит статус: `GET /api/v1/admin/oauth/sessions/{state}`.
-  ✅ **Статус и отмена:**
-  - `GET /api/v1/admin/oauth/sessions/{state}` → `{status: pending|completed|error, ...}`.
-  - `DELETE /api/v1/admin/oauth/sessions/{state}` → отмена flow.
-  ❓ **Открыто:** callback-port — нужен ли exposed-port в k8s для
-  callback-forwarder (`is_webui` режим), или всегда ручной copy-paste
-  callback-URL админом. На первой версии — ручной copy-paste (проще, не требует
-  exposed-port в k8s). См. дизайн [docs/design/r9-oauth-and-testing.md](design/r9-oauth-and-testing.md).
+  Gemini/Grok и т.д.). **Интерактивный authorization-flow отложен за пределы
+  production v1**: текущий management API не запускает callback/device login и
+  не объявляет `start`/`complete` endpoints.
+  - В v1 администратор получает credential вне приложения и импортирует полный
+    OAuth JSON через R9.A.7. Credential сохраняется в БД с шифрованием at-rest
+    (R5) и регистрируется в публичном `coreauth.Manager`.
+  - `sdkAuth.Manager.Login()` остаётся блокирующим CLI-flow: URL не возвращается
+    вызывающему API, а callback обслуживается локально. Он не используется в
+    management API.
+  - Публичные helpers `sdk/api/management.go` используют in-memory session state
+    и файловый callback. Они не подключаются к текущему multi-replica runtime.
+  - Возможный post-v1 callback/device flow с внешним PostgreSQL session store
+    описан в [отложенном дизайне](design/r9-oauth-and-testing.md). Его реализация
+    потребует отдельного решения и review; отсутствие такого flow не является
+    блокером текущего v1 scope.
 - **R9.A.2** Настройка **API-keys для провайдеров** (batch, по API).
   Регистрация набора статических upstream API-keys (напр. OpenRouter,
   кастомные OpenAI-compatible эндпоинты) — сохраняются как `coreauth.Auth`
@@ -429,9 +406,12 @@
   pre-authenticated аккаунтов).
   - **Экспорт:** сериализация `coreauth.Auth` в JSON (нативный формат ядра,
     `Storage`/`Metadata` поля). Отдаётся как файл через management-API.
-  - **Импорт:** парсинг JSON → валидация → сохранение через `coreauth.Store.Save`
-    (с шифрованием at-rest, R5) → регистрация в ядре (через `WatcherFactory`
-    или напрямую).
+  - **Импорт:** `POST /api/v1/admin/oauth/import` принимает либо полный
+    `application/json` request body, либо `multipart/form-data` с JSON-файлом в
+    обязательном поле `file`. Максимальный размер credential — 1 MiB. Оба
+    формата проходят общий pipeline: парсинг → валидация → dedup → регистрация
+    через публичный `coreauth.Manager` → `coreauth.Store.Save` с шифрованием
+    at-rest (R5) и audit.
   ⚠️ **Безопасность:** JSON содержит чувствительные токены. См. вопросы ниже.
   - ✅ **Решено:** **содержимое JSON — полные credentials** (access_token +
     refresh_token + metadata: provider, email, expiry, атрибуты). Полноценный
@@ -678,6 +658,10 @@
 - 2026-07-14 — **R12:** добавлен compatibility gate для обновления внешнего
   SDK: публичные `sdk/*` контракты, фиксированная версия, contract/integration
   проверки и отдельный ADR для нового major.
+- 2026-07-17 — **R9.A.1/R9.A.7:** интерактивный provider OAuth login перенесён
+  в post-v1 scope. Текущий v1 сохраняет импорт полного credential запросом
+  `application/json` и загрузкой JSON-файла через `multipart/form-data` (поле
+  `file`, лимит 1 MiB), а также экспорт attachment.
 - 2026-07-16 — **dependency refresh:** SDK обновлён v7.2.71 → v7.2.80 без
   breaking changes используемых контрактов ADR-9; `sdk-reference.md` сверён
   по public API diff и upstream compare/release commits.

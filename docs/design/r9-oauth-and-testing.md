@@ -1,6 +1,10 @@
 # Дизайн: R9.A.1 (OAuth login-flow) и R9.A.5 (тестирование аккаунтов)
 
-> **Статус:** Дизайн.
+> **Статус:** OAuth login-flow отложен post-v1; раздел R9.A.1 ниже — будущий
+> вариант, а не описание текущей реализации или HTTP-контракта. Перед
+> реализацией его необходимо заново сверить с публичным SDK и оформить
+> отдельным решением. В текущем v1 доступны только импорт полного credential
+> через JSON body/multipart-файл и экспорт JSON attachment (R9.A.7).
 > **Связанные:** [requirements.md](../requirements.md) R9.A.1, R9.A.5;
 > [sdk-reference.md](../sdk-reference.md); [ADR-9](../adr/ADR-9-sdk-contracts.md).
 
@@ -24,33 +28,36 @@ authed.POST("/tokens/anthropic", tokenRequester.RequestAnthropicToken)
    rate-limit).
 2. **Credentials хранятся plaintext** в `auths.content` (jsonb без шифрования).
 
-### Почему мы пошли иначе
+### Рассматриваемый post-v1 вариант
 
 | Аспект | CLIProxyAPIBusiness | CLIProxyNew | Решение |
 |--------|---------------------|-------------|---------|
-| Login-flow | Переиспользует `ManagementTokenRequester` ядра | Своя реализация над низкоуровневыми сервисами | ✅ Обосновано multi-replica |
-| `Manager.Login()` | ❌ не используется (даже ядром из HTTP) | ❌ не используется | ✅ Посылка подтверждена |
-| Session store | In-memory + файл callback | **Postgres** `oauth_sessions` | ✅ Multi-replica работает |
-| Multi-replica | ❌ Не работает | ✅ Решено | ✅ Наше преимущество |
-| Шифрование credentials | Plaintext jsonb | **AES-256-GCM** (R5) | ✅ Строже ради compliance |
+| Login-flow | Переиспользует `ManagementTokenRequester` ядра | В v1 отложен; кандидат — публичные SDK contracts | Требует отдельного решения |
+| `Manager.Login()` | ❌ не используется (даже ядром из HTTP) | ❌ не используется | Не подходит management API |
+| Session store | In-memory + файл callback | Кандидат post-v1: PostgreSQL | Не реализовано |
+| Multi-replica | ❌ Не работает | Должен сохраняться будущим дизайном | Acceptance criterion |
+| Шифрование credentials | Plaintext jsonb | **AES-256-GCM** (R5) уже используется Store | Обязательное ограничение |
 
-### Цена нашего подхода
+### Цена возможного подхода
 
 - Больше кода: per-provider логика PKCE/device поверх `claude.NewClaudeAuth`,
   `codex.NewCodexAuth`, `kimi.NewKimiAuth`, `xaiauth.NewXAIAuth`,
   `antigravity.NewAntigravityAuth`.
 - Поддержка при апгрейдах ядра: если ядро меняет сигнатуры низкоуровневых
   сервисов, наша обёртка требует правок (в отличие от re-export'а handlers).
-- Принято сознательно: multi-replica в k8s — базовое требование R6.2, и
-  откладывать это на «sticky-session MVP» создаст миграционный долг.
+- При будущем выборе multi-replica в k8s остаётся базовым требованием R6.2;
+  sticky-session не считается допустимой заменой внешнего session state.
 
-### Что переиспользуем из ядра
+### Что потенциально можно переиспользовать из ядра
 
-Хотя login-flow свой, низкоуровневые хелперы берём из `sdk/api/management.go`:
+Исторический вариант предполагал helpers из `sdk/api/management.go`:
 - `RegisterOAuthSession`, `IsOAuthSessionPending`, `CompleteOAuthSession`,
   `CancelOAuthSession` — базовые операции (мапим на Postgres вместо in-memory).
 - `WriteOAuthCallbackFileForPendingSession`, `ValidateOAuthState`,
   `NormalizeOAuthProvider` — утилиты валидации/нормализации.
+
+Этот список не является разрешением импортировать upstream `internal/*` и
+должен быть заново проверен по публичному API актуальной версии SDK.
 
 ---
 
@@ -71,12 +78,12 @@ authed.POST("/tokens/anthropic", tokenRequester.RequestAnthropicToken)
 
 Ядро уже имеет асинхронные management-handlers (`/v0/management/*-auth-url`),
 но их OAuth-сессии — **in-memory в одной реплике**. В multi-replica (R6.2)
-replica A стартует flow, replica B не может завершить. Поэтому бизнес-слой
-реализует свою версию с **Postgres-хранилищем сессий**.
+replica A стартует flow, replica B не может завершить. Возможный post-v1 flow
+должен решить это через внешний session state; текущий v1 его не реализует.
 
 ---
 
-## R9.A.1 — OAuth login-flow
+## R9.A.1 — OAuth login-flow (future design, не текущий API)
 
 ### Два режима по провайдеру
 
@@ -150,7 +157,7 @@ sequenceDiagram
     API-->>A: 200 status completed account_id
 ```
 
-### Эндпоинты
+### Предлагаемые post-v1 эндпоинты
 
 | Метод | Путь | Назначение |
 |-------|------|-----------|
@@ -160,7 +167,7 @@ sequenceDiagram
 | `GET` | `/api/v1/admin/oauth/sessions` | Список активных (admin overview) |
 | `DELETE` | `/api/v1/admin/oauth/sessions/{state}` | Отмена flow |
 
-### Component: `internal/auth/oauth`
+### Предлагаемый component: `internal/auth/oauth`
 
 ```go
 // internal/auth/oauth/manager.go

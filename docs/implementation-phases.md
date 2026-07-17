@@ -1,10 +1,10 @@
 # План имплементации CLIProxyNew по фазам
 
-> **Статус:** Ф0–Ф7 и текущий production v1 scope закрыты; пять расширений,
+> **Статус:** Ф0–Ф7 и текущий production v1 scope закрыты; четыре расширения,
 > зависящих от отсутствующих публичных SDK hooks, остаются неблокирующим backlog.
 > **Текущий scope:** бизнес-слой R1–R12 и автоматизированный release hardening.
-> Provider-specific OAuth flows и другие SDK-зависимые расширения не реализуются
-> до появления подходящих публичных контрактов.
+> Provider-specific interactive OAuth login отложен в post-v1 по продуктовому
+> решению; v1 поддерживает JSON import/export готовых credentials.
 > **Связанные:** [requirements.md](requirements.md), [architecture-principles.md](architecture-principles.md),
 > [architecture.md](architecture.md), [database-schema.md](database-schema.md).
 
@@ -167,10 +167,10 @@ hit/miss и invalidation покрыты тестами. SLA hit ratio прове
   - [x] `/api/v1/me/keys` CRUD (R9.U.2; create/list/revoke)
   - [x] `/api/v1/me/usage` (R9.U.3; totals, модели и API-ключи за период)
   - [x] `/api/v1/admin/users`, `/api/v1/admin/keys` (R9.A.3; users list/status + all-keys)
-- **Вне текущего scope / SDK-blocked:** provider-specific R9.A.1 callback/device
-  OAuth flows. PostgreSQL lifecycle и typed admin list/get/cancel готовы, но
-  public SDK v7.2.80 не предоставляет async flow с внешним session store;
-  импорт upstream `internal/*` запрещён R12
+- **Отложено post-v1:** provider-specific R9.A.1 callback/device OAuth login.
+  Это явное ограничение продукта, а не незакрытый blocker v1. PostgreSQL
+  lifecycle и typed admin list/get/cancel сохранены как инфраструктурный задел;
+  import upstream `internal/*` запрещён R12
 - [x] R9.A.5 testing: `internal/auth/testing` (Checker) — OAuth через
   `Refresh` с persistence обновлённого Auth, API-key через `HttpRequest` к
   provider metadata endpoint; `POST /api/v1/admin/accounts/{accountID}/test`
@@ -184,9 +184,10 @@ hit/miss и invalidation покрыты тестами. SLA hit ratio прове
 - [x] R9.A.6 allow-list моделей + provider selection (через model_overrides;
   admin read/upsert/delete с audit, OpenAPI и HTTP tests). `upstream_model`
   хранится как desired mapping до публичного SDK hook для downstream rewrite.
-- [x] R9.A.7 export/import OAuth JSON: export attachment с audit; import с
-  лимитом тела, проверкой OAuth/email, dedup `provider+email`, SDK-managed ID
-  и транзакционным audit при Store.Save
+- [x] R9.A.7 export/import OAuth JSON: export attachment с audit; import через
+  `application/json` body или multipart JSON-файл `file`, с лимитом credential
+  1 MiB, проверкой OAuth/email, dedup `provider+email`, SDK-managed ID и
+  транзакционным audit при Store.Save
 - [x] `admin_audit_log` writing на все mutating admin-действия: статус
   пользователя, upstream credentials, model overrides и отмена OAuth-сессий;
   транзакционные integration tests подтверждают domain state и audit record
@@ -201,7 +202,7 @@ hit/miss и invalidation покрыты тестами. SLA hit ratio прове
 **Acceptance текущего scope:** реализованные R9-функции работают через REST,
 OpenAPI спецификация валидируется, drift-check с кодом проходит,
 `admin_audit_log` покрывает mutating actions. Provider OAuth flows не являются
-блокером этого инкремента.
+блокером этого инкремента и явно отложены post-v1.
 
 ---
 
@@ -308,14 +309,19 @@ job; текущий production v1 scope готов к release review.
 
 Нет. Release-gates текущего production v1 scope автоматизированы и закрыты.
 
+### Отложено post-v1 (не blocker)
+
+- [ ] **Ф4 / R9.A.1:** provider-specific interactive OAuth callback/device
+  login. Текущий v1 принимает готовый credential через JSON POST или multipart
+  file import; будущий login-flow требует отдельного product/architecture
+  решения и повторной сверки публичного SDK.
+
 ### С внешними блокерами
 
 - [ ] **Ф3 / R9.A.6:** runtime rewrite `model_overrides.upstream_model` ждёт
   публичный SDK hook для преобразования downstream/upstream model.
 - [ ] **Ф3 / R7:** прямой DB-push `AuthUpdate` в watcher queue ждёт публичный
   SDK тип обновления; сейчас используется controlled restart по DB revision.
-- [ ] **Ф4 / R9.A.1:** provider-specific OAuth callback/device flows ждут
-  публичный асинхронный SDK flow с внешним PostgreSQL session store.
 - [ ] **Ф6 / R7.3:** специализированные refresh success/failure metrics ждут
   публичный business lifecycle hook для refresh.
 - [ ] **Ф6 / Tracing:** вложенный OpenTelemetry span вокруг SDK Execute ждёт
@@ -338,7 +344,7 @@ scope.
 | Ф1 Persistence | Закрыта | 1–2 нед | Ф0 | БД + Store + шифрование |
 | Ф2 Auth | Закрыта | 2 нед | Ф1 | LDAP + session + API-keys |
 | Ф3 Contracts ADR-9 | Закрыта в доступном SDK scope | 2 нед | Ф1 | 7 контрактов + запуск; 2 SDK-blocked расширения |
-| Ф4 Management API | Закрыта в текущем scope | 3–4 нед | Ф2, Ф3 | R9 + OpenAPI; provider OAuth SDK-blocked |
+| Ф4 Management API | Закрыта в текущем scope | 3–4 нед | Ф2, Ф3 | R9 + OpenAPI; JSON import/export, interactive OAuth post-v1 |
 | Ф5 R10 system proxy | Закрыта | 1 нед | Ф3 | Proxy policy через окружение процесса |
 | Ф6 Observability + k8s | Закрыта в доступном SDK scope | 2 нед | Ф4, Ф5 | Prod deployment + metrics/traces/OpenAPI docs; 2 SDK-blocked расширения |
 | Ф7 Testing + Hardening | Закрыта | 2 нед | Ф6 | Automated gates, load/SLA, operations и chaos/failover |
@@ -352,8 +358,8 @@ scope.
 - Redis (ADR-8 — Postgres достаточно на v1)
 - Fork/patch ядра (ADR-1)
 - Поддержка Home-режима ядра (не наш use-case)
-- Provider-specific OAuth callback/device flows до появления публичного SDK
-  контракта для внешнего session store
+- Provider-specific interactive OAuth callback/device login (отдельная post-v1
+  итерация; текущий v1 использует импорт готового credential)
 
 ## История
 - 2026-07-12 — план зафиксирован; scope v1 = всё из R1–R12 (кроме явных «не делаем»).
@@ -412,8 +418,9 @@ scope.
   security audit, PostgreSQL integration и full-race CI jobs перед build;
   OAuth provider flows и release-operations gates вынесены из текущего scope.
 - 2026-07-16 — актуализирован статус фаз: Ф0–Ф5 закрыты, Ф6–Ф7 разделены на
-  выполнимые release-operations задачи и пять расширений, заблокированных
-  отсутствующими публичными SDK-контрактами.
+  выполнимые release-operations задачи и пять расширений, которые на тот момент
+  были отнесены к отсутствующим публичным SDK-контрактам; OAuth позднее
+  переведён в явный post-v1 scope.
 - 2026-07-16 — Ф7 progress: verified API-key cache по SHA-256 отпечатку
   устраняет повторный bcrypt; добавлен обязательный non-race E2E SLA gate на
   4 worker / 200 запросов с business p95 ≤5мс и cache hit ratio ≥95%.
@@ -428,3 +435,7 @@ scope.
 - 2026-07-17 — Ф7 и production v1 scope закрыты: advisory leader handoff и
   multi-process SDK runtime replica failover добавлены отдельным обязательным
   CI job; SDK-blocked расширения оставлены неблокирующим backlog.
+- 2026-07-17 — R9.A.1 переведён из SDK-blocked backlog в явный post-v1 scope.
+  R9.A.7 расширен загрузкой JSON-файла через multipart-поле `file` при
+  сохранении `application/json` POST, общего лимита 1 MiB и единого audit
+  pipeline; список внешних SDK blockers сокращён до четырёх.
