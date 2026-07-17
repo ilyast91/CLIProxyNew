@@ -58,5 +58,10 @@ fi
 fail_on_git_grep '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----' 'private key material detected' . ':!scripts/security-audit.sh'
 fail_on_git_grep '(^|[^[:alnum:]_])(fmt|log)\.Print(f|ln)?\(' 'unstructured runtime printing detected' ':(glob)cmd/**/*.go' ':(glob)internal/**/*.go' ':(exclude,glob)**/*_test.go'
 fail_on_git_grep 'slog\.(Debug|Info|Warn|Error)\(.*(os\.Getenv|StaticPassword|BindPassword|Credentials|RefreshToken|AccessToken|APIKey)' 'potential sensitive slog payload detected' ':(glob)cmd/**/*.go' ':(glob)internal/**/*.go' ':(exclude,glob)**/*_test.go'
+fail_on_git_grep '(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)' 'external CDN runtime dependency detected' ':(glob)cmd/**' ':(glob)internal/**' ':(exclude,glob)**/*_test.go' ':(glob).github/workflows/**' Dockerfile ':(glob)deploy/**' ':(glob)scripts/**' ':(exclude)scripts/security-audit.sh'
+fail_on_git_grep '<(script|link|img)[^>]+(src|href)="https?://' 'remote browser asset detected' ':(glob)cmd/**' ':(glob)internal/**' ':(exclude,glob)**/*_test.go' ':(glob)deploy/**'
+fail_on_git_grep '(https?://[^" ]+\.(js|css|woff2?|ttf|otf)([?#][^" ]*)?|url\([^)]*https?://)' 'remote static resource URL detected' ':(glob)cmd/**' ':(glob)internal/**' ':(exclude,glob)**/*_test.go' ':(glob).github/workflows/**' Dockerfile ':(glob)deploy/**'
+fail_on_git_grep 'github\.com/swaggest/swgui/v[[:digit:]]+cdn' 'CDN package for Swagger UI detected' ':(glob)cmd/**' ':(glob)internal/**' ':(exclude,glob)**/*_test.go'
+fail_on_git_grep 'swguicdn' 'CDN build tag for Swagger UI detected' ':(glob)cmd/**' ':(glob)internal/**' ':(exclude,glob)**/*_test.go' ':(glob).github/workflows/**' Dockerfile ':(glob)deploy/**' ':(glob)scripts/**' ':(exclude)scripts/security-audit.sh'
 
 printf 'security source audit passed\n'

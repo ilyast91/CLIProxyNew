@@ -1382,7 +1382,7 @@ func (s *CurrentUserResponseRole) UnmarshalText(data []byte) error {
 // DeleteModelOverrideNoContent is response for DeleteModelOverride operation.
 type DeleteModelOverrideNoContent struct{}
 
-// Redoc HTML shell.
+// Swagger UI HTML.
 type DocsOK struct {
 	Data io.Reader
 }

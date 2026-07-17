@@ -1987,19 +1987,19 @@
     },
     "/docs": {
       "get": {
-        "description": "Redoc UI загружает актуальную спецификацию из `/openapi.json` (R11.4).",
+        "description": "Swagger UI с локальными embedded assets загружает актуальную спецификацию из `/openapi.json` (R6.6, R11.4).",
         "operationId": "docs",
         "responses": {
           "200": {
             "content": {
               "text/html": {
                 "schema": {
-                  "description": "Redoc HTML shell",
+                  "description": "Swagger UI HTML",
                   "type": "string"
                 }
               }
             },
-            "description": "HTML-страница Redoc"
+            "description": "HTML-страница Swagger UI"
           }
         },
         "security": [],

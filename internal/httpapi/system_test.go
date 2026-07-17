@@ -68,7 +68,7 @@ func TestOpenAPIRouterConfiguratorServesEmbeddedDocument(t *testing.T) {
 	}
 }
 
-func TestOpenAPIRouterConfiguratorServesDocumentationUI(t *testing.T) {
+func TestOpenAPIRouterConfiguratorServesDocumentationRoot(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	OpenAPIRouterConfigurator([]byte(`{"openapi":"3.1.0"}`))(router, nil, nil)
@@ -79,16 +79,55 @@ func TestOpenAPIRouterConfiguratorServesDocumentationUI(t *testing.T) {
 	if response.Code != http.StatusOK {
 		t.Fatalf("docs status=%d body=%q", response.Code, response.Body.String())
 	}
-	if contentType := response.Header().Get("Content-Type"); contentType != "text/html; charset=utf-8" {
+	if !strings.Contains(response.Body.String(), `/docs/swagger-ui-bundle.js`) {
+		t.Fatalf("docs body does not contain local Swagger UI asset: %s", response.Body.String())
+	}
+}
+
+func TestOpenAPIRouterConfiguratorServesEmbeddedDocumentationUI(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	OpenAPIRouterConfigurator([]byte(`{"openapi":"3.1.0"}`))(router, nil, nil)
+
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/docs/", nil))
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("docs status=%d body=%q", response.Code, response.Body.String())
+	}
+	if contentType := response.Header().Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
 		t.Fatalf("content type=%q", contentType)
 	}
 	for _, fragment := range []string{
-		`<redoc spec-url="/openapi.json"></redoc>`,
-		`https://cdn.jsdelivr.net/npm/redoc@2.5.0/bundles/redoc.standalone.js`,
+		`/docs/swagger-ui.css`,
+		`/docs/swagger-ui-bundle.js`,
+		`/openapi.json`,
+		`validatorUrl: null`,
 	} {
 		if !strings.Contains(response.Body.String(), fragment) {
 			t.Fatalf("docs body does not contain %q: %s", fragment, response.Body.String())
 		}
+	}
+	for _, fragment := range []string{`src="http://`, `src="https://`, `href="http://`, `href="https://`} {
+		if strings.Contains(response.Body.String(), fragment) {
+			t.Fatalf("docs body contains remote asset %q: %s", fragment, response.Body.String())
+		}
+	}
+}
+
+func TestOpenAPIRouterConfiguratorServesEmbeddedDocumentationAsset(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	OpenAPIRouterConfigurator([]byte(`{"openapi":"3.1.0"}`))(router, nil, nil)
+
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/docs/swagger-ui-bundle.js", nil))
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("asset status=%d body=%q", response.Code, response.Body.String())
+	}
+	if contentType := response.Header().Get("Content-Type"); !strings.Contains(contentType, "javascript") {
+		t.Fatalf("asset content type=%q", contentType)
 	}
 }
 

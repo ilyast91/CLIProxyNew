@@ -1,5 +1,8 @@
 # OpenAPI Docs Endpoint Design
 
+> **Superseded 2026-07-17:** CDN-based Redoc заменён на embedded Swagger UI.
+> Актуальное решение: `2026-07-17-offline-runtime-resources-design.md`.
+
 ## Цель
 
 Закрыть Ф6 `/docs` и Ф4 OpenAPI cleanup: предоставить браузерную документацию

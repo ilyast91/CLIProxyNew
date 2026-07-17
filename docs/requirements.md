@@ -257,6 +257,13 @@
   задокументированная restore-процедура.
 - R6.5 Observability: метрики (Prometheus), трейсинг (OpenTelemetry),
   структурные логи (`slog`).
+- R6.6 Приложение работает без неявных внешних runtime-ресурсов. UI/static
+  assets, шрифты, schemas и документация встраиваются в бинарник или deployment
+  artifact. Разрешены только явно настроенные PostgreSQL/LDAP/telemetry
+  endpoints, system proxy и upstream/provider APIs, составляющие функцию
+  сервиса. Опциональная интеграция не является условием startup/core API.
+  CDN, remote browser assets, phone-home, remote config, license-check и
+  скрытые SaaS-вызовы запрещены.
 - ✅ **Решено:** **без Redis** на данном этапе (ADR-8).
   ⚠️ Следствия для multi-replica (важно для дизайна):
   - **Session/token lookup** — каждый запрос читает сессию/API-key из Postgres.
@@ -492,8 +499,9 @@
   - **Системные роуты:** `/healthz`, `/readyz`, `/metrics` — описание без схем.
 - **R11.4** **Доступ к спецификации:** `/openapi.json` отдаёт JSON, встроенный
   в бинарник и сгенерированный из `openapi.yaml`; CI проверяет, что производный
-  документ не устарел. `/docs` отдаёт Redoc UI поверх `/openapi.json`; HTML
-  встроен в бинарник, pinned frontend bundle Redoc 2.5.0 загружается с jsDelivr.
+  документ не устарел. `/docs` отдаёт Swagger UI 5.32.8 поверх
+  `/openapi.json`; HTML и static assets встроены через
+  `github.com/swaggest/swgui/v5emb` без CDN (R6.6).
 - **R11.5** **CI-валидация:** спецификация валидируется на:
   - синтаксис OpenAPI 3.1 (lint: `spectral` или `vacuum`);
   - согласованность с Go-кодом (сгенерированные типы соответствуют спеке);
@@ -676,3 +684,6 @@
 - 2026-07-17 — **R11:** добавлен публичный `/docs` с Redoc 2.5.0 поверх
   встроенного `/openapi.json`; системный endpoint и описание `GET /api/v1/me`
   добавлены в source specification и generated artifacts.
+- 2026-07-17 — **R6.6/R11:** Redoc CDN заменён на embedded Swagger UI 5.32.8;
+  добавлен запрет неявных внешних runtime resources и source-audit gate для
+  CDN, remote browser assets и `swguicdn`.

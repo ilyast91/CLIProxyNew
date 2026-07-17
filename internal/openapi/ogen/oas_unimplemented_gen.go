@@ -55,8 +55,8 @@ func (UnimplementedHandler) DeleteModelOverride(ctx context.Context, params Dele
 
 // Docs implements docs operation.
 //
-// Redoc UI загружает актуальную спецификацию из `/openapi.json`
-// (R11.4).
+// Swagger UI с локальными embedded assets загружает актуальную
+// спецификацию из `/openapi.json` (R6.6, R11.4).
 //
 // GET /docs
 func (UnimplementedHandler) Docs(ctx context.Context) (r DocsOK, _ error) {

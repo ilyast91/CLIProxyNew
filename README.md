@@ -31,8 +31,8 @@
 - **Деплой:** k8s, multi-replica, stateless (без Redis на первой версии)
 
 Ключевые build-зависимости зафиксированы в `go.mod`: Gin 1.12.0, pgx 5.10.0,
-ogen 1.23.0, testcontainers 0.43.0. CI использует Go 1.26.5, GitHub Actions v7,
-Node.js 24 и Spectral CLI 6.16.1.
+ogen 1.23.0, testcontainers 0.43.0, swaggest/swgui 1.8.9. CI использует Go
+1.26.5, GitHub Actions v7, Node.js 24 и Spectral CLI 6.16.1.
 
 ## Структура
 
@@ -59,9 +59,12 @@ docs/            — требования, ADR, дизайн
 
 - `/openapi.json` — встроенный OpenAPI 3.1 JSON, сгенерированный из
   `openapi.yaml`;
-- `/docs` — Redoc UI поверх `/openapi.json`; frontend bundle Redoc 2.5.0
-  загружается с jsDelivr, поэтому машинная спецификация остаётся доступной и
-  без CDN.
+- `/docs` — Swagger UI 5.32.8 поверх `/openapi.json`; HTML, JS, CSS и favicon
+  встроены в Go-бинарник через `swaggest/swgui/v5emb` и не требуют CDN.
+
+Runtime не использует неявные внешние UI/static resources. Сетевые зависимости
+ограничены явно настроенной инфраструктурой и upstream/provider endpoints,
+которые составляют основную функцию сервиса.
 
 - [`docs/requirements.md`](docs/requirements.md) — требования R1–R12 (зафиксированы)
 - [`docs/architecture-principles.md`](docs/architecture-principles.md) — требования к архитектуре (принципы, quality attributes, SLA, тестирование)

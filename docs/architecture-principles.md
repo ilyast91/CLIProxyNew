@@ -24,6 +24,7 @@
 | **Stateless-first** | Всё состояние в Postgres. In-memory кэш — только за интерфейсом (`internal/cache`), с заделом под Redis. | R6.1, ADR-8 |
 | **Interface segregation** | Кэш, шифрование, репозитории — за интерфейсами. Реализация заменяема (Postgres ↔ ClickHouse, in-process ↔ Redis). | ADR-5, ADR-8 |
 | **Configuration over code** | Режим identity source, группы LDAP и allow-list моделей — в конфиге; system proxy задается стандартным окружением процесса. | R1, R9.A.6, R10 |
+| **Self-contained runtime** | UI/static assets, schemas и документация входят в binary/deployment artifact; неявные CDN/SaaS dependencies запрещены. | R6.6 |
 | **YAGNI** | Не реализуем квоты/rate-limit, UI, плагины на первой версии. Каждое новое требование проходит через «нужно ли это сейчас». | Роль репо |
 | **Idempotency** | Mutating-операции (OAuth Complete, Store.Save, audit log) безопасны при retry/duplicate. | R9.A.1 |
 
@@ -76,6 +77,7 @@ SLA на накладные расходы бизнес-слоя (без upstrea
 | Revocation latency | eventual consistency ≤ TTL кэша (5–15с) |
 | Audit completeness | 100% mutating admin-действий в `admin_audit_log` (append-only) |
 | No secret leakage | CI-проверка: grep секретов в логах/тестах; no `fmt.Println` credential |
+| No external UI assets | Source audit запрещает CDN hosts, remote script/style/font URLs, `swgui/v*cdn` и `swguicdn`; `/docs` работает offline |
 | SDK updateability | Patch/minor SDK проходит build, contract/race/integration gates; новый major — ADR и миграционный план | R12 |
 
 ### 2.5 Observability
@@ -159,7 +161,7 @@ graph TB
 | **Логирование** | structured `slog`; уровни Debug/Info/Warn/Error; **никогда** не логируем секреты |
 | **Контекст** | `context.Context` первым параметром во всех публичных методах; cancellation уважируется; для стриминга principal копируется в Record, не из ctx |
 | **Миграции** | `golang-migrate`, `YYYYMMDDHHMMSS_<name>.up.sql` + `.down.sql`; идемпотентные |
-| **API-контракт** | OpenAPI 3.1; spec-first (`openapi.yaml`); генерация типов из спеки; `/openapi.json` + Redoc `/docs`; ручные правки generated-кода не допускаются (R11) |
+| **API-контракт** | OpenAPI 3.1; spec-first (`openapi.yaml`); генерация типов из спеки; `/openapi.json` + embedded Swagger UI `/docs`; ручные правки generated-кода не допускаются (R11) |
 | **SDK-зависимость** | Только публичные `sdk/*` импорты; версия pinned в `go.mod`; обновление проходит R12 compatibility gate |
 
 ## 6. Cross-cutting concerns
@@ -171,7 +173,7 @@ graph TB
 | **Observability** | middleware + плагины | Сквозная инструментация; trace context через все слои |
 | **Security** | `internal/security`, `internal/access`, identity middleware | Шифрование за интерфейсом; проверка статуса и identity source на каждый запрос |
 | **Multi-tenancy** | плоская (R4) | `user_id` во всех таблицах; role guard в middleware |
-| **API-контракт (Swagger)** | `openapi.yaml` spec-first | OpenAPI 3.1; `/openapi.json` и Redoc `/docs`; код генерируется из спеки; CI lint + drift-check (R11) |
+| **API-контракт (Swagger)** | `openapi.yaml` spec-first | OpenAPI 3.1; `/openapi.json` и embedded Swagger UI `/docs`; код генерируется из спеки; CI lint + drift-check (R11) |
 | **SDK compatibility** | `go.mod`, `docs/sdk-reference.md`, 7 контрактов ADR-9 | Обновляемая внешняя зависимость без fork/internal-импортов (R12) |
 
 ## 7. Эволюция архитектуры
@@ -207,5 +209,8 @@ graph TB
   запросов; verified API-key cache устраняет повторный bcrypt, CI проверяет
   business p95 access+selector ≤5мс и cache hit ratio ≥95%.
 - 2026-07-17 — R11 serving завершён: `/openapi.json` остаётся машинным
-  контрактом, `/docs` предоставляет Redoc UI; оба маршрута описаны source spec
-  и защищены generation drift/HTTP tests.
+  контрактом, `/docs` предоставляет embedded Swagger UI; оба маршрута описаны
+  source spec и защищены generation drift/HTTP tests.
+- 2026-07-17 — принят self-contained runtime principle (R6.6): Swagger UI
+  assets встроены в binary, source audit блокирует CDN/remote browser assets и
+  CDN build tags.

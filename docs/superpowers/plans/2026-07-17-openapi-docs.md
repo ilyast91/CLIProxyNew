@@ -1,5 +1,8 @@
 # OpenAPI Docs Endpoint Implementation Plan
 
+> **Superseded 2026-07-17:** Redoc implementation заменена планом
+> `2026-07-17-offline-swagger-ui.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Добавить публичный Redoc endpoint `/docs`, описать его в OpenAPI и устранить warning отсутствующего description у `GET /api/v1/me`.

@@ -787,8 +787,8 @@ func (s *Server) handleDeleteModelOverrideRequest(args [1]string, argsEscaped bo
 
 // handleDocsRequest handles docs operation.
 //
-// Redoc UI загружает актуальную спецификацию из `/openapi.json`
-// (R11.4).
+// Swagger UI с локальными embedded assets загружает актуальную
+// спецификацию из `/openapi.json` (R6.6, R11.4).
 //
 // GET /docs
 func (s *Server) handleDocsRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {

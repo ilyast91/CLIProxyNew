@@ -59,8 +59,8 @@ type Invoker interface {
 	DeleteModelOverride(ctx context.Context, params DeleteModelOverrideParams) error
 	// Docs invokes docs operation.
 	//
-	// Redoc UI загружает актуальную спецификацию из `/openapi.json`
-	// (R11.4).
+	// Swagger UI с локальными embedded assets загружает актуальную
+	// спецификацию из `/openapi.json` (R6.6, R11.4).
 	//
 	// GET /docs
 	Docs(ctx context.Context) (DocsOK, error)
@@ -943,8 +943,8 @@ func (c *Client) sendDeleteModelOverride(ctx context.Context, params DeleteModel
 
 // Docs invokes docs operation.
 //
-// Redoc UI загружает актуальную спецификацию из `/openapi.json`
-// (R11.4).
+// Swagger UI с локальными embedded assets загружает актуальную
+// спецификацию из `/openapi.json` (R6.6, R11.4).
 //
 // GET /docs
 func (c *Client) Docs(ctx context.Context) (DocsOK, error) {

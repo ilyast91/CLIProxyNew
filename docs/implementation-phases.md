@@ -159,7 +159,7 @@ hit/miss и invalidation покрыты тестами. SLA hit ratio прове
 - [x] `openapi.yaml` — management-эндпоинты и полный proxy HTTP surface SDK
   v7.2.80 (27 method/path operations для `/v1`, `/openai/v1`,
   `/backend-api/codex`, `/v1beta`) описаны без дублирования upstream body-схем;
-  route matrix защищена embedded contract test; Redoc `/docs` закрыт в Ф6
+  route matrix защищена embedded contract test; Swagger UI `/docs` закрыт в Ф6
 - [x] Генерация typed bindings из `openapi.yaml`: `ogen` v1.23.0 через
   compatibility projection (ADR-11); контракт покрывает lifecycle management-сессии
   (`/api/v1/me`, `/api/v1/logout`); adapter существующих handlers — отдельный шаг
@@ -244,8 +244,11 @@ OpenAPI спецификация валидируется, drift-check с код
   и не раскрывает ошибку БД в ответе
 - [x] `/openapi.json`: встроенный JSON генерируется из `openapi.yaml` через
   `go generate ./internal/openapi`; CI пересоздаёт документ и проверяет drift
-- [x] `/docs`: встроенный Redoc HTML-shell поверх `/openapi.json`, pinned
-  frontend bundle Redoc 2.5.0 загружается с jsDelivr
+- [x] `/docs`: Swagger UI 5.32.8 и assets встроены в бинарник через
+  `swaggest/swgui/v5emb`; `/docs/` читает локальный `/openapi.json` без CDN
+- [x] R6.6 self-contained runtime: source audit запрещает CDN hosts, remote
+  browser assets и build tag `swguicdn`; разрешены только целевые и явно
+  настроенные external dependencies
 - [x] Dockerfile (multi-stage: build → distroless non-root runtime)
 - [x] k8s manifests: Deployment (≥2 replicas, HPA), ConfigMap (config.yaml),
   Secret reference (env), Service, Ingress, PDB и probes
@@ -431,3 +434,6 @@ scope.
 - 2026-07-17 — Ф6 закрыта в доступном SDK scope: добавлен `/docs` с Redoc
   поверх `/openapi.json`; Ф4 OpenAPI cleanup закрыт описанием `GET /api/v1/me`,
   Spectral warning `operation-description` устранён.
+- 2026-07-17 — hardening R6.6: Redoc CDN заменён на embedded Swagger UI
+  5.32.8 (`swaggest/swgui` v1.8.9); добавлен source audit нецелевых external
+  runtime resources.

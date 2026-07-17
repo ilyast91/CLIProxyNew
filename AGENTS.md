@@ -91,6 +91,11 @@ docs/            — требования (R1–R12), ADR-9/ADR-10, дизайн
   Блокировка пользователя — обратимая (users.status active/blocked).
 - **Логи:** `slog`. **Метрики:** Prometheus. **Трейсы:** OpenTelemetry.
 - **Без Redis** на первой версии (ADR-8).
+- **Без неявных внешних runtime-ресурсов:** UI/static assets, шрифты, схемы и
+  документация поставляются внутри бинарника/deployment artifact. Разрешены
+  только явно настроенные инфраструктурные зависимости и upstream/provider
+  endpoints, ради которых работает сервис. CDN и build tag `swguicdn`
+  запрещены; gate — `scripts/security-audit.sh`.
 - **Обновление SDK (R12):** только через публичные `sdk/*` пакеты и версию в
   `go.mod`; перед merge обновления обязательны `sdk-reference.md`,
   contract/integration/race проверки. Новый major — только с ADR.
@@ -137,6 +142,12 @@ go test ./...           # тесты
   используйте reflect-обходы. SDK обновляется отдельным reviewable изменением;
   patch/minor после `go test -race ./internal/sdkcontract` и compatibility
   gate, major — после ADR и миграционного плана.
+- **Runtime resources:** не добавляйте CDN, remote scripts/fonts/styles,
+  telemetry SaaS или другие неявные внешние зависимости. Новое внешнее
+  обращение допустимо только как явно настроенная часть основной функции
+  сервиса с описанным failure mode; optional integration не должна быть
+  обязательной для startup/core API. Phone-home, remote config и license-check
+  вызовы запрещены.
 
 ## Документация (читать перед sensitive правками)
 
@@ -185,3 +196,5 @@ go test ./...           # тесты
   NO_PROXY; `proxy.*` и per-account ProxyURL overrides удалены.
 - 2026-07-16 — dependency baseline обновлён: Go 1.26.5, CLIProxyAPI v7.2.80,
   ogen v1.23.0, pgx v5.10.0, Gin v1.12.0, testcontainers v0.43.0.
+- 2026-07-17 — добавлено правило self-contained runtime resources: Swagger UI
+  и другие static assets встраиваются, CDN/build tag `swguicdn` запрещены.

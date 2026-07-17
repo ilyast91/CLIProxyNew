@@ -43,7 +43,7 @@ servers:
     description: Relative (для работы за прокси/ingress)
 
 # ───────────────────────────────────────────────────────────────────────────
-# Теги для группировки эндпоинтов в Swagger UI / Redoc.
+# Теги для группировки эндпоинтов в Swagger UI.
 # ───────────────────────────────────────────────────────────────────────────
 tags:
   - name: System
@@ -647,17 +647,17 @@ paths:
     get:
       tags: [System]
       summary: Интерактивная документация API
-      description: Redoc UI загружает актуальную спецификацию из `/openapi.json` (R11.4).
+      description: Swagger UI с локальными embedded assets загружает актуальную спецификацию из `/openapi.json` (R6.6, R11.4).
       operationId: docs
       security: []
       responses:
         "200":
-          description: HTML-страница Redoc
+          description: HTML-страница Swagger UI
           content:
             text/html:
               schema:
                 type: string
-                description: Redoc HTML shell
+                description: Swagger UI HTML
 
   # ─────────────────────────────────────────────────────────────────────────
   # Proxy routes (R8, R11). Payload schemas intentionally stay in upstream SDK.
