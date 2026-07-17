@@ -119,6 +119,7 @@ go build ./...          # сборка
 go vet ./...            # статический анализ (всегда перед коммитом)
 go run ./cmd/cliproxy   # запуск
 go test ./...           # тесты
+./scripts/check-package-docs.sh # package godoc для всех Go-пакетов
 # sqlc:     sqlc generate        (после правки *.sql)
 # OpenAPI:  go generate ./internal/openapi/...  (после правки openapi.yaml)
 # миграции: migrate -path db/migrations -database "$DSN" up
@@ -173,6 +174,9 @@ go test ./...           # тесты
   — system proxy. **Читать перед:** правками HTTP transport/credentials.
 - [`docs/implementation-phases.md`](docs/implementation-phases.md) — план
   имплементации по фазам (Ф0–Ф7). **Читать перед:** началом работы над фазой.
+- [`docs/runbooks/`](docs/runbooks/) — runbooks обновления SDK, restore и
+  ротации секретов. **Читать перед:** production-операциями и изменением
+  версии SDK.
 
 ## Соглашения
 

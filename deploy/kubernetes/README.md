@@ -62,3 +62,14 @@ kubectl -n cliproxy rollout status deployment/cliproxy
 Для возврата к LDAP повторите процедуру в обратном порядке. Production всегда
 использует `auth.mode=ldap`; запуск с `static` дополнительно отклоняется самим
 приложением.
+
+## Операционные процедуры
+
+- [Восстановление PostgreSQL](../../docs/runbooks/postgres-restore.md)
+- [Ротация AES master-key](../../docs/runbooks/encryption-key-rotation.md)
+- [Ротация клиентского API-key](../../docs/runbooks/api-key-rotation.md)
+- [Ротация LDAP bind-password](../../docs/runbooks/ldap-bind-password-rotation.md)
+- [Обновление upstream SDK](../../docs/runbooks/sdk-upgrade.md)
+
+Runbooks требуют проверки в изолированной среде до production change. Secret
+values не записываются в Git, логи rollout или terminal transcript.

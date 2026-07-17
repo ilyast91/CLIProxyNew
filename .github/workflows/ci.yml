@@ -51,6 +51,9 @@ jobs:
       - name: go vet
         run: go vet ./...
 
+      - name: Package godoc
+        run: ./scripts/check-package-docs.sh
+
   # ─────────────────────────────────────────────────────────────────────────
   # Unit, behavioral ADR-9 contracts и консистентность модулей.
   # ─────────────────────────────────────────────────────────────────────────

@@ -1,11 +1,11 @@
 # План имплементации CLIProxyNew по фазам
 
-> **Статус:** Ф0–Ф6 закрыты в доступном SDK scope; Ф7 частично закрыта,
-> оставшиеся работы классифицированы ниже по наличию внешних блокеров.
+> **Статус:** Ф0–Ф6 закрыты в доступном SDK scope; Ф7 частично закрыта:
+> automated gates и operations/runbooks завершены, остаются chaos-проверки.
 > **Текущий scope:** бизнес-слой R1–R12 и автоматизированный release hardening.
 > Provider-specific OAuth flows и другие SDK-зависимые расширения не реализуются
-> до появления подходящих публичных контрактов; chaos и operational runbooks
-> доступны для следующего внутреннего инкремента.
+> до появления подходящих публичных контрактов; два chaos/failover gate
+> остаются следующим внутренним инкрементом.
 > **Связанные:** [requirements.md](requirements.md), [architecture-principles.md](architecture-principles.md),
 > [architecture.md](architecture.md), [database-schema.md](database-schema.md).
 
@@ -247,8 +247,8 @@ OpenAPI спецификация валидируется, drift-check с код
 - [x] `/docs`: Swagger UI 5.32.8 и assets встроены в бинарник через
   `swaggest/swgui/v5emb`; `/docs/` читает локальный `/openapi.json` без CDN
 - [x] R6.6 self-contained runtime: source audit запрещает CDN hosts, remote
-  browser assets и build tag `swguicdn`; разрешены только целевые и явно
-  настроенные external dependencies
+  browser assets, CDN-пакеты `swgui/v*cdn` и build tag `swguicdn`; разрешены
+  только целевые и явно настроенные external dependencies
 - [x] Dockerfile (multi-stage: build → distroless non-root runtime)
 - [x] k8s manifests: Deployment (≥2 replicas, HPA), ConfigMap (config.yaml),
   Secret reference (env), Service, Ingress, PDB и probes
@@ -285,9 +285,10 @@ traces идут в Jaeger/Tempo, graceful shutdown работает, `/openapi.j
 - [x] Security gate: tracked secret/key/binary scan, private-key markers,
   unstructured runtime printing, sensitive slog patterns и `govulncheck`
 - [x] Full race gate: `go test -race -timeout 15m ./...` до build
-- [ ] R12: runbook обновления SDK (release notes → upgrade branch →
+- [x] R12: runbook обновления SDK (release notes → upgrade branch →
   `sdk-reference.md` → contract/integration/race gates → rollback version)
-- [ ] Documentation: godoc для всех пакетов, README update, runbook (restore backup, rotate AES key, rotate API-key, rotate LDAP bind)
+- [x] Documentation: package godoc с CI gate, README update и runbooks для
+  restore backup, ротации AES key, API-key и LDAP bind-password
 - [x] Regression suite: отдельный non-race `Load/SLA regression` CI job входит
   в обязательные зависимости build
 - [ ] Chaos: kill leader → проверка failover; kill replica → сервис жив
@@ -296,8 +297,8 @@ traces идут в Jaeger/Tempo, graceful shutdown работает, `/openapi.j
 integration, static regression, coverage ≥ 70%, security audit и full race
 являются независимыми CI jobs; build зависит от каждого gate.
 
-**Оставшиеся release-operations gates:** chaos/failover и операционные
-runbooks. До их закрытия документ не объявляет production v1 ready.
+**Оставшиеся release-operations gates:** только chaos/failover. До их закрытия
+документ не объявляет production v1 ready.
 
 ---
 
@@ -312,14 +313,8 @@ runbooks. До их закрытия документ не объявляет pr
   cleanup job без одновременного выполнения двумя репликами.
 - [ ] **Ф7 / Chaos:** остановить одну runtime-реплику и подтвердить доступность
   inference и management health через оставшуюся реплику.
-- [ ] **Ф7 / R12:** оформить runbook обновления SDK: анализ release notes,
-  отдельная upgrade-ветка, актуализация `sdk-reference.md`, обязательные
-  compatibility/contract/integration/race/SLA gates и откат версии.
-- [ ] **Ф7 / Operations:** завершить godoc и README; добавить runbooks для
-  restore backup, ротации AES master-key с previous versions, клиентского
-  API-key и LDAP bind-password.
 
-Эти release-gates выполняются внутри бизнес-слоя и не требуют изменения
+Эти chaos-gates выполняются внутри business deployment и не требуют изменения
 публичного SDK-контракта. После их закрытия Ф7 может быть объявлена завершённой.
 
 ### С внешними блокерами
@@ -355,7 +350,7 @@ scope.
 | Ф4 Management API | Закрыта в текущем scope | 3–4 нед | Ф2, Ф3 | R9 + OpenAPI; provider OAuth SDK-blocked |
 | Ф5 R10 system proxy | Закрыта | 1 нед | Ф3 | Proxy policy через окружение процесса |
 | Ф6 Observability + k8s | Закрыта в доступном SDK scope | 2 нед | Ф4, Ф5 | Prod deployment + metrics/traces/OpenAPI docs; 2 SDK-blocked расширения |
-| Ф7 Testing + Hardening | Частично закрыта | 2 нед | Ф6 | Automated gates и load/SLA закрыты; chaos/runbooks остаются |
+| Ф7 Testing + Hardening | Частично закрыта | 2 нед | Ф6 | Automated gates, load/SLA и operations закрыты; остаётся chaos |
 | **Итого** | | **~16–19 нед** (1 dev) / **~8–10 нед** (2–3 dev) | | |
 
 ## Что НЕ в плане v1 (явные ограничения)
@@ -437,3 +432,5 @@ scope.
 - 2026-07-17 — hardening R6.6: Redoc CDN заменён на embedded Swagger UI
   5.32.8 (`swaggest/swgui` v1.8.9); добавлен source audit нецелевых external
   runtime resources.
+- 2026-07-17 — Ф7 Operations/R12 закрыты: добавлены SDK upgrade, PostgreSQL
+  restore и secret-rotation runbooks; package godoc защищён отдельным CI gate.

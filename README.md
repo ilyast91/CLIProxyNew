@@ -51,6 +51,7 @@ internal/        — бизнес-логика
   watcher/         WatcherFactory — poll БД + leader election
 db/migrations/   — SQL-миграции golang-migrate
 docs/            — требования, ADR, дизайн
+  runbooks/         — production-операции и обновление SDK
 ```
 
 ## Документация
@@ -73,6 +74,11 @@ Runtime не использует неявные внешние UI/static resour
 - [`docs/sdk-reference.md`](docs/sdk-reference.md) — референс публичного API CLIProxyAPI v7.2.80 и результат compatibility-сверки
 - [`docs/design/r9-oauth-and-testing.md`](docs/design/r9-oauth-and-testing.md) — дизайн OAuth login-flow и тестирования аккаунтов (R9.A.1, R9.A.5)
 - [`docs/implementation-phases.md`](docs/implementation-phases.md) — план имплементации по фазам (Ф0–Ф7)
+- [`docs/runbooks/sdk-upgrade.md`](docs/runbooks/sdk-upgrade.md) — обновление и rollback upstream SDK по R12
+- [`docs/runbooks/postgres-restore.md`](docs/runbooks/postgres-restore.md) — проверка backup и восстановление PostgreSQL
+- [`docs/runbooks/encryption-key-rotation.md`](docs/runbooks/encryption-key-rotation.md) — rolling-safe ротация AES master-key
+- [`docs/runbooks/api-key-rotation.md`](docs/runbooks/api-key-rotation.md) — ротация клиентского API-key
+- [`docs/runbooks/ldap-bind-password-rotation.md`](docs/runbooks/ldap-bind-password-rotation.md) — ротация LDAP bind-password
 - [`docs/adr/ADR-9-sdk-contracts.md`](docs/adr/ADR-9-sdk-contracts.md) — контракты интеграции с ядром (7 интерфейсов)
 - [`docs/adr/ADR-10-per-call-type-proxy.md`](docs/adr/ADR-10-per-call-type-proxy.md) — system egress proxy через окружение процесса
 - [`deploy/kubernetes/README.md`](deploy/kubernetes/README.md) — production baseline, Secret, migration и rollout в Kubernetes
@@ -80,6 +86,7 @@ Runtime не использует неявные внешние UI/static resour
 
 ## Статус
 
-Реализованы foundation, persistence, основные auth/core contracts, system proxy,
-management API и значительная часть observability. Текущий детальный статус и
-оставшиеся работы: [`docs/implementation-phases.md`](docs/implementation-phases.md).
+Ф0–Ф6 закрыты в доступном SDK scope. В Ф7 закрыты автоматизированные release
+gates, SDK/operations runbooks и package godoc; до production v1 остаются два
+chaos/failover gate. Детальный статус:
+[`docs/implementation-phases.md`](docs/implementation-phases.md).
